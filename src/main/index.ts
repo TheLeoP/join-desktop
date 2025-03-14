@@ -39,8 +39,8 @@ const redirectUri = 'http://127.0.0.1:9876'
 const oauth2Client = new google.auth.OAuth2(id, secret, redirectUri)
 google.options({ auth: oauth2Client })
 
-async function logInWithGoogle() {
-  if (Object.keys(oauth2Client.credentials).length !== 0) return
+async function logInWithGoogle(win: BrowserWindow) {
+  if (Object.keys(oauth2Client.credentials).length !== 0) return win.webContents.send('on-log-in')
 
   const scopes = [
     'openid',
@@ -76,8 +76,6 @@ async function logInWithGoogle() {
   oauth2Client.setCredentials(tokens)
   await afs.writeFile(tokenFile, JSON.stringify(tokens), 'utf-8')
 
-  const win = BrowserWindow.getFocusedWindow()
-  if (!win) throw new Error('There is no focused win')
   win.webContents.send('on-log-in')
 }
 
@@ -188,6 +186,7 @@ async function startPushReceiver(win: BrowserWindow) {
       const content = JSON.parse(data.json) as JoinContent
       const push = content.push
 
+      // TODO: support reading seatings and modyfing behaviour accordingly?
       let n: Notification | undefined
       switch (data.type) {
         case 'GCMPush':
@@ -262,6 +261,11 @@ function createWindow() {
     },
   })
 
+  m.handle('start-push-receiver', () => startPushReceiver(win))
+  m.on('log-in-with-google', () => {
+    logInWithGoogle(win)
+  })
+
   win.on('ready-to-show', async () => {
     win.show()
 
@@ -294,8 +298,6 @@ function createWindow() {
   } else {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
-
-  return win
 }
 
 // This method will be called when Electron has finished
@@ -312,14 +314,12 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  m.on('log-in-with-google', logInWithGoogle)
   m.handle('register-device', (_, name) => {
     return registerDevice(name)
   })
   m.handle('get-access-token', async () => (await oauth2Client.getAccessToken()).token)
 
-  const win = createWindow()
-  m.handle('start-push-receiver', () => startPushReceiver(win))
+  createWindow()
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
