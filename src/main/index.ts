@@ -1,4 +1,12 @@
-import { app, shell, BrowserWindow, ipcMain as m, clipboard, Notification } from 'electron'
+import {
+  app,
+  shell,
+  BrowserWindow,
+  ipcMain as m,
+  clipboard,
+  Notification,
+  nativeImage,
+} from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -146,6 +154,9 @@ type JoinContent = {
 }
 
 const notifications = new Map<string, Notification>()
+const join_icon = nativeImage
+  .createFromPath('src/renderer/src/assets/join.png')
+  .resize({ width: 50 })
 
 async function startPushReceiver(win: BrowserWindow) {
   const persistentIds = await new Promise<string[]>((res, rej) => {
@@ -186,19 +197,30 @@ async function startPushReceiver(win: BrowserWindow) {
       const content = JSON.parse(data.json) as JoinContent
       const push = content.push
 
-      // TODO: support reading seatings and modyfing behaviour accordingly?
+      // TODO: support reading settings and modyfing behaviour accordingly?
       let n: Notification | undefined
       switch (data.type) {
         case 'GCMPush':
           if (push.clipboard) {
             clipboard.writeText(push.clipboard)
-            n = new Notification({ title: 'Clipboard set' })
+            n = new Notification({
+              title: 'Clipboard set',
+              icon: join_icon,
+            })
           } else if (push.url) {
             shell.openExternal(push.url)
-            n = new Notification({ title: 'Openning url', body: push.url })
+            n = new Notification({
+              title: 'Openning url',
+              body: push.url,
+              icon: join_icon,
+            })
           } else if (push.files && push.files.length > 0) {
             // TODO: maybe handle base64 images?
-            n = new Notification({ title: 'Received files', body: 'Openning now...' })
+            n = new Notification({
+              title: 'Received files',
+              body: 'Openning now...',
+              icon: join_icon,
+            })
             push.files
               .filter((file) => file.startsWith('https://'))
               .forEach((file) => {
@@ -207,21 +229,30 @@ async function startPushReceiver(win: BrowserWindow) {
           } else if (push.location) {
             // doesn't work in Electron because it needs a Google API_KEY with location API access
             // see https://github.com/electron/electron/pull/22034
-            n = new Notification({ title: 'Location Requested not supported' })
+            n = new Notification({
+              title: 'Location Requested not supported',
+              icon: join_icon,
+            })
           } else if (push.say) {
             win.webContents.send('on-speak', push.say, push.language)
             n = new Notification({
               title: `Saying Out Loud${push.language ? ` with language ${push.language}` : ''}`,
               body: push.say,
+              icon: join_icon,
             })
           } else if (push.title) {
             n = new Notification({
               title: push.title,
               body: push.text,
+              icon: join_icon,
             })
           } else {
             // TODO: do something else?
-            n = new Notification({ title: 'Join', body: 'Receive push' })
+            n = new Notification({
+              title: 'Join',
+              body: 'Receive push',
+              icon: join_icon,
+            })
           }
           break
         case 'GCMNotificationClear':

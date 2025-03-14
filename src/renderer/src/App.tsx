@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query'
-import { removeListener } from 'process'
 import { useEffect, useState } from 'react'
 
 function useDeviceId() {
