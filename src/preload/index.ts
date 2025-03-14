@@ -1,0 +1,54 @@
+import { contextBridge, ipcRenderer as r } from 'electron'
+import { electronAPI } from '@electron-toolkit/preload'
+
+// Custom APIs for renderer
+export const api = {
+  logInWithGoogle: () => r.send('log-in-with-google'),
+  startPushReceiver: () => r.invoke('start-push-receiver'),
+  registerDevice: (name: string) => r.invoke('register-device', name),
+  isLoggedInWithGoogle: () => r.invoke('is-logged-in-with-google'),
+  getAccessToken: () => r.invoke('get-access-token'),
+
+  // TODO: add refactoring scope for this
+  // TODO: don't expand for snippet on comments or strings
+
+  onDeviceId: (cb: (deviceId: string) => void) => {
+    const f = (_, deviceId: string) => cb(deviceId)
+
+    r.on('on-device-id', f)
+    return () => {
+      r.off('on-device-id', f)
+    }
+  },
+  onLogIn: (cb: () => void) => {
+    const f = (_) => cb()
+    r.on('on-log-in', f)
+    return () => {
+      r.off('on-log-in', f)
+    }
+  },
+  onSpeak: (cb: (say: string, language: string | undefined) => void) => {
+    const f = (_, say: string, language: string) => cb(say, language)
+    r.on('on-speak', f)
+    return () => {
+      r.off('on-speak', f)
+    }
+  },
+}
+
+// Use `contextBridge` APIs to expose Electron APIs to
+// renderer only if context isolation is enabled, otherwise
+// just add to the DOM global.
+if (process.contextIsolated) {
+  try {
+    contextBridge.exposeInMainWorld('electron', electronAPI)
+    contextBridge.exposeInMainWorld('api', api)
+  } catch (error) {
+    console.error(error)
+  }
+} else {
+  // @ts-ignore (define in dts)
+  window.electron = electronAPI
+  // @ts-ignore (define in dts)
+  window.api = api
+}
