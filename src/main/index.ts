@@ -6,6 +6,8 @@ import {
   clipboard,
   Notification,
   nativeImage,
+  Tray,
+  Menu,
 } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -23,6 +25,9 @@ const credentialsFile = `${dataDir}/credentials.json`
 const persistentIdsFile = `${dataDir}/persistentIds.json`
 const tokenFile = `${dataDir}/token.json`
 const deviceIdFile = `${dataDir}/deviceId`
+const notificationIcon = nativeImage
+  .createFromPath('src/renderer/src/assets/join.png')
+  .resize({ width: 50 })
 
 const devices = {
   android_phone: 1,
@@ -154,9 +159,6 @@ type JoinContent = {
 }
 
 const notifications = new Map<string, Notification>()
-const join_icon = nativeImage
-  .createFromPath('src/renderer/src/assets/join.png')
-  .resize({ width: 50 })
 
 async function startPushReceiver(win: BrowserWindow) {
   const persistentIds = await new Promise<string[]>((res, rej) => {
@@ -205,21 +207,21 @@ async function startPushReceiver(win: BrowserWindow) {
             clipboard.writeText(push.clipboard)
             n = new Notification({
               title: 'Clipboard set',
-              icon: join_icon,
+              icon: notificationIcon,
             })
           } else if (push.url) {
             shell.openExternal(push.url)
             n = new Notification({
               title: 'Openning url',
               body: push.url,
-              icon: join_icon,
+              icon: notificationIcon,
             })
           } else if (push.files && push.files.length > 0) {
             // TODO: maybe handle base64 images?
             n = new Notification({
               title: 'Received files',
               body: 'Openning now...',
-              icon: join_icon,
+              icon: notificationIcon,
             })
             push.files
               .filter((file) => file.startsWith('https://'))
@@ -231,27 +233,27 @@ async function startPushReceiver(win: BrowserWindow) {
             // see https://github.com/electron/electron/pull/22034
             n = new Notification({
               title: 'Location Requested not supported',
-              icon: join_icon,
+              icon: notificationIcon,
             })
           } else if (push.say) {
             win.webContents.send('on-speak', push.say, push.language)
             n = new Notification({
               title: `Saying Out Loud${push.language ? ` with language ${push.language}` : ''}`,
               body: push.say,
-              icon: join_icon,
+              icon: notificationIcon,
             })
           } else if (push.title) {
             n = new Notification({
               title: push.title,
               body: push.text,
-              icon: join_icon,
+              icon: notificationIcon,
             })
           } else {
             // TODO: do something else?
             n = new Notification({
               title: 'Join',
               body: 'Receive push',
-              icon: join_icon,
+              icon: notificationIcon,
             })
           }
           break
@@ -278,7 +280,7 @@ async function startPushReceiver(win: BrowserWindow) {
   await instance.connect()
 }
 
-function createWindow() {
+function createWindow(tray: Tray) {
   // Create the browser window.
   const win = new BrowserWindow({
     width: 900,
@@ -297,7 +299,29 @@ function createWindow() {
     logInWithGoogle(win)
   })
 
+  const showMenu = Menu.buildFromTemplate([
+    {
+      label: 'Open',
+      role: 'unhide',
+      click: (item, win, event) => {
+        BrowserWindow.getAllWindows()[0]?.show()
+      },
+    },
+  ])
+  const hideMenu = Menu.buildFromTemplate([
+    {
+      label: 'Close',
+      role: 'hide',
+      click: (item, win, event) => {
+        win?.hide()
+      },
+    },
+  ])
+  win.on('hide', () => tray.setContextMenu(showMenu))
+  win.on('show', () => tray.setContextMenu(hideMenu))
+
   win.on('ready-to-show', async () => {
+    // TODO: hide by default?
     win.show()
 
     try {
@@ -331,10 +355,10 @@ function createWindow() {
   }
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  const tray = new Tray('src/renderer/src/assets/join.png')
+  tray.setToolTip('Join desktop app')
+
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
@@ -350,7 +374,7 @@ app.whenReady().then(() => {
   })
   m.handle('get-access-token', async () => (await oauth2Client.getAccessToken()).token)
 
-  createWindow()
+  createWindow(tray)
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
