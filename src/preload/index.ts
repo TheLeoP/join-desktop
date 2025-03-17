@@ -10,7 +10,6 @@ export const api = {
   getAccessToken: () => r.invoke('get-access-token'),
 
   // TODO: add refactoring scope for this
-  // TODO: don't expand for snippet on comments or strings
 
   onDeviceId: (cb: (deviceId: string) => void) => {
     const f = (_, deviceId: string) => cb(deviceId)

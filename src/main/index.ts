@@ -19,6 +19,9 @@ import { URL } from 'node:url'
 import { PushReceiver } from '@eneris/push-receiver'
 import { type Credentials } from '@eneris/push-receiver/dist/types'
 import { google } from 'googleapis'
+import * as https from 'node:https'
+
+const joinUrl = 'https://joinjoaomgcd.appspot.com/_ah/api'
 
 const dataDir = app.getPath('userData')
 const credentialsFile = `${dataDir}/credentials.json`
@@ -28,8 +31,17 @@ const deviceIdFile = `${dataDir}/deviceId`
 const notificationIcon = nativeImage
   .createFromPath('src/renderer/src/assets/join.png')
   .resize({ width: 50 })
+const batteryOkIcon = nativeImage
+  .createFromPath('src/renderer/src/assets/battery_ok.png')
+  .resize({ width: 50 })
+const batteryChargingIcon = nativeImage
+  .createFromPath('src/renderer/src/assets/battery_charging.png')
+  .resize({ width: 50 })
+const batteryLowIcon = nativeImage
+  .createFromPath('src/renderer/src/assets/battery_low.png')
+  .resize({ width: 50 })
 
-const devices = {
+const devicesTypes = {
   android_phone: 1,
   android_tablet: 2,
   chrome_browser: 3,
@@ -99,7 +111,6 @@ async function registerDevice(name: string) {
 
   if (!credentials) throw new Error('There are no credentials')
 
-  const joinUrl = 'https://joinjoaomgcd.appspot.com/_ah/api'
   const res = await fetch(`${joinUrl}/registration/v1/registerDevice`, {
     method: 'post',
     headers: {
@@ -111,7 +122,7 @@ async function registerDevice(name: string) {
       regId: credentials.fcm.token,
       regId2: credentials.fcm.token,
       deviceName: name,
-      deviceType: devices.firefox,
+      deviceType: devicesTypes.firefox,
     }),
   })
   const out = await res.json()
@@ -126,10 +137,16 @@ let credentials: Credentials | undefined
 
 type JoinData = {
   json: string
-  type: 'GCMPush' | 'GCMNotificationClear' | ''
+  type:
+    | 'GCMPush'
+    | 'GCMNotificationClear'
+    | 'GCMLocalNetworkRequest'
+    | 'GCMDeviceNotOnLocalNetwork'
+    | 'GCMStatus'
+    | ''
 }
 
-type JoinContent = {
+type Push = {
   push: {
     language: string | undefined
     say: string | undefined
@@ -145,7 +162,6 @@ type JoinContent = {
     find: boolean
     fromTasker: boolean
     id: string | undefined
-    notificationId: string | undefined // to clear notification
     localFilesChecked: boolean
     location: boolean
     next: boolean
@@ -158,8 +174,50 @@ type JoinContent = {
   }
 }
 
-const notifications = new Map<string, Notification>()
+type NotificationClear = {
+  requestNotification: {
+    deviceIds: string[]
+    requestId: string[]
+    senderId: string[]
+    notificationId: string | undefined
+  }
+}
 
+type LocalNetworkRequest = {
+  secureServerAddress: string | undefined // https Includes trailling `/`
+  senderId: string
+  serverAddress: string | undefined // http Includes trailling `/`
+  webSocketServerAddress: string | undefined // Includes trailling `/`
+}
+
+type DeviceNotOnLocalNetworkRequest = {
+  senderId: string
+}
+
+type DeviceStatus = {
+  alarmVolume: number
+  batteryPercentage: number
+  canChangeInterruptionFilter: boolean
+  charging: boolean
+  internalStorageAvailable: number
+  internalStorageTotal: number
+  interruptionFilter: number
+  maxAlarmVolume: number
+  maxMediaVolume: number
+  maxRingVolume: number
+  mediaVolume: number
+  ringVolume: number
+}
+type Status = {
+  deviceId: string
+  request: boolean
+  status: DeviceStatus
+}
+
+const notifications = new Map<string, Notification>()
+const devices = new Map<string, { secureServerAddress?: string }>()
+
+let lastBatteryNotification: Notification | undefined
 async function startPushReceiver(win: BrowserWindow) {
   const persistentIds = await new Promise<string[]>((res, rej) => {
     fs.readFile(persistentIdsFile, 'utf-8', (err, content) => {
@@ -196,13 +254,14 @@ async function startPushReceiver(win: BrowserWindow) {
     const rawData = notification.message.data
     if (rawData && rawData.json && typeof rawData.json === 'string') {
       const data = rawData as JoinData
-      const content = JSON.parse(data.json) as JoinContent
-      const push = content.push
+      const content = JSON.parse(data.json)
 
       // TODO: support reading settings and modyfing behaviour accordingly?
+      // TODO: support play/pause/volume and other things I'm not doing yet? Check the other repo. Is this a differnet kind of push?
       let n: Notification | undefined
       switch (data.type) {
-        case 'GCMPush':
+        case 'GCMPush': {
+          const push = (content as Push).push
           if (push.clipboard) {
             clipboard.writeText(push.clipboard)
             n = new Notification({
@@ -256,21 +315,117 @@ async function startPushReceiver(win: BrowserWindow) {
               icon: notificationIcon,
             })
           }
-          break
-        case 'GCMNotificationClear':
-          if (!push.notificationId) break
 
-          notifications.get(push.notificationId)?.close()
+          if (n) {
+            n.show()
+          }
+          if (n && push.id) {
+            notifications.set(push.id, n)
+            n.on('close', () => {
+              if (push.id) notifications.delete(push.id)
+            })
+          }
           break
-      }
-      if (n) {
-        n.show()
-      }
-      if (n && push.id) {
-        notifications.set(push.id, n)
-        n.on('close', () => {
-          if (push.id) notifications.delete(push.id)
-        })
+        }
+        case 'GCMNotificationClear': {
+          // TODO: not all notification clear contain this information, like
+          //
+          //'{"requestNotification":{"deviceIds":["161358ee94
+          // 5e4623bb91d6394477ef24","1d308d8af00040029c680c31091922f6","b
+          // 0b34f7c345f4ffd882af69d9c4405ea","9396b8fc718447f9871b7578a90
+          // edf6e","f8378458d99c4f95a4d750322c2c1d66","049ec31c6bc4468d95
+          // 9c3461cccae932"],"requestId":"batteryevent","senderId":"54d62
+          // 6ca229342bc8ae47db6a87aa02b"}}'
+          const req = (content as NotificationClear).requestNotification
+          if (!req.notificationId) break
+
+          notifications.get(req.notificationId)?.close()
+          break
+        }
+        case 'GCMLocalNetworkRequest': {
+          const localReq = content as LocalNetworkRequest
+          const url = localReq.secureServerAddress
+          const id = localReq.senderId
+          if (!url || !id) return
+
+          const body = JSON.stringify({
+            type: 'GCMLocalNetworkTest',
+            json: JSON.stringify({
+              type: 'GCMLocalNetworkTest',
+              senderID: deviceId,
+            }),
+          })
+
+          const token = await oauth2Client.getAccessToken()
+          const req = https.request(`${url}gcm?token=${token.token}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Content-Length': body.length,
+            },
+            rejectUnauthorized: false,
+            insecureHTTPParser: true,
+          })
+          req.on('response', (res) => {
+            if (!devices.has(id)) {
+              devices.set(id, { secureServerAddress: url })
+            } else if (devices.has(id)) {
+              const device = devices.get(id)
+              device!.secureServerAddress = url
+            }
+          })
+          req.on('error', (err) => {
+            if (devices.has(id)) {
+              const device = devices.get(id)
+              delete device?.secureServerAddress
+            }
+          })
+          req.write(body)
+          req.end()
+
+          break
+        }
+        case 'GCMDeviceNotOnLocalNetwork': {
+          const req = content as DeviceNotOnLocalNetworkRequest
+          const id = req.senderId
+          if (!devices.has(id)) return
+          devices.delete(id)
+          break
+        }
+        case 'GCMStatus': {
+          const statusWrapper = content as Status
+          if (statusWrapper.request) return
+          const status = statusWrapper.status
+
+          let n: Notification | undefined
+          if (status.batteryPercentage === 100) {
+            n = new Notification({
+              title: 'Battery charged',
+              body: 'Battery at 100%',
+              icon: batteryOkIcon,
+            })
+          } else if (status.charging) {
+            n = new Notification({
+              title: 'Battery charging',
+              body: `Battery at ${status.batteryPercentage}%`,
+              icon: batteryChargingIcon,
+            })
+          } else if (status.batteryPercentage <= 30 && !status.charging) {
+            n = new Notification({
+              title: 'Battery low',
+              body: `Battery at ${status.batteryPercentage}%`,
+              icon: batteryLowIcon,
+            })
+          }
+
+          if (n) {
+            if (lastBatteryNotification) lastBatteryNotification.close()
+            n.show()
+            lastBatteryNotification = n
+          }
+
+          break
+        }
       }
     }
 
@@ -379,7 +534,7 @@ app.whenReady().then(() => {
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().length === 0) createWindow(tray)
   })
 })
 
@@ -390,6 +545,10 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+app.on('certificate-error', (event, webContents, url, error, certificate, cb) => {
+  cb(true)
 })
 
 // In this file you can include the rest of your app's specific main process

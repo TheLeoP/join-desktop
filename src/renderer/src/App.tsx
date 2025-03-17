@@ -57,7 +57,7 @@ type Data<T> = {
   records: T[]
 }
 
-type Device = {
+type DeviceType = {
   id: string
   regId: string
   regId2: string
@@ -69,6 +69,48 @@ type Device = {
   hasTasker: boolean
 }
 
+function Volume({ max, initialValue, type }: { max: number; initialValue: number; type: string }) {
+  // TODO: make this actually change the value in the device
+  const [volume, setVolume] = useState(initialValue)
+
+  return (
+    <div className="flex space-x-1">
+      <img className="float-left w-5" src={`src/assets/${type}.svg`} />
+      <input
+        className="w-2/3"
+        type="range"
+        min={0}
+        max={max}
+        value={volume}
+        onChange={(e) => setVolume(+e.target.value)}
+      />
+      {volume}
+    </div>
+  )
+}
+
+function Device({
+  thisDeviceId,
+  deviceId,
+  id,
+  deviceType,
+  deviceName,
+}: DeviceType & { thisDeviceId: string | null }) {
+  const radioName = `do-not-disturb-${deviceId}`
+
+  return (
+    <div key={id} className="flex max-w-40 flex-col items-center">
+      <img
+        src={`src/assets/${ReverseDeviceType[deviceType]}.png`}
+        className="max-w-40 rounded-full bg-orange-300 p-2"
+      />
+      <h2 className="text-center text-2xl">
+        {thisDeviceId === deviceId ? `${deviceName} (this device)` : deviceName}
+      </h2>
+    </div>
+  )
+}
+
 function Devices() {
   const deviceId = useDeviceId()
 
@@ -77,7 +119,7 @@ function Devices() {
     error,
     isPending,
     isError,
-  } = useQuery<Data<Device>>({
+  } = useQuery<Data<DeviceType>>({
     queryKey: ['devices'],
     queryFn: async () => {
       const joinUrl = 'https://joinjoaomgcd.appspot.com/_ah/api'
@@ -100,19 +142,9 @@ function Devices() {
   }
 
   return (
-    <div className="flex space-x-1 flex-wrap">
+    <div className="flex flex-wrap space-x-1">
       {devices.records.map((device) => (
-        <div key={device.id} className="max-w-40">
-          <img
-            src={`src/assets/${ReverseDeviceType[device.deviceType]}.png`}
-            className="bg-orange-300 rounded-full p-2 max-w-40"
-          />
-          <h2 className="text-2xl text-center">
-            {deviceId === device.deviceId
-              ? `${device.deviceName} (this device)`
-              : device.deviceName}
-          </h2>
-        </div>
+        <Device key={device.id} {...device} thisDeviceId={deviceId} />
       ))}
     </div>
   )
@@ -143,7 +175,14 @@ function App(): JSX.Element {
   return (
     <>
       <Devices />
-      {!isLoggedIn && <button onClick={window.api.logInWithGoogle}>Log in with Google</button>}
+      {!isLoggedIn && (
+        <button
+          className="rounded-md bg-orange-200 p-2 text-2xl hover:bg-orange-300 active:bg-orange-400"
+          onClick={window.api.logInWithGoogle}
+        >
+          Log in with Google
+        </button>
+      )}
       {isLoggedIn && !deviceId && (
         <form
           onSubmit={async (e) => {
