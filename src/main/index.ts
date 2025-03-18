@@ -27,6 +27,7 @@ const dataDir = app.getPath('userData')
 const credentialsFile = `${dataDir}/credentials.json`
 const persistentIdsFile = `${dataDir}/persistentIds.json`
 const tokenFile = `${dataDir}/token.json`
+const devicesFile = `${dataDir}/devices.json`
 const deviceIdFile = `${dataDir}/deviceId`
 const notificationIcon = nativeImage
   .createFromPath('src/renderer/src/assets/join.png')
@@ -42,10 +43,29 @@ const batteryLowIcon = nativeImage
   .resize({ width: 50 })
 
 const notifications = new Map<string, Notification>()
-// TODO: persist to disk
-const devices = new Map<string, { secureServerAddress?: string }>()
+let devices: Map<string, { secureServerAddress?: string }>
 
 const mediaRequests = new Map<string, (mediaInfo: MediaInfo | null) => void>()
+
+function mapReplacer(key, value: []) {
+  if (value instanceof Map) {
+    return {
+      dataType: 'Map',
+      value: [...value],
+    }
+  } else {
+    return value
+  }
+}
+
+function mapReviver(key, value) {
+  if (typeof value === 'object' && value !== null) {
+    if (value.dataType === 'Map') {
+      return new Map(value.value)
+    }
+  }
+  return value
+}
 
 const devicesTypes = {
   android_phone: 1,
@@ -456,19 +476,21 @@ async function startPushReceiver(win: BrowserWindow) {
             rejectUnauthorized: false,
             insecureHTTPParser: true,
           })
-          req.on('response', (res) => {
+          req.on('response', async (res) => {
             if (!devices.has(id)) {
               devices.set(id, { secureServerAddress: url })
             } else if (devices.has(id)) {
               const device = devices.get(id)
               device!.secureServerAddress = url
             }
+            await afs.writeFile(devicesFile, JSON.stringify(devices, mapReplacer), 'utf-8')
           })
-          req.on('error', (err) => {
-            if (devices.has(id)) {
-              const device = devices.get(id)
-              delete device?.secureServerAddress
-            }
+          req.on('error', async (err) => {
+            if (!devices.has(id)) return
+
+            const device = devices.get(id)
+            delete device?.secureServerAddress
+            await afs.writeFile(devicesFile, JSON.stringify(devices, mapReplacer), 'utf-8')
           })
           req.write(body)
           req.end()
@@ -478,8 +500,12 @@ async function startPushReceiver(win: BrowserWindow) {
         case 'GCMDeviceNotOnLocalNetwork': {
           const req = content as DeviceNotOnLocalNetworkRequest
           const id = req.senderId
+
           if (!devices.has(id)) return
-          devices.delete(id)
+
+          const device = devices.get(id)
+          delete device?.secureServerAddress
+          await afs.writeFile(devicesFile, JSON.stringify(devices, mapReplacer), 'utf-8')
           break
         }
         case 'GCMStatus': {
@@ -608,6 +634,12 @@ function createWindow(tray: Tray) {
       oauth2Client.setCredentials(tokens)
       win.webContents.send('on-log-in')
     } catch {}
+    try {
+      const content = await afs.readFile(devicesFile, 'utf-8')
+      devices = JSON.parse(content, mapReviver)
+    } catch {
+      devices = new Map()
+    }
     try {
       const content = await afs.readFile(deviceIdFile, 'utf-8')
       thisDeviceId = content
