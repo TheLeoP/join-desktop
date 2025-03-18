@@ -108,6 +108,136 @@ function Volume({ max, initialValue, type }: { max: number; initialValue: number
   )
 }
 
+function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
+  const {
+    data: mediaInfo,
+    error,
+    isPending,
+    isError,
+    refetch,
+  } = useQuery<MediaInfo>({
+    refetchOnWindowFocus(query) {
+      return !query.state.error
+    },
+    retryOnMount: false,
+    staleTime: 60 * 1000,
+    retry: false,
+    queryKey: ['mediaInfo', deviceId, regId2],
+    queryFn: async () => {
+      return await window.api.media(deviceId, regId2)
+    },
+  })
+
+  let info
+  if (isPending) {
+    info = <div>Loading...</div>
+  } else if (isError) {
+    info = <div>Error: {error.message}</div>
+  } else {
+    info = (
+      <div className="space-y-1">
+        <Volume
+          initialValue={mediaInfo.extraInfo.mediaVolume}
+          max={mediaInfo.extraInfo.maxMediaVolume}
+          type="media"
+        />
+        {mediaInfo.mediaInfosForClients
+          .sort((a, b) => b.date - a.date)
+          .map((info) => (
+            <div key={info.packageName} className="rounded-sm bg-orange-100 p-1">
+              <h1 className="text-center text-xl underline">{info.appName}</h1>
+              {info.album && (
+                <div>
+                  <b>Album:</b> {info.album}
+                </div>
+              )}
+              <div>
+                <b>Artist:</b> {info.artist}
+              </div>
+              <div className="flex">
+                <button className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                    <path d="M19.496 4.136l-12 7a1 1 0 0 0 0 1.728l12 7a1 1 0 0 0 1.504 -.864v-14a1 1 0 0 0 -1.04 -.864z" />
+                    <path d="M4 4a1 1 0 0 1 .993 .883l.007 .117v14a1 1 0 0 1 -1.993 .117l-.007 -.117v-14a1 1 0 0 1 1 -1z" />
+                  </svg>
+                </button>
+
+                <button className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700">
+                  {info.playing ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                      <path d="M9 4h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h2a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2z" />
+                      <path d="M17 4h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h2a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2z" />
+                    </svg>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                      <path d="M6 4v16a1 1 0 0 0 1.24 .852l13 -8a1 1 0 0 0 0 -1.704l-13 -8a1 1 0 0 0 -1.524 .852z" />
+                    </svg>
+                  )}
+                </button>
+                <button className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                    <path d="M3 5v14a1 1 0 0 0 1.504 .864l12 -7a1 1 0 0 0 0 -1.728l-12 -7a1 1 0 0 0 -1.504 .864z" />
+                    <path d="M20 4a1 1 0 0 1 .993 .883l.007 .117v14a1 1 0 0 1 -1.993 .117l-.007 -.117v-14a1 1 0 0 1 1 -1z" />
+                  </svg>
+                </button>
+              </div>
+              <div>
+                <b>Track:</b> {info.track}
+              </div>
+            </div>
+          ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col items-center space-y-1">
+      {info}
+      <button
+        className="w-10 cursor-pointer bg-orange-100 stroke-black hover:stroke-gray-500 active:stroke-gray-700"
+        onClick={async () => await refetch()}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+          <path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" />
+          <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" />
+        </svg>
+      </button>
+    </div>
+  )
+}
+
 function Device({
   thisDeviceId,
   deviceId,
@@ -115,14 +245,6 @@ function Device({
   deviceType,
   deviceName,
 }: DeviceType & { thisDeviceId: string | null }) {
-  const [mediaInfo, setMediaInfo] = useState<MediaInfo | null>(null)
-  useEffect(() => {
-    const removeListener = window.api.onMedia(deviceId, (newMediaInfo) =>
-      setMediaInfo(newMediaInfo),
-    )
-    return () => removeListener()
-  }, [deviceId])
-
   return (
     <div className="flex max-w-40 flex-col items-center">
       <img
@@ -132,94 +254,7 @@ function Device({
       <h2 className="text-center text-2xl">
         {thisDeviceId === deviceId ? `${deviceName} (this device)` : deviceName}
       </h2>
-      <div className="flex flex-col items-center space-y-1">
-        {mediaInfo && (
-          <div className="space-y-1">
-            <Volume
-              initialValue={mediaInfo.extraInfo.mediaVolume}
-              max={mediaInfo.extraInfo.maxMediaVolume}
-              type="media"
-            />
-            {mediaInfo.mediaInfosForClients
-              .sort((a, b) => b.date - a.date)
-              .map((info) => (
-                <div key={info.packageName} className="rounded-sm bg-orange-100 p-1">
-                  <h1 className="text-center text-xl underline">{info.appName}</h1>
-                  {info.album && (
-                    <div>
-                      <b>Album:</b> {info.album}
-                    </div>
-                  )}
-                  <div>
-                    <b>Artist:</b> {info.artist}
-                  </div>
-                  <div className="flex">
-                    <button className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                      >
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                        <path d="M19.496 4.136l-12 7a1 1 0 0 0 0 1.728l12 7a1 1 0 0 0 1.504 -.864v-14a1 1 0 0 0 -1.04 -.864z" />
-                        <path d="M4 4a1 1 0 0 1 .993 .883l.007 .117v14a1 1 0 0 1 -1.993 .117l-.007 -.117v-14a1 1 0 0 1 1 -1z" />
-                      </svg>
-                    </button>
-
-                    <button className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700">
-                      {info.playing ? (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                        >
-                          <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                          <path d="M9 4h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h2a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2z" />
-                          <path d="M17 4h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h2a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2z" />
-                        </svg>
-                      ) : (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                        >
-                          <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                          <path d="M6 4v16a1 1 0 0 0 1.24 .852l13 -8a1 1 0 0 0 0 -1.704l-13 -8a1 1 0 0 0 -1.524 .852z" />
-                        </svg>
-                      )}
-                    </button>
-                    <button className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                      >
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                        <path d="M3 5v14a1 1 0 0 0 1.504 .864l12 -7a1 1 0 0 0 0 -1.728l-12 -7a1 1 0 0 0 -1.504 .864z" />
-                        <path d="M20 4a1 1 0 0 1 .993 .883l.007 .117v14a1 1 0 0 1 -1.993 .117l-.007 -.117v-14a1 1 0 0 1 1 -1z" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div>
-                    <b>Track:</b> {info.track}
-                  </div>
-                </div>
-              ))}
-          </div>
-        )}
-        <button
-          className="cursor-pointer rounded-md bg-gray-200 p-2 text-xl hover:bg-gray-300 active:bg-gray-400"
-          onClick={async () => {
-            window.api.media(deviceId, regId2)
-          }}
-        >
-          Media
-        </button>
-      </div>
+      <Media deviceId={deviceId} regId2={regId2} />
     </div>
   )
 }

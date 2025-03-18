@@ -41,6 +41,12 @@ const batteryLowIcon = nativeImage
   .createFromPath('src/renderer/src/assets/battery_low.png')
   .resize({ width: 50 })
 
+const notifications = new Map<string, Notification>()
+// TODO: persist to disk
+const devices = new Map<string, { secureServerAddress?: string }>()
+
+const mediaRequests = new Map<string, (mediaInfo: MediaInfo | null) => void>()
+
 const devicesTypes = {
   android_phone: 1,
   android_tablet: 2,
@@ -301,10 +307,6 @@ export type MediaInfo = {
   }[]
 }
 
-const notifications = new Map<string, Notification>()
-// TODO: persist to disk
-const devices = new Map<string, { secureServerAddress?: string }>()
-
 let lastBatteryNotification: Notification | undefined
 async function startPushReceiver(win: BrowserWindow) {
   const persistentIds = await new Promise<string[]>((res, rej) => {
@@ -531,9 +533,12 @@ async function startPushReceiver(win: BrowserWindow) {
               // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
               const text = await file.text()
               const mediaInfo = JSON.parse(text) as MediaInfo
-              response.request.deviceIds.forEach((deviceId) =>
-                win.webContents.send('on-media', deviceId, mediaInfo),
-              )
+              response.request.deviceIds.forEach((deviceId) => {
+                const mediaRequest = mediaRequests.get(deviceId)
+                if (!mediaRequest) return
+
+                mediaRequest(mediaInfo)
+              })
 
               break
             }
@@ -643,13 +648,34 @@ app.whenReady().then(() => {
   })
   // TODO: does this throw sometimes? Before login in?
   m.handle('get-access-token', async () => (await oauth2Client.getAccessToken()).token)
-  m.on('media', async (_, deviceId, regId) => {
+  m.handle('media', async (_, deviceId, regId) => {
     const device = devices.get(deviceId)
     if (device && device.secureServerAddress) {
-      // TODO:
+      const url = device.secureServerAddress
+      const token = await oauth2Client.getAccessToken()
+      const req = https.request(`${url}media?token=${token.token}`, {
+        rejectUnauthorized: false,
+        insecureHTTPParser: true,
+      })
+      req.end()
+      return new Promise((res, rej) => {
+        req.on('response', (resp) => {
+          resp.setEncoding('utf8')
+          const body: string[] = []
+          resp.on('data', (data) => {
+            body.push(data)
+          })
+          resp.on('end', () => {
+            const data = body.join()
+            res(JSON.parse(data).payload)
+          })
+        })
+        req.on('error', (err) => {
+          rej(err)
+        })
+      })
     } else {
-      // TODO: check if this errors
-      await fcm.projects.messages.send({
+      const res = await fcm.projects.messages.send({
         auth: jwtClient,
         parent: 'projects/join-external-gcm',
         requestBody: {
@@ -672,6 +698,19 @@ app.whenReady().then(() => {
             },
           },
         },
+      })
+
+      return await new Promise((res, rej) => {
+        const mediaRequest = mediaRequests.get(deviceId)
+        if (mediaRequest) mediaRequest(null)
+
+        mediaRequests.set(deviceId, (mediaInfo) => {
+          res(mediaInfo)
+        })
+        setTimeout(() => {
+          mediaRequests.delete(deviceId)
+          rej(new Error('Media request timed out'))
+        }, 10 * 1000)
       })
     }
   })

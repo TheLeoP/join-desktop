@@ -10,17 +10,7 @@ export const api = {
   isLoggedInWithGoogle: () => r.invoke('is-logged-in-with-google'),
   getAccessToken: () => r.invoke('get-access-token'),
 
-  media: (deviceId: string, regId: string) => r.send('media', deviceId, regId),
-  onMedia: (listeningDeviceId: string, cb: (mediaInfo: MediaInfo) => void) => {
-    const f = (_, receivedDeviceId: string, mediaInfo: MediaInfo) => {
-      if (listeningDeviceId === receivedDeviceId) cb(mediaInfo)
-    }
-
-    r.on('on-media', f)
-    return () => {
-      r.off('on-media', f)
-    }
-  },
+  media: (deviceId: string, regId: string) => r.invoke('media', deviceId, regId),
 
   // TODO: add refactoring scope for this
 
