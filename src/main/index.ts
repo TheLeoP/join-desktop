@@ -64,6 +64,43 @@ const redirectUri = 'http://127.0.0.1:9876'
 const oauth2Client = new google.auth.OAuth2(id, secret, redirectUri)
 google.options({ auth: oauth2Client })
 
+const email = 'fcm-sender@join-external-gcm.iam.gserviceaccount.com'
+const jwtSecret = `-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCybvuSZiNWISfi
+BiCMLXMtak93LGyE3faxnKg7TSvx19YJ0Stcofq7jyuehcHMhoksYVwSzdfYm8yV
+VIliNNVAysdI4bSELR8LTNF7wVzLi1UNfpjQGuxiWS0VIev1WuheqvHIbdiJtD38
+tQ89cGlKLiN5DizQD5cg6GGcyFwZv35jOQAIYuQhhJZWl8RRkemcndiZ+semmf6E
+TeSGnmbyFmhXyWySerdvyj+ZzvoPL4olo5deURlgoCg8uiv8ajVCOdOkOQ/E9J+n
+2yIwvjGk/VSeMxXpzQw+5Qj2/gvtz6ufAlIBDb4HpSsE7+Ui7er7BCjSLXdEpS4y
+3PsHKJodAgMBAAECggEAF0eolfCygo2/3Nrsyy0w3keFB6jpnaoyAflM77PBXIPK
+/qvmKudNRcRHrh6Iau1Qn1QyhZeKpk2pcwA9Dm2TNyldt9IO0cHrT3edyzYuq7XJ
+ioGuYVRp6+jzm1K6LOBH+fX2pq5CNrEn9z0OOHdenVmIskYZramjD52SArkXXxpn
+elFcAIbAaiqY1OBU0swGadXuhoeC5fqk8axGEF9ZXbf/utXD0mFqhFI3zz9x/gwY
+LzP5Fkd50UQmAb4PE+8q4etjCazvttr9864YlXMTKGwNx8Sh8SehDL4+B56pK1Kr
+ano0v+Fj0cHh/UJSJit4RXSJiuxxGGQ5IO7koTWYIQKBgQDjz2BpCZ7OgB2iYsi2
+xZEf8PWWXPpW2aYsn+KcTT4DA1L65aSaWRQVKBUUDHIT7cNzf+wjw7C7Y0ISG2yT
+MfgQbAZMCIzLV3GsM3kV6yqciQczGlp/TqdaJVnGGXPVe5P0sC/Bfwgoi02EkK1K
++rm/rE5ueT+eHwgxNXeWZcc/8QKBgQDIg3Gltsh8xoMcgbBA/poiCrxSklQ22jq8
+CqzyqrdUDC7pr5hp+DcEjOBiX3j5qp5diSoROrZmYW1go3MG5P6/HR7bitj4feW6
+Yl9vblHch9fTaFGsZMJwchjaaN+2RklYUZ6/Nhr4TCnKQgMOyaaCyzCwzDpE2GOX
+1Wktt8Do7QKBgQCKZF+4T6zW3AOks4glaG4aTmKTPtahzkTiFRswQshqQim1264c
+SgMmOxxa+piOvMEguFS3AVmq7MilgV17Kj79kvJcXFFT8kJPD1H+28ceIyxpghf6
+AMkvvUMFUk8JILKoUiQg01AceUvVPaLYyunuo/ldqXDZWRa79jQ4/ImHsQKBgEA1
+75/sr7ldbMElOsclgUBjhbk/iN5j9ikflhDD4J92o1NMWxecWCoJ3xVBk6EIJVy4
+vxLzZVPV4UvwK7bKgFW9QpN1nFO/JWERfZRWlLp1egUGRBlbzvRpZVIUAYgCbBxv
+TtHWxr46zasqhoYmxz7dSMNlM0e2r/YAboUocgtlAoGAZgaKi0hH/JW1cSGTfbMI
+1V4056YtrUgiX5AhKEtfC2sVLC5orwuZmJaa5JjdQT+2PnecMdDmatojDQjklE/e
+vrpopN2oeBDqVA+ofcpVsFxgLTlWRD5uKb027tAcneViRN2CNHlO/Cw4c8ZIG0xe
+QRBL0hYZ7DUaVIdmhvlALMw=
+-----END PRIVATE KEY-----`
+const jwtClient = new google.auth.JWT({
+  email,
+  key: jwtSecret,
+  scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
+})
+const fcm = google.fcm('v1')
+const drive = google.drive('v3')
+
 async function logInWithGoogle(win: BrowserWindow) {
   if (Object.keys(oauth2Client.credentials).length !== 0) return win.webContents.send('on-log-in')
 
@@ -71,6 +108,7 @@ async function logInWithGoogle(win: BrowserWindow) {
     'openid',
     'https://www.googleapis.com/auth/userinfo.email',
     'https://www.googleapis.com/auth/userinfo.profile',
+    'https://www.googleapis.com/auth/drive.readonly',
   ]
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
@@ -104,7 +142,7 @@ async function logInWithGoogle(win: BrowserWindow) {
   win.webContents.send('on-log-in')
 }
 
-let deviceId: string | undefined
+let thisDeviceId: string | undefined
 
 async function registerDevice(name: string) {
   const token = await oauth2Client.getAccessToken()
@@ -118,7 +156,7 @@ async function registerDevice(name: string) {
       Authorization: `Bearer ${token.token}`,
     },
     body: JSON.stringify({
-      deviceId: deviceId,
+      deviceId: thisDeviceId,
       regId: credentials.fcm.token,
       regId2: credentials.fcm.token,
       deviceName: name,
@@ -127,10 +165,10 @@ async function registerDevice(name: string) {
   })
   const out = await res.json()
   await afs.writeFile(deviceIdFile, out.deviceId, 'utf-8')
-  deviceId = out.deviceId
+  thisDeviceId = out.deviceId
   const win = BrowserWindow.getFocusedWindow()
   if (!win) throw new Error("There's no win")
-  win.webContents.send('on-device-id', deviceId)
+  win.webContents.send('on-device-id', thisDeviceId)
 }
 
 let credentials: Credentials | undefined
@@ -143,6 +181,7 @@ type JoinData = {
     | 'GCMLocalNetworkRequest'
     | 'GCMDeviceNotOnLocalNetwork'
     | 'GCMStatus'
+    | 'GCMRespondFile'
     | ''
 }
 
@@ -214,7 +253,56 @@ type Status = {
   status: DeviceStatus
 }
 
+const respondFileTypes = {
+  screenshot: 1,
+  video: 2,
+  sms_threads: 3,
+  sms_conversation: 4,
+  notifications: 5,
+  // NOTE: there doesn't seem to be a type for 6 (?
+  media_infos: 7,
+} as const
+type RespondFileTypes = typeof respondFileTypes
+
+type RespondFile = {
+  responseFile: {
+    description: string
+    downloadUrl: string
+    fileId: string
+    request: {
+      deviceIds: string[]
+      requestType: RespondFileTypes[keyof RespondFileTypes]
+      senderId: string
+      requestId: string
+    }
+    senderId: string
+    viewUrl: string
+    success: boolean
+    userAuthError: boolean
+  }
+}
+
+export type MediaInfo = {
+  extraInfo: {
+    maxMediaVolume: number
+    mediaVolume: number
+  }
+  mediaInfosForClients: {
+    appIcon: string
+    appName: string
+    artist: string
+    date: number
+    packageName: string
+    playing: boolean
+    track: string
+
+    art?: string
+    album?: string
+  }[]
+}
+
 const notifications = new Map<string, Notification>()
+// TODO: persist to disk
 const devices = new Map<string, { secureServerAddress?: string }>()
 
 let lastBatteryNotification: Notification | undefined
@@ -352,7 +440,7 @@ async function startPushReceiver(win: BrowserWindow) {
             type: 'GCMLocalNetworkTest',
             json: JSON.stringify({
               type: 'GCMLocalNetworkTest',
-              senderID: deviceId,
+              senderID: thisDeviceId,
             }),
           })
 
@@ -426,6 +514,32 @@ async function startPushReceiver(win: BrowserWindow) {
 
           break
         }
+        case 'GCMRespondFile': {
+          const response = (content as RespondFile).responseFile
+          switch (response.request.requestType) {
+            case respondFileTypes.media_infos: {
+              const fileId = new URL(response.downloadUrl).searchParams.get('id')
+              if (!fileId) break
+
+              const file = (
+                await drive.files.get({
+                  alt: 'media',
+                  fileId,
+                })
+              ).data
+
+              // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
+              const text = await file.text()
+              const mediaInfo = JSON.parse(text) as MediaInfo
+              response.request.deviceIds.forEach((deviceId) =>
+                win.webContents.send('on-media', deviceId, mediaInfo),
+              )
+
+              break
+            }
+          }
+          break
+        }
       }
     }
 
@@ -491,8 +605,8 @@ function createWindow(tray: Tray) {
     } catch {}
     try {
       const content = await afs.readFile(deviceIdFile, 'utf-8')
-      deviceId = content
-      win.webContents.send('on-device-id', deviceId)
+      thisDeviceId = content
+      win.webContents.send('on-device-id', thisDeviceId)
     } catch (e) {}
   })
 
@@ -527,7 +641,40 @@ app.whenReady().then(() => {
   m.handle('register-device', (_, name) => {
     return registerDevice(name)
   })
+  // TODO: does this throw sometimes? Before login in?
   m.handle('get-access-token', async () => (await oauth2Client.getAccessToken()).token)
+  m.on('media', async (_, deviceId, regId) => {
+    const device = devices.get(deviceId)
+    if (device && device.secureServerAddress) {
+      // TODO:
+    } else {
+      // TODO: check if this errors
+      await fcm.projects.messages.send({
+        auth: jwtClient,
+        parent: 'projects/join-external-gcm',
+        requestBody: {
+          message: {
+            token: regId,
+            android: {
+              priority: 'high',
+            },
+            data: {
+              type: 'GCMRequestFile',
+              json: JSON.stringify({
+                type: 'GCMRequestFile',
+                requestFile: {
+                  requestType: 7,
+                  senderId: thisDeviceId,
+                  deviceIds: [deviceId],
+                },
+                senderId: thisDeviceId,
+              }),
+            },
+          },
+        },
+      })
+    }
+  })
 
   createWindow(tray)
 

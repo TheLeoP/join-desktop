@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer as r } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import type { MediaInfo } from '../main'
 
 // Custom APIs for renderer
 export const api = {
@@ -8,6 +9,18 @@ export const api = {
   registerDevice: (name: string) => r.invoke('register-device', name),
   isLoggedInWithGoogle: () => r.invoke('is-logged-in-with-google'),
   getAccessToken: () => r.invoke('get-access-token'),
+
+  media: (deviceId: string, regId: string) => r.send('media', deviceId, regId),
+  onMedia: (listeningDeviceId: string, cb: (mediaInfo: MediaInfo) => void) => {
+    const f = (_, receivedDeviceId: string, mediaInfo: MediaInfo) => {
+      if (listeningDeviceId === receivedDeviceId) cb(mediaInfo)
+    }
+
+    r.on('on-media', f)
+    return () => {
+      r.off('on-media', f)
+    }
+  },
 
   // TODO: add refactoring scope for this
 
