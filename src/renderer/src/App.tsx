@@ -146,6 +146,7 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
           .map((info) => (
             <div key={info.packageName} className="rounded-sm bg-orange-100 p-1">
               <h1 className="text-center text-xl underline">{info.appName}</h1>
+              <img src={info.art} />
               {info.album && (
                 <div>
                   <b>Album:</b> {info.album}

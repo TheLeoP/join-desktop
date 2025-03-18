@@ -699,7 +699,8 @@ app.whenReady().then(() => {
           })
           resp.on('end', () => {
             const data = body.join()
-            res(JSON.parse(data).payload)
+            const mediaInfo = JSON.parse(data).payload as MediaInfo
+            res(mediaInfo)
           })
         })
         req.on('error', (err) => {
@@ -707,7 +708,7 @@ app.whenReady().then(() => {
         })
       })
     } else {
-      const res = await fcm.projects.messages.send({
+      await fcm.projects.messages.send({
         auth: jwtClient,
         parent: 'projects/join-external-gcm',
         requestBody: {
@@ -765,8 +766,26 @@ app.on('window-all-closed', () => {
   }
 })
 
+const allowedCertificate = `-----BEGIN CERTIFICATE-----
+MIICqDCCAZCgAwIBAgIIEUtpg+YQm5MwDQYJKoZIhvcNAQELBQAwEzERMA8GA1UE
+AwwIbXlzZXJ2ZXIwIBcNMTkwNjAyMTEyNTE2WhgPOTk5OTEyMzEyMzU5NTlaMBMx
+ETAPBgNVBAMMCG15c2VydmVyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKC
+AQEAtjZatdrTDq4DyYpPhy4MhTB26OyiSeIpAvOK+5zA7fG7o6mLsD56LyAIDeWP
+HnW3/a9YuntELGpjt99HUFSH9Bs8nTAZuI+k6eYnAapGZau0M+No/78BQhE2O0Kl
+t9UUzaImKYEOl1VuRNMj4MMfGgUEo21LGmMFRD3SxpEhQ5GS8Gk+yKUsyqqTENBK
+J7cqkw76IIgSa3u5E9/YLk/HCIpLVeN8nU5XGoIw3YhAUQQz62+D2NqKylmmWS6N
+pHZ66Bfp2pCltJx+wMS2KSOFcMCfUVIcTcwvAU5VicX5BdJZ04d6CW9dLHGqY0Bi
+uc4Derg1UB7penScdgXclvVN5QIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQBSkGo0
+lgEqfVEtAb2IzidUurZZrTlP/bCR+UGOiQtO9J6wW+xU/sOvMXLpagAOAvg3a1Rl
+dkdKONd53gzd028n4qcFe7lV0VyOV4iJ9e3ldNj3//sv1M/8Fn1sz8+3ZtWRbA6c
+lqIxyNjA4HqLFgzTqey9rrIX5LEPLBDtIgKlkFruAvmCnW3mMi1lP4cSHDpVKLZI
+vagajVA2QTXFjzAtV02L5fbfeMrDFydA1LBTCIY6358aaAyGULQMj9ZqiiLFOyfp
+A2Hz/E5sLFU810D/F86EtJWa2hadF7VPrfQ5sCZ2WeMwtKG2Z6ghCXDCWxS09gxb
+cy+aLqr1fhkBl/9o
+-----END CERTIFICATE-----
+`
 app.on('certificate-error', (event, webContents, url, error, certificate, cb) => {
-  cb(true)
+  cb(certificate.data === allowedCertificate)
 })
 
 // In this file you can include the rest of your app's specific main process
