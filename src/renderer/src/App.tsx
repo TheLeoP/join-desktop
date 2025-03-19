@@ -131,6 +131,12 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
       return await window.api.media(deviceId, regId2)
     },
   })
+  const onLocalNetwork = useOnLocalNetwork(deviceId)
+  useEffect(
+    () => void queryClient.invalidateQueries({ queryKey: ['mediaInfo', deviceId, regId2] }),
+    [deviceId, regId2, onLocalNetwork],
+  )
+
   const { mutate: play } = useMutation<unknown, Error, { packageName: string; play: boolean }>({
     mutationFn: async ({ packageName, play }) => {
       await window.api.play(deviceId, regId2, packageName, play)
@@ -277,6 +283,12 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
   )
 }
 
+function useOnLocalNetwork(deviceId: string) {
+  const devicesOnLocalNetwork = useContext(devicesOnLocalNetworkContext)
+  const onLocalNetwork = devicesOnLocalNetwork ? devicesOnLocalNetwork[deviceId] : false
+  return onLocalNetwork
+}
+
 function Device({
   thisDeviceId,
   deviceId,
@@ -284,8 +296,7 @@ function Device({
   deviceType,
   deviceName,
 }: DeviceType & { thisDeviceId: string | null }) {
-  const devicesOnLocalNetwork = useContext(devicesOnLocalNetworkContext)
-  const isOnLocalNetwork = devicesOnLocalNetwork ? devicesOnLocalNetwork[deviceId] : false
+  const onLocalNetwork = useOnLocalNetwork(deviceId)
 
   return (
     <div className="flex max-w-40 flex-col items-center">
@@ -297,7 +308,7 @@ function Device({
         <h2 className="text-center text-2xl">
           {thisDeviceId === deviceId ? `${deviceName} (this device)` : deviceName}
         </h2>
-        {isOnLocalNetwork && (
+        {onLocalNetwork && (
           <div className="rounded-full bg-orange-300 fill-white p-1">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -379,10 +390,10 @@ function App(): JSX.Element {
 
   const [devicesOnLocalNetwork, setDevicesOnLocalNetwork] = useState<Record<string, boolean>>({})
   useEffect(() => {
-    const removeListener = window.api.onLocalNetwork((deviceId, isOnLocalNetwork) => {
+    const removeListener = window.api.onLocalNetwork((deviceId, onLocalNetwork) => {
       setDevicesOnLocalNetwork((devicesOnLocalNetwork) => ({
         ...devicesOnLocalNetwork,
-        [deviceId]: isOnLocalNetwork,
+        [deviceId]: onLocalNetwork,
       }))
     })
     return () => removeListener()

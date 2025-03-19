@@ -15,9 +15,9 @@ export const api = {
 
   // TODO: add refactoring scope for this
 
-  onLocalNetwork: (cb: (deviceId: string, isOnLocalNetwork: boolean) => void) => {
-    const f = (_, deviceId: string, isOnLocalNetwork: boolean) => {
-      cb(deviceId, isOnLocalNetwork)
+  onLocalNetwork: (cb: (deviceId: string, onLocalNetwork: boolean) => void) => {
+    const f = (_, deviceId: string, onLocalNetwork: boolean) => {
+      cb(deviceId, onLocalNetwork)
     }
 
     r.on('on-local-network', f)

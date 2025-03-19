@@ -655,8 +655,6 @@ function createWindow(tray: Tray) {
       devices = JSON.parse(content, mapReviver)
       devices.forEach((device, id) => {
         if (!device.secureServerAddress) return
-        // __AUTO_GENERATED_PRINT_VAR_START__
-        console.log('createWindow#(anon)#(anon) id: %s', id) // __AUTO_GENERATED_PRINT_VAR_END__
         win.webContents.send('on-local-network', id, true)
       })
     } catch {
