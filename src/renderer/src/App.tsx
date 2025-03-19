@@ -1,7 +1,9 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { ReactNode, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { JSX } from 'react/jsx-runtime'
 import { queryClient } from './main'
+
+const devicesOnLocalNetworkContext = createContext<Record<string, boolean> | null>(null)
 
 type MediaInfo = {
   extraInfo: {
@@ -282,15 +284,33 @@ function Device({
   deviceType,
   deviceName,
 }: DeviceType & { thisDeviceId: string | null }) {
+  const devicesOnLocalNetwork = useContext(devicesOnLocalNetworkContext)
+  const isOnLocalNetwork = devicesOnLocalNetwork ? devicesOnLocalNetwork[deviceId] : false
+
   return (
     <div className="flex max-w-40 flex-col items-center">
       <img
         src={`src/assets/${ReverseDeviceType[deviceType]}.png`}
         className="max-w-40 rounded-full bg-orange-300 p-2"
       />
-      <h2 className="text-center text-2xl">
-        {thisDeviceId === deviceId ? `${deviceName} (this device)` : deviceName}
-      </h2>
+      <div className="flex items-center space-x-1">
+        <h2 className="text-center text-2xl">
+          {thisDeviceId === deviceId ? `${deviceName} (this device)` : deviceName}
+        </h2>
+        {isOnLocalNetwork && (
+          <div className="rounded-full bg-orange-300 fill-white p-1">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              version="1.1"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+            >
+              <path d="M10,2C8.89,2 8,2.89 8,4V7C8,8.11 8.89,9 10,9H11V11H2V13H6V15H5C3.89,15 3,15.89 3,17V20C3,21.11 3.89,22 5,22H9C10.11,22 11,21.11 11,20V17C11,15.89 10.11,15 9,15H8V13H16V15H15C13.89,15 13,15.89 13,17V20C13,21.11 13.89,22 15,22H19C20.11,22 21,21.11 21,20V17C21,15.89 20.11,15 19,15H18V13H22V11H13V9H14C15.11,9 16,8.11 16,7V4C16,2.89 15.11,2 14,2H10M10,4H14V7H10V4M5,17H9V20H5V17M15,17H19V20H15V17Z"></path>
+            </svg>
+          </div>
+        )}
+      </div>
       <Media deviceId={deviceId} regId2={regId2} />
     </div>
   )
@@ -357,36 +377,49 @@ function App(): JSX.Element {
     return () => removeListener()
   }, [])
 
+  const [devicesOnLocalNetwork, setDevicesOnLocalNetwork] = useState<Record<string, boolean>>({})
+  useEffect(() => {
+    const removeListener = window.api.onLocalNetwork((deviceId, isOnLocalNetwork) => {
+      setDevicesOnLocalNetwork((devicesOnLocalNetwork) => ({
+        ...devicesOnLocalNetwork,
+        [deviceId]: isOnLocalNetwork,
+      }))
+    })
+    return () => removeListener()
+  }, [])
+
   return (
     <>
-      {isLoggedIn && <Devices />}
-      {!isLoggedIn && (
-        <button
-          className="cursor-pointer rounded-md bg-orange-200 p-2 text-2xl hover:bg-orange-300 active:bg-orange-400"
-          onClick={window.api.logInWithGoogle}
-        >
-          Log in with Google
-        </button>
-      )}
-      {isLoggedIn && !deviceId && (
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault()
-            if (!deviceName) return
-            await window.api.registerDevice(deviceName)
-          }}
-        >
-          <input
-            type="text"
-            onChange={(e) => {
-              setDeviceName(e.target.value)
-            }}
-          />
-          <button className="cursor-pointer rounded-md bg-orange-200 p-2 text-2xl hover:bg-orange-300 active:bg-orange-400">
-            Register device
+      <devicesOnLocalNetworkContext.Provider value={devicesOnLocalNetwork}>
+        {isLoggedIn && <Devices />}
+        {!isLoggedIn && (
+          <button
+            className="cursor-pointer rounded-md bg-orange-200 p-2 text-2xl hover:bg-orange-300 active:bg-orange-400"
+            onClick={window.api.logInWithGoogle}
+          >
+            Log in with Google
           </button>
-        </form>
-      )}
+        )}
+        {isLoggedIn && !deviceId && (
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault()
+              if (!deviceName) return
+              await window.api.registerDevice(deviceName)
+            }}
+          >
+            <input
+              type="text"
+              onChange={(e) => {
+                setDeviceName(e.target.value)
+              }}
+            />
+            <button className="cursor-pointer rounded-md bg-orange-200 p-2 text-2xl hover:bg-orange-300 active:bg-orange-400">
+              Register device
+            </button>
+          </form>
+        )}
+      </devicesOnLocalNetworkContext.Provider>
     </>
   )
 }

@@ -493,6 +493,7 @@ async function startPushReceiver(win: BrowserWindow) {
               device!.secureServerAddress = url
             }
             await afs.writeFile(devicesFile, JSON.stringify(devices, mapReplacer), 'utf-8')
+            win.webContents.send('on-local-network', id, true)
           })
           req.on('error', async (err) => {
             if (!devices.has(id)) return
@@ -500,6 +501,7 @@ async function startPushReceiver(win: BrowserWindow) {
             const device = devices.get(id)
             delete device?.secureServerAddress
             await afs.writeFile(devicesFile, JSON.stringify(devices, mapReplacer), 'utf-8')
+            win.webContents.send('on-local-network', id, false)
           })
 
           break
@@ -513,6 +515,7 @@ async function startPushReceiver(win: BrowserWindow) {
           const device = devices.get(id)
           delete device?.secureServerAddress
           await afs.writeFile(devicesFile, JSON.stringify(devices, mapReplacer), 'utf-8')
+          win.webContents.send('on-local-network', id, false)
           break
         }
         case 'GCMStatus': {
@@ -631,6 +634,7 @@ function createWindow(tray: Tray) {
     // TODO: hide by default?
     win.show()
 
+    // TODO: can there be a race condition in here? Should I wait for an event after the website is shown?
     try {
       const content = await afs.readFile(credentialsFile, 'utf-8')
       credentials = JSON.parse(content)
@@ -642,16 +646,22 @@ function createWindow(tray: Tray) {
       win.webContents.send('on-log-in')
     } catch {}
     try {
-      const content = await afs.readFile(devicesFile, 'utf-8')
-      devices = JSON.parse(content, mapReviver)
-    } catch {
-      devices = new Map()
-    }
-    try {
       const content = await afs.readFile(deviceIdFile, 'utf-8')
       thisDeviceId = content
       win.webContents.send('on-device-id', thisDeviceId)
     } catch (e) {}
+    try {
+      const content = await afs.readFile(devicesFile, 'utf-8')
+      devices = JSON.parse(content, mapReviver)
+      devices.forEach((device, id) => {
+        if (!device.secureServerAddress) return
+        // __AUTO_GENERATED_PRINT_VAR_START__
+        console.log('createWindow#(anon)#(anon) id: %s', id) // __AUTO_GENERATED_PRINT_VAR_END__
+        win.webContents.send('on-local-network', id, true)
+      })
+    } catch {
+      devices = new Map()
+    }
   })
 
   win.webContents.setWindowOpenHandler((details) => {
