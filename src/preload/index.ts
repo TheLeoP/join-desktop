@@ -9,8 +9,12 @@ export const api = {
   isLoggedInWithGoogle: () => r.invoke('is-logged-in-with-google'),
   getAccessToken: () => r.invoke('get-access-token'),
 
-  play: (deviceId: string, regId: string, packageName: string, play: boolean) =>
-    r.invoke('play', deviceId, regId, packageName, play),
+  mediaAction: (
+    deviceId: string,
+    regId: string,
+    packageName: string,
+    action: { play?: boolean; pause?: boolean; back?: boolean; next?: boolean },
+  ) => r.invoke('media-action', deviceId, regId, packageName, action),
   media: (deviceId: string, regId: string) => r.invoke('media', deviceId, regId),
 
   // TODO: add refactoring scope for this

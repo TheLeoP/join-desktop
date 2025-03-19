@@ -137,11 +137,18 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
     [deviceId, regId2, onLocalNetwork],
   )
 
-  const { mutate: play } = useMutation<unknown, Error, { packageName: string; play: boolean }>({
-    mutationFn: async ({ packageName, play }) => {
-      await window.api.play(deviceId, regId2, packageName, play)
+  const { mutate: mediaAction } = useMutation<
+    unknown,
+    Error,
+    {
+      packageName: string
+      action: { play?: boolean; pause?: boolean; back?: boolean; next?: boolean }
+    }
+  >({
+    mutationFn: async ({ packageName, action }) => {
+      await window.api.mediaAction(deviceId, regId2, packageName, action)
     },
-    onMutate: async ({ packageName, play }) => {
+    onMutate: async ({ packageName, action }) => {
       await queryClient.cancelQueries({ queryKey: ['mediaInfo', deviceId, regId2] })
 
       queryClient.setQueryData(['mediaInfo', deviceId, regId2], (old: MediaInfo) => {
@@ -149,8 +156,10 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
         const currentInfo = newValue.mediaInfosForClients.find(
           (info) => info.packageName === packageName,
         )
-        if (currentInfo) {
-          currentInfo.playing = play
+        if (currentInfo && action.play) {
+          currentInfo.playing = true
+        } else if (currentInfo && action.pause) {
+          currentInfo.playing = false
         }
         return newValue
       })
@@ -195,7 +204,15 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
                 <b>Artist:</b> {info.artist}
               </div>
               <div className="flex">
-                <button className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700">
+                <button
+                  className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700"
+                  onClick={() => {
+                    mediaAction({
+                      packageName: info.packageName,
+                      action: { back: true },
+                    })
+                  }}
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"
@@ -211,7 +228,10 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
                 <button
                   className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700"
                   onClick={() => {
-                    play({ packageName: info.packageName, play: !info.playing })
+                    mediaAction({
+                      packageName: info.packageName,
+                      action: info.playing ? { pause: true } : { play: true },
+                    })
                   }}
                 >
                   {info.playing ? (
@@ -237,7 +257,15 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
                     </svg>
                   )}
                 </button>
-                <button className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700">
+                <button
+                  className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700"
+                  onClick={() => {
+                    mediaAction({
+                      packageName: info.packageName,
+                      action: { next: true },
+                    })
+                  }}
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"
