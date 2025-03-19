@@ -1,5 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { ReactNode, useEffect, useState } from 'react'
+import { JSX } from 'react/jsx-runtime'
+import { queryClient } from './main'
 
 type MediaInfo = {
   extraInfo: {
@@ -127,8 +129,29 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
       return await window.api.media(deviceId, regId2)
     },
   })
+  const { mutate: play } = useMutation<unknown, Error, { packageName: string; play: boolean }>({
+    mutationFn: async ({ packageName, play }) => {
+      await window.api.play(deviceId, regId2, packageName, play)
+    },
+    onMutate: async ({ packageName, play }) => {
+      await queryClient.cancelQueries({ queryKey: ['mediaInfo', deviceId, regId2] })
 
-  let info
+      queryClient.setQueryData(['mediaInfo', deviceId, regId2], (old: MediaInfo) => {
+        const newValue = { ...old }
+        const currentInfo = newValue.mediaInfosForClients.find(
+          (info) => info.packageName === packageName,
+        )
+        if (currentInfo) {
+          currentInfo.playing = play
+        }
+        return newValue
+      })
+    },
+    // NOTE: can't simply invalidate and refetch the query because Join (the
+    // mobile app) won't deliver updated information
+  })
+
+  let info: JSX.Element
   if (isPending) {
     info = <div>Loading...</div>
   } else if (isError) {
@@ -146,7 +169,15 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
           .map((info) => (
             <div key={info.packageName} className="rounded-sm bg-orange-100 p-1">
               <h1 className="text-center text-xl underline">{info.appName}</h1>
-              <img src={info.art} />
+              {info.art && (
+                <div className="flex flex-col items-center">
+                  <img
+                    src={
+                      info.art?.startsWith('http') ? info.art : `data:image/png;base64,${info.art}`
+                    }
+                  />
+                </div>
+              )}
               {info.album && (
                 <div>
                   <b>Album:</b> {info.album}
@@ -169,7 +200,12 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
                   </svg>
                 </button>
 
-                <button className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700">
+                <button
+                  className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700"
+                  onClick={() => {
+                    play({ packageName: info.packageName, play: !info.playing })
+                  }}
+                >
                   {info.playing ? (
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

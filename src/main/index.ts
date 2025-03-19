@@ -20,6 +20,7 @@ import { PushReceiver } from '@eneris/push-receiver'
 import { type Credentials } from '@eneris/push-receiver/dist/types'
 import { google } from 'googleapis'
 import * as https from 'node:https'
+import { v4 as uuidv4 } from 'uuid'
 
 const joinUrl = 'https://joinjoaomgcd.appspot.com/_ah/api'
 
@@ -722,7 +723,7 @@ app.whenReady().then(() => {
               json: JSON.stringify({
                 type: 'GCMRequestFile',
                 requestFile: {
-                  requestType: 7,
+                  requestType: respondFileTypes.media_infos,
                   senderId: thisDeviceId,
                   deviceIds: [deviceId],
                 },
@@ -744,6 +745,37 @@ app.whenReady().then(() => {
           mediaRequests.delete(deviceId)
           rej(new Error('Media request timed out'))
         }, 10 * 1000)
+      })
+    }
+  })
+  m.handle('play', async (_, deviceId, regId, packageName, play) => {
+    const device = devices.get(deviceId)
+    if (device && device.secureServerAddress) {
+    } else {
+      await fcm.projects.messages.send({
+        auth: jwtClient,
+        parent: 'projects/join-external-gcm',
+        requestBody: {
+          message: {
+            token: regId,
+            android: {
+              priority: 'high',
+            },
+            data: {
+              type: 'GCMPush',
+              json: JSON.stringify({
+                type: 'GCMPush',
+                push: {
+                  ...(play ? { play: true } : { pause: true }),
+                  mediaAppPackage: packageName,
+                  id: uuidv4(),
+                  senderId: thisDeviceId,
+                },
+                senderId: thisDeviceId,
+              }),
+            },
+          },
+        },
       })
     }
   })
