@@ -762,7 +762,7 @@ app.whenReady().then(() => {
       })
     }
   })
-  m.handle('media-action', async (_, deviceId, regId, packageName, action) => {
+  m.handle('media-action', async (_, deviceId, regId, action) => {
     const device = devices.get(deviceId)
     const data = {
       type: 'GCMPush',
@@ -770,7 +770,6 @@ app.whenReady().then(() => {
         type: 'GCMPush',
         push: {
           ...action,
-          mediaAppPackage: packageName,
           id: uuidv4(),
           senderId: thisDeviceId,
         },

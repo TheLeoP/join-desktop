@@ -92,9 +92,23 @@ type DeviceType = {
   hasTasker: boolean
 }
 
-function Volume({ max, initialValue, type }: { max: number; initialValue: number; type: string }) {
+function Volume({
+  max,
+  initialValue,
+  type,
+  deviceId,
+  regId2,
+}: {
+  max: number
+  initialValue: number
+  type: string
+  deviceId: string
+  regId2: string
+}) {
   // TODO: make this actually change the value in the device
   const [volume, setVolume] = useState(initialValue)
+
+  const { mutate: mediaAction } = useMediaAction(deviceId, regId2)
 
   return (
     <div className="flex space-x-1">
@@ -105,11 +119,54 @@ function Volume({ max, initialValue, type }: { max: number; initialValue: number
         min={0}
         max={max}
         value={volume}
-        onChange={(e) => setVolume(+e.target.value)}
+        onChange={(e) => {
+          setVolume(+e.target.value)
+          // TODO: debounce
+          mediaAction({ action: { mediaVolume: e.target.value } })
+        }}
       />
       {volume}
     </div>
   )
+}
+
+function useMediaAction(deviceId: string, regId2: string) {
+  return useMutation<
+    unknown,
+    Error,
+    {
+      action: {
+        play?: boolean
+        pause?: boolean
+        back?: boolean
+        next?: boolean
+        mediaAppPackage?: string
+        mediaVolume?: string
+      }
+    }
+  >({
+    mutationFn: async ({ action }) => {
+      await window.api.mediaAction(deviceId, regId2, action)
+    },
+    onMutate: async ({ action }) => {
+      await queryClient.cancelQueries({ queryKey: ['mediaInfo', deviceId, regId2] })
+
+      queryClient.setQueryData(['mediaInfo', deviceId, regId2], (old: MediaInfo) => {
+        const newValue = { ...old }
+        const currentInfo = newValue.mediaInfosForClients.find(
+          (info) => info.packageName === action.mediaAppPackage,
+        )
+        if (currentInfo && action.play) {
+          currentInfo.playing = true
+        } else if (currentInfo && action.pause) {
+          currentInfo.playing = false
+        }
+        return newValue
+      })
+    },
+    // NOTE: can't simply invalidate and refetch the query because Join (the
+    // mobile app) won't deliver updated information
+  })
 }
 
 function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
@@ -137,36 +194,7 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
     [deviceId, regId2, onLocalNetwork],
   )
 
-  const { mutate: mediaAction } = useMutation<
-    unknown,
-    Error,
-    {
-      packageName: string
-      action: { play?: boolean; pause?: boolean; back?: boolean; next?: boolean }
-    }
-  >({
-    mutationFn: async ({ packageName, action }) => {
-      await window.api.mediaAction(deviceId, regId2, packageName, action)
-    },
-    onMutate: async ({ packageName, action }) => {
-      await queryClient.cancelQueries({ queryKey: ['mediaInfo', deviceId, regId2] })
-
-      queryClient.setQueryData(['mediaInfo', deviceId, regId2], (old: MediaInfo) => {
-        const newValue = { ...old }
-        const currentInfo = newValue.mediaInfosForClients.find(
-          (info) => info.packageName === packageName,
-        )
-        if (currentInfo && action.play) {
-          currentInfo.playing = true
-        } else if (currentInfo && action.pause) {
-          currentInfo.playing = false
-        }
-        return newValue
-      })
-    },
-    // NOTE: can't simply invalidate and refetch the query because Join (the
-    // mobile app) won't deliver updated information
-  })
+  const { mutate: mediaAction } = useMediaAction(deviceId, regId2)
 
   let info: JSX.Element
   if (isPending) {
@@ -180,6 +208,8 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
           initialValue={mediaInfo.extraInfo.mediaVolume}
           max={mediaInfo.extraInfo.maxMediaVolume}
           type="media"
+          deviceId={deviceId}
+          regId2={regId2}
         />
         {mediaInfo.mediaInfosForClients
           .sort((a, b) => b.date - a.date)
@@ -208,8 +238,7 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
                   className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700"
                   onClick={() => {
                     mediaAction({
-                      packageName: info.packageName,
-                      action: { back: true },
+                      action: { back: true, mediaAppPackage: info.packageName },
                     })
                   }}
                 >
@@ -229,8 +258,9 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
                   className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700"
                   onClick={() => {
                     mediaAction({
-                      packageName: info.packageName,
-                      action: info.playing ? { pause: true } : { play: true },
+                      action: info.playing
+                        ? { pause: true, mediaAppPackage: info.packageName }
+                        : { play: true, mediaAppPackage: info.packageName },
                     })
                   }}
                 >
@@ -261,8 +291,7 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
                   className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700"
                   onClick={() => {
                     mediaAction({
-                      packageName: info.packageName,
-                      action: { next: true },
+                      action: { next: true, mediaAppPackage: info.packageName },
                     })
                   }}
                 >

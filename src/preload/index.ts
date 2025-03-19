@@ -12,9 +12,15 @@ export const api = {
   mediaAction: (
     deviceId: string,
     regId: string,
-    packageName: string,
-    action: { play?: boolean; pause?: boolean; back?: boolean; next?: boolean },
-  ) => r.invoke('media-action', deviceId, regId, packageName, action),
+    action: {
+      play?: boolean
+      pause?: boolean
+      back?: boolean
+      next?: boolean
+      mediaVolume?: string
+      mediaAppPackage?: string
+    },
+  ) => r.invoke('media-action', deviceId, regId, action),
   media: (deviceId: string, regId: string) => r.invoke('media', deviceId, regId),
 
   // TODO: add refactoring scope for this
