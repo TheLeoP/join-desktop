@@ -328,6 +328,12 @@ export type MediaInfo = {
   }[]
 }
 
+type GenericResponse = {
+  success: boolean
+  userAuthError: boolean
+  // TODO: this has an errorMessage field or something like that, handle it
+}
+
 let lastBatteryNotification: Notification | undefined
 async function startPushReceiver(win: BrowserWindow) {
   const persistentIds = await new Promise<string[]>((res, rej) => {
@@ -477,6 +483,8 @@ async function startPushReceiver(win: BrowserWindow) {
             rejectUnauthorized: false,
             insecureHTTPParser: true,
           })
+          req.write(body)
+          req.end()
           req.on('response', async (res) => {
             if (!devices.has(id)) {
               devices.set(id, { secureServerAddress: url })
@@ -493,8 +501,6 @@ async function startPushReceiver(win: BrowserWindow) {
             delete device?.secureServerAddress
             await afs.writeFile(devicesFile, JSON.stringify(devices, mapReplacer), 'utf-8')
           })
-          req.write(body)
-          req.end()
 
           break
         }
@@ -750,7 +756,54 @@ app.whenReady().then(() => {
   })
   m.handle('play', async (_, deviceId, regId, packageName, play) => {
     const device = devices.get(deviceId)
+    const data = {
+      type: 'GCMPush',
+      json: JSON.stringify({
+        type: 'GCMPush',
+        push: {
+          ...(play ? { play: true } : { pause: true }),
+          mediaAppPackage: packageName,
+          id: uuidv4(),
+          senderId: thisDeviceId,
+        },
+        senderId: thisDeviceId,
+      }),
+    }
     if (device && device.secureServerAddress) {
+      const url = device.secureServerAddress
+      const body = JSON.stringify(data)
+      const token = await oauth2Client.getAccessToken()
+      const req = https.request(`${url}gcm?token=${token.token}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': body.length,
+        },
+        rejectUnauthorized: false,
+        insecureHTTPParser: true,
+      })
+      req.write(body)
+      req.end()
+      return new Promise<void>((res, rej) => {
+        req.on('response', (resp) => {
+          resp.setEncoding('utf8')
+          const body: string[] = []
+          resp.on('data', (data) => {
+            body.push(data)
+          })
+          resp.on('end', () => {
+            const data = body.join()
+            const mediaInfo = JSON.parse(data) as GenericResponse
+            if (!mediaInfo.success) {
+              return rej(data)
+            }
+            res()
+          })
+        })
+        req.on('error', (err) => {
+          rej(err)
+        })
+      })
     } else {
       await fcm.projects.messages.send({
         auth: jwtClient,
@@ -761,19 +814,7 @@ app.whenReady().then(() => {
             android: {
               priority: 'high',
             },
-            data: {
-              type: 'GCMPush',
-              json: JSON.stringify({
-                type: 'GCMPush',
-                push: {
-                  ...(play ? { play: true } : { pause: true }),
-                  mediaAppPackage: packageName,
-                  id: uuidv4(),
-                  senderId: thisDeviceId,
-                },
-                senderId: thisDeviceId,
-              }),
-            },
+            data: data,
           },
         },
       })
