@@ -631,7 +631,7 @@ function createWindow(tray: Tray) {
   win.on('show', () => tray.setContextMenu(hideMenu))
 
   win.on('ready-to-show', async () => {
-    // TODO: hide by default?
+    // TODO: hide by default and use https://github.com/Teamwork/node-auto-launch to auto launch on all OSs
     win.show()
 
     // TODO: can there be a race condition in here? Should I wait for an event after the website is shown?
