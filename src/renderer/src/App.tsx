@@ -1,7 +1,8 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { UseMutateFunction, useMutation, useQuery } from '@tanstack/react-query'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { JSX } from 'react/jsx-runtime'
 import { queryClient } from './main'
+import debounce from 'lodash.debounce'
 
 const devicesOnLocalNetworkContext = createContext<Record<string, boolean> | null>(null)
 
@@ -92,6 +93,15 @@ type DeviceType = {
   hasTasker: boolean
 }
 
+type MediaAction = {
+  play?: boolean
+  pause?: boolean
+  back?: boolean
+  next?: boolean
+  mediaAppPackage?: string
+  mediaVolume?: string
+}
+
 function Volume({
   max,
   initialValue,
@@ -109,6 +119,17 @@ function Volume({
   const [volume, setVolume] = useState(initialValue)
 
   const { mutate: mediaAction } = useMediaAction(deviceId, regId2)
+  const debouncedMediaAction = useRef<UseMutateFunction<
+    unknown,
+    Error,
+    {
+      action: MediaAction
+    },
+    unknown
+  > | null>(null)
+  if (debouncedMediaAction.current === null) {
+    debouncedMediaAction.current = debounce(mediaAction, 250)
+  }
 
   return (
     <div className="flex space-x-1">
@@ -121,8 +142,9 @@ function Volume({
         value={volume}
         onChange={(e) => {
           setVolume(+e.target.value)
-          // TODO: debounce
-          mediaAction({ action: { mediaVolume: e.target.value } })
+          if (!debouncedMediaAction.current) return
+
+          debouncedMediaAction.current({ action: { mediaVolume: e.target.value } })
         }}
       />
       {volume}
@@ -135,14 +157,7 @@ function useMediaAction(deviceId: string, regId2: string) {
     unknown,
     Error,
     {
-      action: {
-        play?: boolean
-        pause?: boolean
-        back?: boolean
-        next?: boolean
-        mediaAppPackage?: string
-        mediaVolume?: string
-      }
+      action: MediaAction
     }
   >({
     mutationFn: async ({ action }) => {

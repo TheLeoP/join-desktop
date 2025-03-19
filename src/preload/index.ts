@@ -1,6 +1,15 @@
 import { contextBridge, ipcRenderer as r } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
+type MediaAction = {
+  play?: boolean
+  pause?: boolean
+  back?: boolean
+  next?: boolean
+  mediaAppPackage?: string
+  mediaVolume?: string
+}
+
 // Custom APIs for renderer
 export const api = {
   logInWithGoogle: () => r.send('log-in-with-google'),
@@ -9,18 +18,8 @@ export const api = {
   isLoggedInWithGoogle: () => r.invoke('is-logged-in-with-google'),
   getAccessToken: () => r.invoke('get-access-token'),
 
-  mediaAction: (
-    deviceId: string,
-    regId: string,
-    action: {
-      play?: boolean
-      pause?: boolean
-      back?: boolean
-      next?: boolean
-      mediaVolume?: string
-      mediaAppPackage?: string
-    },
-  ) => r.invoke('media-action', deviceId, regId, action),
+  mediaAction: (deviceId: string, regId: string, action: MediaAction) =>
+    r.invoke('media-action', deviceId, regId, action),
   media: (deviceId: string, regId: string) => r.invoke('media', deviceId, regId),
 
   // TODO: add refactoring scope for this
