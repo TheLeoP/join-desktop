@@ -350,7 +350,10 @@ function Device({
           </div>
         )}
       </div>
-      <Media deviceId={deviceId} regId2={regId2} />
+      {/* NOTE: Join does this, I don't know if it's correct */}
+      {(deviceType == DeviceType.android_phone || deviceType === DeviceType.android_tablet) && (
+        <Media deviceId={deviceId} regId2={regId2} />
+      )}
     </div>
   )
 }
