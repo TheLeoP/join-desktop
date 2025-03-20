@@ -1,9 +1,11 @@
 import { UseMutateFunction, useMutation, useQuery } from '@tanstack/react-query'
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { JSX } from 'react/jsx-runtime'
-import { queryClient } from './main'
 import debounce from 'lodash.debounce'
-import type { SVGProps } from 'react'
+import type { ReactNode, SVGProps } from 'react'
+import { Outlet, Link, useNavigate } from '@tanstack/react-router'
+import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
+import { queryClient } from './query'
 
 const Google = (props: SVGProps<SVGSVGElement>) => (
   <svg
@@ -30,8 +32,6 @@ const Google = (props: SVGProps<SVGSVGElement>) => (
     />
   </svg>
 )
-
-const devicesOnLocalNetworkContext = createContext<Record<string, boolean> | null>(null)
 
 type MediaInfo = {
   extraInfo: {
@@ -382,12 +382,6 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
   )
 }
 
-function useOnLocalNetwork(deviceId: string) {
-  const devicesOnLocalNetwork = useContext(devicesOnLocalNetworkContext)
-  const onLocalNetwork = devicesOnLocalNetwork ? devicesOnLocalNetwork[deviceId] : false
-  return onLocalNetwork
-}
-
 function Device({
   thisDeviceId,
   deviceId,
@@ -429,7 +423,7 @@ function Device({
   )
 }
 
-function Devices() {
+export function Devices() {
   const deviceId = useDeviceId()
 
   const {
@@ -468,28 +462,67 @@ function Devices() {
   )
 }
 
-function App(): JSX.Element {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  useEffect(() => {
-    const removeListener = window.api.onLogIn(async () => {
-      setIsLoggedIn(true)
-      await window.api.startPushReceiver()
-    })
-    return () => removeListener()
-  }, [])
+export function LogIn() {
+  const isLoggedIn = useIsLoggedIn()
   const deviceId = useDeviceId()
 
   const [deviceName, setDeviceName] = useState<string | null>(null)
 
-  useEffect(() => {
-    const removeListener = window.api.onSpeak(async (say, language) => {
-      const utter = new SpeechSynthesisUtterance(say)
-      utter.lang = language ?? 'en-US'
-      window.speechSynthesis.speak(utter)
-    })
-    return () => removeListener()
-  }, [])
+  return (
+    <div className="flex h-screen flex-col">
+      <h1 className="pt-10 text-center text-9xl">Join Desktop</h1>
+      {!isLoggedIn && (
+        <div className="flex grow flex-col items-center justify-center">
+          <button
+            className="flex cursor-pointer items-center justify-center space-x-2 rounded-md bg-orange-200 p-4 hover:bg-orange-300 active:bg-orange-400"
+            onClick={window.api.logInWithGoogle}
+          >
+            <Google className="w-10" />
+            <p className="text-4xl">Log in with Google</p>
+          </button>
+        </div>
+      )}
 
+      {isLoggedIn && !deviceId && (
+        <form
+          className="flex grow items-center justify-center"
+          onSubmit={async (e) => {
+            e.preventDefault()
+            if (!deviceName) return
+            await window.api.registerDevice(deviceName)
+          }}
+        >
+          <div className="flex w-full max-w-xs flex-col space-y-2 rounded-md bg-orange-200 p-10 shadow-md">
+            <label>
+              <p className="text-2xl font-bold">Device name</p>
+              <input
+                placeholder="PC"
+                className="w-full appearance-none border px-3 py-2 leading-tight shadow focus:outline-none"
+                type="text"
+                onChange={(e) => {
+                  setDeviceName(e.target.value)
+                }}
+              />
+            </label>
+
+            <button className="mt-8 cursor-pointer rounded-md bg-white p-2 text-2xl hover:bg-gray-50 active:bg-gray-100">
+              Register device
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  )
+}
+
+const devicesOnLocalNetworkContext = createContext<Record<string, boolean> | null>(null)
+function useOnLocalNetwork(deviceId: string) {
+  const devicesOnLocalNetwork = useContext(devicesOnLocalNetworkContext)
+  const onLocalNetwork = devicesOnLocalNetwork ? devicesOnLocalNetwork[deviceId] : false
+  return onLocalNetwork
+}
+
+export function DevicesOnLocalNetworkProvider({ children }: { children: ReactNode }) {
   const [devicesOnLocalNetwork, setDevicesOnLocalNetwork] = useState<Record<string, boolean>>({})
   useEffect(() => {
     const removeListener = window.api.onLocalNetwork((deviceId, onLocalNetwork) => {
@@ -502,58 +535,60 @@ function App(): JSX.Element {
   }, [])
 
   return (
+    <devicesOnLocalNetworkContext.Provider value={devicesOnLocalNetwork}>
+      {children}
+    </devicesOnLocalNetworkContext.Provider>
+  )
+}
+
+function useIsLoggedIn() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  useEffect(() => {
+    const removeListener = window.api.onLogIn(async () => {
+      setIsLoggedIn(true)
+      await window.api.startPushReceiver()
+    })
+    return () => removeListener()
+  }, [])
+  return isLoggedIn
+}
+
+export function Root() {
+  useEffect(() => {
+    const removeListener = window.api.onSpeak(async (say, language) => {
+      const utter = new SpeechSynthesisUtterance(say)
+      utter.lang = language ?? 'en-US'
+      window.speechSynthesis.speak(utter)
+    })
+    return () => removeListener()
+  }, [])
+
+  const navigate = useNavigate()
+  const isLoggedIn = useIsLoggedIn()
+  const deviceId = useDeviceId()
+
+  useEffect(() => {
+    if (!isLoggedIn || (isLoggedIn && !deviceId)) {
+      navigate({ from: '/', to: '/login' })
+    } else if (isLoggedIn && deviceId) {
+      navigate({ from: '/', to: '/devices' })
+    }
+  }, [deviceId, isLoggedIn, navigate])
+
+  return (
     <>
-      <devicesOnLocalNetworkContext.Provider value={devicesOnLocalNetwork}>
-        {isLoggedIn && deviceId && <Devices />}
-        {/* TODO: add router to avoid flashing */}
-        {(!isLoggedIn || (isLoggedIn && !deviceId)) && (
-          <div className="flex h-screen flex-col">
-            <h1 className="pt-10 text-center text-9xl">Join Desktop</h1>
-            {!isLoggedIn && (
-              <div className="flex grow flex-col items-center justify-center">
-                <button
-                  className="flex cursor-pointer items-center justify-center space-x-2 rounded-md bg-orange-200 p-4 hover:bg-orange-300 active:bg-orange-400"
-                  onClick={window.api.logInWithGoogle}
-                >
-                  <Google className="w-10" />
-                  <p className="text-4xl">Log in with Google</p>
-                </button>
-              </div>
-            )}
-
-            {isLoggedIn && !deviceId && (
-              <form
-                className="flex grow items-center justify-center"
-                onSubmit={async (e) => {
-                  e.preventDefault()
-                  if (!deviceName) return
-                  await window.api.registerDevice(deviceName)
-                }}
-              >
-                <div className="flex w-full max-w-xs flex-col space-y-2 rounded-md bg-orange-200 p-10 shadow-md">
-                  <label>
-                    <p className="text-2xl font-bold">Device name</p>
-                    <input
-                      placeholder="PC"
-                      className="w-full appearance-none border px-3 py-2 leading-tight shadow focus:outline-none"
-                      type="text"
-                      onChange={(e) => {
-                        setDeviceName(e.target.value)
-                      }}
-                    />
-                  </label>
-
-                  <button className="mt-8 cursor-pointer rounded-md bg-white p-2 text-2xl hover:bg-gray-50 active:bg-gray-100">
-                    Register device
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        )}
-      </devicesOnLocalNetworkContext.Provider>
+      <div className="flex gap-2 p-2">
+        <Link to="/devices" className="[&.active]:font-bold">
+          Devices
+        </Link>
+      </div>
+      <hr />
+      <Outlet />
+      <TanStackRouterDevtools />
     </>
   )
 }
 
-export default App
+export function Index() {
+  return <></>
+}
