@@ -11,7 +11,7 @@ import {
   useOnLocalNetwork,
 } from '@renderer/util'
 import { UseMutateFunction, useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import debounce from 'lodash.debounce'
 import { useEffect, useRef, useState } from 'react'
 
@@ -28,7 +28,6 @@ function Volume({
   deviceId: string
   regId2: string
 }) {
-  // TODO: make this actually change the value in the device
   const [volume, setVolume] = useState(initialValue)
 
   const { mutate: mediaAction } = useMediaAction(deviceId, regId2)
@@ -76,7 +75,6 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
     refetchOnWindowFocus(query) {
       return !query.state.error
     },
-    retryOnMount: false,
     staleTime: 60 * 1000,
     retry: false,
     queryKey: ['mediaInfo', deviceId, regId2],
@@ -208,10 +206,12 @@ function Device({
 
   return (
     <div className="flex w-60 flex-col items-center">
-      <img
-        src={`src/assets/${ReverseDeviceType[deviceType]}.png`}
-        className="max-w-40 rounded-full bg-orange-300 p-2"
-      />
+      <Link to="/devices/$deviceId" params={{ deviceId }} from="/devices">
+        <img
+          src={`src/assets/${ReverseDeviceType[deviceType]}.png`}
+          className="max-w-40 rounded-full bg-orange-300 p-2"
+        />
+      </Link>
       <div className="flex items-center space-x-1">
         <h2 className="text-center text-2xl">
           {thisDeviceId === deviceId ? `${deviceName} (this device)` : deviceName}
@@ -269,6 +269,6 @@ function Devices() {
   )
 }
 
-export const Route = createFileRoute('/devices')({
+export const Route = createFileRoute('/devices/')({
   component: Devices,
 })

@@ -1,5 +1,5 @@
 import { useIsLoggedIn, useDeviceId } from '@renderer/util'
-import { createRootRoute, Outlet, useNavigate } from '@tanstack/react-router'
+import { createRootRoute, Link, Outlet, useNavigate } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { useEffect } from 'react'
 
@@ -28,6 +28,11 @@ function Root() {
 
   return (
     <>
+      <div className="flex gap-2 p-2">
+        <Link to="/devices" className="[&.active]:font-bold">
+          Devices
+        </Link>
+      </div>
       <Outlet />
       <TanStackRouterDevtools />
     </>

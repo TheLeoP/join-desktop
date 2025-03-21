@@ -12,8 +12,9 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as LoginImport } from './routes/login'
-import { Route as DevicesImport } from './routes/devices'
 import { Route as IndexImport } from './routes/index'
+import { Route as DevicesIndexImport } from './routes/devices/index'
+import { Route as DevicesDeviceIdImport } from './routes/devices/$deviceId'
 
 // Create/Update Routes
 
@@ -23,15 +24,21 @@ const LoginRoute = LoginImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const DevicesRoute = DevicesImport.update({
-  id: '/devices',
-  path: '/devices',
-  getParentRoute: () => rootRoute,
-} as any)
-
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const DevicesIndexRoute = DevicesIndexImport.update({
+  id: '/devices/',
+  path: '/devices/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const DevicesDeviceIdRoute = DevicesDeviceIdImport.update({
+  id: '/devices/$deviceId',
+  path: '/devices/$deviceId',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -46,18 +53,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
-    '/devices': {
-      id: '/devices'
-      path: '/devices'
-      fullPath: '/devices'
-      preLoaderRoute: typeof DevicesImport
-      parentRoute: typeof rootRoute
-    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginImport
+      parentRoute: typeof rootRoute
+    }
+    '/devices/$deviceId': {
+      id: '/devices/$deviceId'
+      path: '/devices/$deviceId'
+      fullPath: '/devices/$deviceId'
+      preLoaderRoute: typeof DevicesDeviceIdImport
+      parentRoute: typeof rootRoute
+    }
+    '/devices/': {
+      id: '/devices/'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof DevicesIndexImport
       parentRoute: typeof rootRoute
     }
   }
@@ -67,42 +81,47 @@ declare module '@tanstack/react-router' {
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/devices': typeof DevicesRoute
   '/login': typeof LoginRoute
+  '/devices/$deviceId': typeof DevicesDeviceIdRoute
+  '/devices': typeof DevicesIndexRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/devices': typeof DevicesRoute
   '/login': typeof LoginRoute
+  '/devices/$deviceId': typeof DevicesDeviceIdRoute
+  '/devices': typeof DevicesIndexRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
-  '/devices': typeof DevicesRoute
   '/login': typeof LoginRoute
+  '/devices/$deviceId': typeof DevicesDeviceIdRoute
+  '/devices/': typeof DevicesIndexRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/devices' | '/login'
+  fullPaths: '/' | '/login' | '/devices/$deviceId' | '/devices'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/devices' | '/login'
-  id: '__root__' | '/' | '/devices' | '/login'
+  to: '/' | '/login' | '/devices/$deviceId' | '/devices'
+  id: '__root__' | '/' | '/login' | '/devices/$deviceId' | '/devices/'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DevicesRoute: typeof DevicesRoute
   LoginRoute: typeof LoginRoute
+  DevicesDeviceIdRoute: typeof DevicesDeviceIdRoute
+  DevicesIndexRoute: typeof DevicesIndexRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DevicesRoute: DevicesRoute,
   LoginRoute: LoginRoute,
+  DevicesDeviceIdRoute: DevicesDeviceIdRoute,
+  DevicesIndexRoute: DevicesIndexRoute,
 }
 
 export const routeTree = rootRoute
@@ -116,18 +135,22 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
-        "/devices",
-        "/login"
+        "/login",
+        "/devices/$deviceId",
+        "/devices/"
       ]
     },
     "/": {
       "filePath": "index.tsx"
     },
-    "/devices": {
-      "filePath": "devices.tsx"
-    },
     "/login": {
       "filePath": "login.tsx"
+    },
+    "/devices/$deviceId": {
+      "filePath": "devices/$deviceId.tsx"
+    },
+    "/devices/": {
+      "filePath": "devices/index.tsx"
     }
   }
 }
