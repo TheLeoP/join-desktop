@@ -181,11 +181,12 @@ function RouteComponent() {
   const selected1 = foldersInfo1 ? foldersInfo1.files[current1] : undefined
 
   const current2 = useAtomValue(current2Atom)
-  const path2 = selected1 ? `/${selected1.name}` : undefined
+  const path2 = selected1 && selected1.isFolder ? `/${selected1.name}` : undefined
   const { data: foldersInfo2 } = useRemotePath(deviceId, regId2, path2)
   const selected2 = foldersInfo2 ? foldersInfo2.files[current2] : undefined
 
-  const path3 = selected2 && currentDir >= 1 ? `${path2}/${selected2.name}` : undefined
+  const path3 =
+    selected2 && selected2.isFolder && currentDir > 0 ? `${path2}/${selected2.name}` : undefined
 
   return (
     <div className="flex h-[calc(100vh-44px)]">
