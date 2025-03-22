@@ -53,30 +53,6 @@ function Directory({
 
   const onLocalNetwork = useOnLocalNetwork(deviceId)
 
-  const [preview, setPreview] = useState<string | null>(null)
-  useEffect(() => {
-    ;(async () => {
-      // TODO: something like this for remote
-      if (!foldersInfo) return setPreview(null)
-      const item = foldersInfo.files[current]
-      if (!item) return setPreview(null)
-
-      if (item.isFolder) return setPreview(null)
-      const name = item.name
-      if (
-        !name.endsWith('.jpg') &&
-        !name.endsWith('.jpeg') &&
-        !name.endsWith('.png') &&
-        !name.endsWith('.gif')
-      )
-        return setPreview(null)
-
-      const url = await window.api.localNetworkAddress(deviceId)
-      const token = await window.api.getAccessToken()
-      setPreview(`${url}files${path}/${name}?token=${token}`)
-    })()
-  }, [deviceId, current, foldersInfo, path])
-
   useEffect(() => {
     const f = async (e: KeyboardEvent) => {
       if (!active) return
@@ -110,14 +86,8 @@ function Directory({
           if (!item) return
           if (item.isFolder) return
 
-          if (onLocalNetwork) {
-            const url = await window.api.localNetworkAddress(deviceId)
-            const token = await window.api.getAccessToken()
-            // TODO: instead of this general open use a specific one that takes into account the distinction between remote and local in the backend
-            window.api.open(`${url}files${path}/${item.name}?token=${token}`)
-            // TODO: toast to show some kind of progress?
-          } else {
-          }
+          window.api.openRemoteFile(deviceId, `${path}/${item.name}`)
+          // TODO: toast to show some kind of progress?
 
           break
         }
@@ -155,8 +125,6 @@ function Directory({
       className="w-1/4 overflow-y-auto data-active:bg-yellow-200 data-active:p-1"
       ref={parentRef}
     >
-      {/* TODO: move this outside of Directory */}
-      {preview && <img src={preview} />}
       <div style={{ position: 'relative', height: rowVirtualizer.getTotalSize() }}>
         {items.map((virtualItem) => {
           const item = foldersInfo.files[virtualItem.index]
@@ -174,7 +142,6 @@ function Directory({
                 transform: `translateY(${virtualItem.start}px)`,
               }}
             >
-              {/* TODO: handle long names? */}
               <div className="flex items-center text-xl">
                 {item.isFolder && <Folder />}
                 {item.name}
@@ -241,8 +208,45 @@ function RouteComponent() {
   const { data: foldersInfo2 } = useRemotePath(deviceId, regId2, path2)
   const selected2 = foldersInfo2 ? foldersInfo2.files[current2] : undefined
 
+  const current3 = useAtomValue(current3Atom)
   const path3 =
     selected2 && selected2.isFolder && currentDir > 0 ? `${path2}/${selected2.name}` : undefined
+  const { data: foldersInfo3 } = useRemotePath(deviceId, regId2, path3)
+  const selected3 = foldersInfo3 ? foldersInfo3.files[current3] : undefined
+
+  const path4 =
+    selected3 && selected3.isFolder && currentDir > 1 ? `${path3}/${selected3.name}` : undefined
+
+  const [preview, setPreview] = useState<string | null>(null)
+  useEffect(() => {
+    ;(async () => {
+      const path = `/${[selected1?.name, selected2?.name, selected3?.name].join('/')}`
+      if (!path) return setPreview(null)
+
+      const selected =
+        currentDir === 0
+          ? selected1
+          : currentDir === 1
+            ? selected2
+            : currentDir === 2
+              ? selected3
+              : undefined
+      if (!selected) return setPreview(null)
+
+      if (selected.isFolder) return setPreview(null)
+      const name = selected.name
+      if (
+        !name.endsWith('.jpg') &&
+        !name.endsWith('.jpeg') &&
+        !name.endsWith('.png') &&
+        !name.endsWith('.gif')
+      )
+        return setPreview(null)
+
+      const url = await window.api.getRemoteUrl(deviceId, path)
+      setPreview(url)
+    })()
+  }, [currentDir, deviceId, path2, path3, path4, selected1, selected2, selected3])
 
   return (
     <div className="flex h-[calc(100vh-44px)]">
@@ -267,6 +271,7 @@ function RouteComponent() {
         atom={current3Atom}
         active={currentDir === 2}
       />
+      <div className="w-1/4">{preview && <img src={preview} />}</div>
     </div>
   )
 }

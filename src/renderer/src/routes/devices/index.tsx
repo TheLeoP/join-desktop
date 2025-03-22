@@ -241,7 +241,7 @@ function Devices() {
   }
 
   return (
-    <div className="flex h-screen w-full flex-wrap justify-center space-x-1 p-2">
+    <div className="flex h-[calc(100vh-44px)] w-full flex-wrap justify-center space-x-1 p-2">
       {devices.records.map((device) => (
         <Device key={device.id} {...device} thisDeviceId={deviceId} />
       ))}

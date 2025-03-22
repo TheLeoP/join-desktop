@@ -13,8 +13,8 @@ type MediaAction = {
 // Custom APIs for renderer
 export const api = {
   logInWithGoogle: () => r.send('log-in-with-google'),
-  open: (url: string) => r.send('open', url),
-  localNetworkAddress: (deviceId: string) => r.invoke('local-network-address', deviceId),
+  openRemoteFile: (deviceId: string, path: string) => r.send('open-remote-file', deviceId, path),
+  getRemoteUrl: (deviceId: string, path: string) => r.invoke('get-remote-url', deviceId, path),
 
   startPushReceiver: () => r.invoke('start-push-receiver'),
   registerDevice: (name: string) => r.invoke('register-device', name),

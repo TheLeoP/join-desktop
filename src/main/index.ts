@@ -728,16 +728,32 @@ function createWindow(tray: Tray) {
   m.on('log-in-with-google', () => {
     logInWithGoogle(win)
   })
-  m.on('open', (_, url) => {
-    shell.openExternal(url)
+  m.on('open-remote-file', async (_, deviceId: string, path: string) => {
+    const device = devices.get(deviceId)
+    if (device && device.secureServerAddress) {
+      const url = device.secureServerAddress
+      const token = await oauth2Client.getAccessToken()
+      shell.openExternal(`${url}files${path}?token=${token.token}`)
+    } else {
+    }
+  })
+  m.handle('get-remote-url', async (_, deviceId: string, path: string) => {
+    const device = devices.get(deviceId)
+    if (device && device.secureServerAddress) {
+      const url = device.secureServerAddress
+      const token = await oauth2Client.getAccessToken()
+      const remoteUrl = `${url}files${path}?token=${token.token}`
+      return remoteUrl
+    } else {
+    }
   })
 
   const showMenu = Menu.buildFromTemplate([
     {
       label: 'Open',
       role: 'unhide',
-      click: (item, win, event) => {
-        BrowserWindow.getAllWindows()[0]?.show()
+      click: () => {
+        win.show()
       },
     },
   ])
@@ -1017,9 +1033,6 @@ app.whenReady().then(() => {
         },
       })
     }
-  })
-  m.handle('local-network-address', (_, deviceId) => {
-    return devices.get(deviceId)?.secureServerAddress
   })
 
   createWindow(tray)
