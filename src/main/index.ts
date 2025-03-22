@@ -728,6 +728,9 @@ function createWindow(tray: Tray) {
   m.on('log-in-with-google', () => {
     logInWithGoogle(win)
   })
+  m.on('open', (_, url) => {
+    shell.openExternal(url)
+  })
 
   const showMenu = Menu.buildFromTemplate([
     {
@@ -1014,6 +1017,9 @@ app.whenReady().then(() => {
         },
       })
     }
+  })
+  m.handle('local-network-address', (_, deviceId) => {
+    return devices.get(deviceId)?.secureServerAddress
   })
 
   createWindow(tray)

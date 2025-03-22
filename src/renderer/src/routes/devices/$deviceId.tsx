@@ -1,5 +1,5 @@
 import { Folder } from '@renderer/svgs'
-import { formatBytes, useDevices } from '@renderer/util'
+import { formatBytes, useDevices, useOnLocalNetwork } from '@renderer/util'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { atom, PrimitiveAtom, useAtom, useAtomValue } from 'jotai'
@@ -51,12 +51,38 @@ function Directory({
   const { data: foldersInfo, error, isPending, isError } = useRemotePath(deviceId, regId2, path)
   const [current, setCurrent] = useAtom(atom)
 
+  const onLocalNetwork = useOnLocalNetwork(deviceId)
+
+  const [preview, setPreview] = useState<string | null>(null)
   useEffect(() => {
-    const f = (e: KeyboardEvent) => {
+    ;(async () => {
+      // TODO: something like this for remote
+      if (!foldersInfo) return setPreview(null)
+      const item = foldersInfo.files[current]
+      if (!item) return setPreview(null)
+
+      if (item.isFolder) return setPreview(null)
+      const name = item.name
+      if (
+        !name.endsWith('.jpg') &&
+        !name.endsWith('.jpeg') &&
+        !name.endsWith('.png') &&
+        !name.endsWith('.gif')
+      )
+        return setPreview(null)
+
+      const url = await window.api.localNetworkAddress(deviceId)
+      const token = await window.api.getAccessToken()
+      setPreview(`${url}files${path}/${name}?token=${token}`)
+    })()
+  }, [deviceId, current, foldersInfo, path])
+
+  useEffect(() => {
+    const f = async (e: KeyboardEvent) => {
       if (!active) return
 
       const code = e.code
-      if (code !== 'ArrowUp' && code !== 'ArrowDown') return
+      if (code !== 'ArrowUp' && code !== 'ArrowDown' && code !== 'Enter') return
       e.preventDefault()
       switch (code) {
         case 'ArrowUp': {
@@ -78,13 +104,30 @@ function Directory({
           })
           break
         }
+        case 'Enter': {
+          if (!foldersInfo) return
+          const item = foldersInfo.files[current]
+          if (!item) return
+          if (item.isFolder) return
+
+          if (onLocalNetwork) {
+            const url = await window.api.localNetworkAddress(deviceId)
+            const token = await window.api.getAccessToken()
+            // TODO: instead of this general open use a specific one that takes into account the distinction between remote and local in the backend
+            window.api.open(`${url}files${path}/${item.name}?token=${token}`)
+            // TODO: toast to show some kind of progress?
+          } else {
+          }
+
+          break
+        }
       }
     }
     document.addEventListener('keydown', f)
     return () => {
       document.removeEventListener('keydown', f)
     }
-  }, [foldersInfo?.files.length, active, setCurrent])
+  }, [active, current, deviceId, foldersInfo, onLocalNetwork, path, setCurrent])
 
   const parentRef = useRef(null)
   const rowVirtualizer = useVirtualizer({
@@ -112,6 +155,8 @@ function Directory({
       className="w-1/4 overflow-y-auto data-active:bg-yellow-200 data-active:p-1"
       ref={parentRef}
     >
+      {/* TODO: move this outside of Directory */}
+      {preview && <img src={preview} />}
       <div style={{ position: 'relative', height: rowVirtualizer.getTotalSize() }}>
         {items.map((virtualItem) => {
           const item = foldersInfo.files[virtualItem.index]
