@@ -3,7 +3,8 @@ import { useDevices } from '@renderer/util'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { atom, PrimitiveAtom, useAtom, useAtomValue } from 'jotai'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 
 type File = {
   date: number
@@ -85,8 +86,19 @@ function Directory({
     }
   }, [foldersInfo?.files.length, active, setCurrent])
 
+  const parentRef = useRef(null)
+  const rowVirtualizer = useVirtualizer({
+    count: foldersInfo?.files.length ?? 0,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 35,
+  })
+  const items = rowVirtualizer.getVirtualItems()
+  useEffect(() => {
+    rowVirtualizer.scrollToIndex(current)
+  }, [current, rowVirtualizer])
+
   if (!path) {
-    return <div></div>
+    return <></>
   } else if (isPending) {
     return <div>Loading...</div>
   } else if (isError) {
@@ -94,20 +106,29 @@ function Directory({
   }
 
   return (
-    <>
-      {foldersInfo.files.map((file, i) => (
-        <div key={file.name}>
-          <div
-            data-active={i === current ? 'active' : undefined}
-            className="flex items-center bg-orange-300 text-xl data-active:bg-orange-400"
-          >
-            {file.isFolder && <Folder />}
-            {file.name}
+    <div className="w-1/4 overflow-y-auto" ref={parentRef}>
+      <div className="relative" style={{ height: rowVirtualizer.getTotalSize() }}>
+        {items.map((virtualItem) => (
+          <div key={virtualItem.key}>
+            <div
+              data-active={virtualItem.index === current ? 'active' : undefined}
+              className="flex items-center border-s border-b bg-orange-300 text-xl data-active:bg-orange-400"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: `${virtualItem.size}px`,
+                transform: `translateY(${virtualItem.start}px)`,
+              }}
+            >
+              {foldersInfo.files[virtualItem.index].isFolder && <Folder />}
+              {foldersInfo.files[virtualItem.index].name}
+            </div>
           </div>
-          <hr />
-        </div>
-      ))}
-    </>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -168,33 +189,27 @@ function RouteComponent() {
 
   return (
     <div className="flex h-[calc(100vh-44px)]">
-      <div className="w-1/4">
-        <Directory
-          deviceId={deviceId}
-          regId2={regId2}
-          path="/"
-          atom={current1Atom}
-          active={currentDir === 0}
-        />
-      </div>
-      <div className="w-1/4">
-        <Directory
-          deviceId={deviceId}
-          regId2={regId2}
-          path={path2}
-          atom={current2Atom}
-          active={currentDir === 1}
-        />
-      </div>
-      <div className="w-1/4 overflow-y-auto">
-        <Directory
-          deviceId={deviceId}
-          regId2={regId2}
-          path={path3}
-          atom={current3Atom}
-          active={currentDir === 2}
-        />
-      </div>
+      <Directory
+        deviceId={deviceId}
+        regId2={regId2}
+        path="/"
+        atom={current1Atom}
+        active={currentDir === 0}
+      />
+      <Directory
+        deviceId={deviceId}
+        regId2={regId2}
+        path={path2}
+        atom={current2Atom}
+        active={currentDir === 1}
+      />
+      <Directory
+        deviceId={deviceId}
+        regId2={regId2}
+        path={path3}
+        atom={current3Atom}
+        active={currentDir === 2}
+      />
     </div>
   )
 }

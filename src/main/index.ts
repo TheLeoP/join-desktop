@@ -797,11 +797,6 @@ app.whenReady().then(() => {
     if (device && device.secureServerAddress) {
       const url = device.secureServerAddress
       const token = await oauth2Client.getAccessToken()
-      // __AUTO_GENERATED_PRINT_VAR_START__
-      console.log(
-        '(anon)#(anon)#if `${url}folders${path}`: %s',
-        `${url}folders${path}?token=${token.token}`,
-      ) // __AUTO_GENERATED_PRINT_VAR_END__
       const req = https.request(`${url}folders${path}`, {
         headers: {
           'accept-encoding': 'gzip, deflate, br, zstd',
