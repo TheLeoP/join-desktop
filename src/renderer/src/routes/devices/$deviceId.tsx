@@ -2,7 +2,8 @@ import { Folder } from '@renderer/svgs'
 import { formatBytes, useDevices, useOnLocalNetwork } from '@renderer/util'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { atom, PrimitiveAtom, useAtom, useAtomValue } from 'jotai'
+import { atom, PrimitiveAtom, useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { atomFamily } from 'jotai/utils'
 import { useEffect, useState, useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 
@@ -39,17 +40,43 @@ function Directory({
   deviceId,
   regId2,
   path,
-  atom,
   active,
+  i,
 }: {
   deviceId: string
   regId2: string | undefined
   path: string | undefined
-  atom: PrimitiveAtom<number>
   active: boolean
+  i: number
 }) {
+  const setPaths = useSetAtom(pathsAtom)
+  const setCurrentFile = useSetAtom(currentFileAtom)
+
   const { data: foldersInfo, error, isPending, isError } = useRemotePath(deviceId, regId2, path)
-  const [current, setCurrent] = useAtom(atom)
+  const [current, setCurrent] = useState(0)
+  useEffect(() => {
+    if (!active) return
+
+    if (!foldersInfo) return
+    const item = foldersInfo.files[current]
+    if (!item.isFolder) {
+      setPaths((oldPath) => {
+        const newPaths = [...oldPath]
+        if (newPaths.length > i + 1) {
+          newPaths.pop()
+        }
+        return newPaths
+      })
+      setCurrentFile(item.name)
+      return
+    }
+
+    setPaths((oldPath) => {
+      const newPaths = [...oldPath]
+      newPaths[i + 1] = item.name
+      return newPaths
+    })
+  }, [current, foldersInfo, i, active, setPaths, setCurrentFile])
 
   const onLocalNetwork = useOnLocalNetwork(deviceId)
 
@@ -69,6 +96,7 @@ function Directory({
 
             return newValue
           })
+
           break
         }
         case 'ArrowDown': {
@@ -78,6 +106,8 @@ function Directory({
             if (newValue >= max) newValue = 0
             return newValue
           })
+          if (!foldersInfo) return
+
           break
         }
         case 'Enter': {
@@ -155,14 +185,34 @@ function Directory({
   )
 }
 
-const current1Atom = atom(0)
-const current2Atom = atom(0)
-const current3Atom = atom(0)
+const pathsAtom = atom([''])
+const currentFileAtom = atom<null | string>(null)
 
 function RouteComponent() {
   const { deviceId } = Route.useParams()
   const { data: devices } = useDevices()
   const regId2 = devices?.records.find((device) => device.deviceId === deviceId)?.regId2
+
+  const [paths, setPaths] = useAtom(pathsAtom)
+  const currentFile = useAtomValue(currentFileAtom)
+  const previewPath = currentFile ? `/${paths.join('/')}/${currentFile}` : undefined
+  const [preview, setPreview] = useState<string | null>(null)
+  useEffect(() => {
+    async function getPreview() {
+      if (!previewPath) return setPreview(null)
+      if (
+        !previewPath.endsWith('.png') &&
+        !previewPath.endsWith('.jpg') &&
+        !previewPath.endsWith('.jpeg') &&
+        !previewPath.endsWith('.gif')
+      )
+        return setPreview(null)
+
+      const url = await window.api.getRemoteUrl(deviceId, previewPath)
+      setPreview(url)
+    }
+    getPreview()
+  }, [previewPath, deviceId])
 
   const [currentDir, setCurrentDir] = useState(0)
   useEffect(() => {
@@ -179,12 +229,19 @@ function RouteComponent() {
 
             return newValue
           })
+
+          setPaths((oldPath) => {
+            const newPaths = [...oldPath]
+            if (newPaths.length > 2) newPaths.pop()
+
+            return newPaths
+          })
           break
         }
         case 'ArrowRight': {
           setCurrentDir((current) => {
             let newValue = current + 1
-            const max = 3
+            const max = paths.length + 1
             if (newValue > max) newValue = 0
             return newValue
           })
@@ -197,80 +254,26 @@ function RouteComponent() {
     return () => {
       document.removeEventListener('keydown', f)
     }
-  }, [])
+  }, [paths, setPaths])
 
-  const current1 = useAtomValue(current1Atom)
-  const { data: foldersInfo1 } = useRemotePath(deviceId, regId2, '/')
-  const selected1 = foldersInfo1 ? foldersInfo1.files[current1] : undefined
-
-  const current2 = useAtomValue(current2Atom)
-  const path2 = selected1 && selected1.isFolder ? `/${selected1.name}` : undefined
-  const { data: foldersInfo2 } = useRemotePath(deviceId, regId2, path2)
-  const selected2 = foldersInfo2 ? foldersInfo2.files[current2] : undefined
-
-  const current3 = useAtomValue(current3Atom)
-  const path3 =
-    selected2 && selected2.isFolder && currentDir > 0 ? `${path2}/${selected2.name}` : undefined
-  const { data: foldersInfo3 } = useRemotePath(deviceId, regId2, path3)
-  const selected3 = foldersInfo3 ? foldersInfo3.files[current3] : undefined
-
-  const path4 =
-    selected3 && selected3.isFolder && currentDir > 1 ? `${path3}/${selected3.name}` : undefined
-
-  const [preview, setPreview] = useState<string | null>(null)
-  useEffect(() => {
-    ;(async () => {
-      const path = `/${[selected1?.name, selected2?.name, selected3?.name].join('/')}`
-      if (!path) return setPreview(null)
-
-      const selected =
-        currentDir === 0
-          ? selected1
-          : currentDir === 1
-            ? selected2
-            : currentDir === 2
-              ? selected3
-              : undefined
-      if (!selected) return setPreview(null)
-
-      if (selected.isFolder) return setPreview(null)
-      const name = selected.name
-      if (
-        !name.endsWith('.jpg') &&
-        !name.endsWith('.jpeg') &&
-        !name.endsWith('.png') &&
-        !name.endsWith('.gif')
-      )
-        return setPreview(null)
-
-      const url = await window.api.getRemoteUrl(deviceId, path)
-      setPreview(url)
-    })()
-  }, [currentDir, deviceId, path2, path3, path4, selected1, selected2, selected3])
-
+  // TODO: use Virtualizer to vertically virtuallize up to 3 directories
   return (
     <div className="flex h-[calc(100vh-44px)]">
-      <Directory
-        deviceId={deviceId}
-        regId2={regId2}
-        path="/"
-        atom={current1Atom}
-        active={currentDir === 0}
-      />
-      <Directory
-        deviceId={deviceId}
-        regId2={regId2}
-        path={path2}
-        atom={current2Atom}
-        active={currentDir === 1}
-      />
-      <Directory
-        deviceId={deviceId}
-        regId2={regId2}
-        path={path3}
-        atom={current3Atom}
-        active={currentDir === 2}
-      />
+      {paths.map((_, i, paths) => {
+        const path = `/${paths.slice(0, i + 1).join('/')}`
+        return (
+          <Directory
+            key={i}
+            deviceId={deviceId}
+            regId2={regId2}
+            path={path}
+            active={currentDir === i}
+            i={i}
+          />
+        )
+      })}
+      {/* TODO: support more kind of previews? */}
+      {/* TODO: there are some bugs with previews not being removed when changing from image to previous directory */}
       <div className="w-1/4">{preview && <img src={preview} />}</div>
     </div>
   )
