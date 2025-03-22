@@ -10,6 +10,7 @@ function LogIn() {
   const [deviceName, setDeviceName] = useState<string | null>(null)
 
   return (
+    // TODO: change h-screen with header?
     <div className="flex h-screen flex-col">
       <h1 className="pt-10 text-center text-9xl">Join Desktop</h1>
       {!isLoggedIn && (

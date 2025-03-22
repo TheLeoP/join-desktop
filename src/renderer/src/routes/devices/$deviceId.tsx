@@ -56,6 +56,7 @@ function Directory({
 
       const code = e.code
       if (code !== 'ArrowUp' && code !== 'ArrowDown') return
+      e.preventDefault()
       switch (code) {
         case 'ArrowUp': {
           setCurrent((current) => {
@@ -124,6 +125,7 @@ function RouteComponent() {
     const f = (e: KeyboardEvent) => {
       const code = e.code
       if (code !== 'ArrowLeft' && code !== 'ArrowRight') return
+      e.preventDefault()
       switch (code) {
         case 'ArrowLeft': {
           setCurrentDir((current) => {
@@ -165,7 +167,7 @@ function RouteComponent() {
   const path3 = selected2 && currentDir >= 1 ? `${path2}/${selected2.name}` : undefined
 
   return (
-    <div className="flex">
+    <div className="flex h-[calc(100vh-44px)]">
       <div className="w-1/4">
         <Directory
           deviceId={deviceId}
@@ -184,7 +186,7 @@ function RouteComponent() {
           active={currentDir === 1}
         />
       </div>
-      <div className="w-1/4">
+      <div className="w-1/4 overflow-y-auto">
         <Directory
           deviceId={deviceId}
           regId2={regId2}
