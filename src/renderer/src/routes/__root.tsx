@@ -29,7 +29,7 @@ function Root() {
   return (
     <>
       <div className="flex gap-2 p-2">
-        <Link to="/devices" className="[&.active]:font-bold">
+        <Link to="/devices" className="text-xl [&.active]:font-bold">
           Devices
         </Link>
       </div>

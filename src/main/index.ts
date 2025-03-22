@@ -47,6 +47,7 @@ const notifications = new Map<string, Notification>()
 let devices: Map<string, { secureServerAddress?: string }>
 
 const mediaRequests = new Map<string, (mediaInfo: MediaInfo | null) => void>()
+const folderRequests = new Map<string, (folderInfo: FolderInfo | null) => void>()
 
 function mapReplacer(key, value: []) {
   if (value instanceof Map) {
@@ -209,6 +210,7 @@ type JoinData = {
     | 'GCMDeviceNotOnLocalNetwork'
     | 'GCMStatus'
     | 'GCMRespondFile'
+    | 'GCMFolder'
     | ''
 }
 
@@ -331,7 +333,23 @@ export type MediaInfo = {
 type GenericResponse = {
   success: boolean
   userAuthError: boolean
-  // TODO: this has an errorMessage field or something like that, handle it
+  errorMessage?: string
+  payload?: unknown
+}
+
+type FolderInfo = {
+  files: File[]
+  pathSegments: string[]
+}
+type FoldersResponse = {
+  payload: FolderInfo
+} & GenericResponse
+
+type File = {
+  date: number
+  isFolder: boolean
+  name: string
+  size: number // TODO: mb?
 }
 
 let lastBatteryNotification: Notification | undefined
@@ -581,6 +599,16 @@ async function startPushReceiver(win: BrowserWindow) {
           }
           break
         }
+        case 'GCMFolder': {
+          const response = content as FolderInfo
+
+          const path = `/${response.pathSegments.join('/')}`
+          const request = folderRequests.get(path)
+          if (!request) return
+          request(response)
+          folderRequests.delete(path)
+          break
+        }
       }
     }
 
@@ -713,8 +741,10 @@ app.whenReady().then(() => {
             body.push(data)
           })
           resp.on('end', () => {
-            const data = body.join()
-            const mediaInfo = JSON.parse(data).payload as MediaInfo
+            const data = body.join('')
+            const parsedData = JSON.parse(data) as GenericResponse
+            if (!parsedData.success) return rej(parsedData.errorMessage)
+            const mediaInfo = parsedData.payload as MediaInfo
             res(mediaInfo)
           })
         })
@@ -762,6 +792,82 @@ app.whenReady().then(() => {
       })
     }
   })
+  m.handle('folders', async (_, deviceId, regId, path) => {
+    const device = devices.get(deviceId)
+    if (device && device.secureServerAddress) {
+      const url = device.secureServerAddress
+      const token = await oauth2Client.getAccessToken()
+      // __AUTO_GENERATED_PRINT_VAR_START__
+      console.log(
+        '(anon)#(anon)#if `${url}folders${path}`: %s',
+        `${url}folders${path}?token=${token.token}`,
+      ) // __AUTO_GENERATED_PRINT_VAR_END__
+      const req = https.request(`${url}folders${path}`, {
+        headers: {
+          'accept-encoding': 'gzip, deflate, br, zstd',
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token.token}`,
+        },
+        rejectUnauthorized: false,
+        insecureHTTPParser: true,
+      })
+      req.end()
+      return new Promise((res, rej) => {
+        req.on('response', (resp) => {
+          resp.setEncoding('utf8')
+          const body: string[] = []
+          resp.on('data', (data) => {
+            body.push(data)
+          })
+          resp.on('end', () => {
+            const data = body.join('')
+            const parsedData = JSON.parse(data) as GenericResponse
+            if (!parsedData.success) return rej(parsedData.errorMessage)
+
+            const foldersInfo = parsedData.payload as FoldersResponse
+            res(foldersInfo)
+          })
+        })
+        req.on('error', (err) => {
+          rej(err)
+        })
+      })
+    } else {
+      await fcm.projects.messages.send({
+        auth: jwtClient,
+        parent: 'projects/join-external-gcm',
+        requestBody: {
+          message: {
+            token: regId,
+            android: {
+              priority: 'high',
+            },
+            data: {
+              type: 'GCMFolderRequest',
+              json: JSON.stringify({
+                type: 'GCMFolderRequest',
+                path,
+                senderId: thisDeviceId,
+              }),
+            },
+          },
+        },
+      })
+
+      return await new Promise((res, rej) => {
+        const request = folderRequests.get(path)
+        if (request) request(null)
+
+        folderRequests.set(path, (folderInfo) => {
+          res(folderInfo)
+        })
+        setTimeout(() => {
+          folderRequests.delete(path)
+          rej(new Error('Folder request timed out'))
+        }, 10 * 1000)
+      })
+    }
+  })
   m.handle('media-action', async (_, deviceId, regId, action) => {
     const device = devices.get(deviceId)
     const data = {
@@ -799,11 +905,10 @@ app.whenReady().then(() => {
             body.push(data)
           })
           resp.on('end', () => {
-            const data = body.join()
+            const data = body.join('')
             const mediaInfo = JSON.parse(data) as GenericResponse
-            if (!mediaInfo.success) {
-              return rej(data)
-            }
+            if (!mediaInfo.success) return rej(mediaInfo.errorMessage)
+
             res()
           })
         })

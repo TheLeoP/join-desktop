@@ -1,4 +1,4 @@
-import { QueryClient, useMutation } from '@tanstack/react-query'
+import { QueryClient, useMutation, useQuery } from '@tanstack/react-query'
 import { useState, useEffect, createContext, useContext } from 'react'
 
 export const queryClient = new QueryClient()
@@ -46,7 +46,7 @@ export type Data<T> = {
   records: T[]
 }
 
-export type DeviceType = {
+export type DeviceInfo = {
   id: string
   regId: string
   regId2: string
@@ -147,5 +147,21 @@ export function useMediaAction(deviceId: string, regId2: string) {
     },
     // NOTE: can't simply invalidate and refetch the query because Join (the
     // mobile app) won't deliver updated information
+  })
+}
+
+export function useDevices() {
+  return useQuery<Data<DeviceInfo>>({
+    queryKey: ['devices'],
+    queryFn: async () => {
+      const joinUrl = 'https://joinjoaomgcd.appspot.com/_ah/api'
+      const token = await window.api.getAccessToken()
+      const res = await fetch(`${joinUrl}/registration/v1/listDevices`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      return await res.json()
+    },
   })
 }

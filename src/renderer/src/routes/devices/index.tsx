@@ -1,12 +1,13 @@
 import { LocalNetwork, Next, Pause, Play, Previous } from '@renderer/svgs'
 import {
-  Data,
+  DeviceInfo,
   DeviceType,
   MediaAction,
   MediaInfo,
   queryClient,
   ReverseDeviceType,
   useDeviceId,
+  useDevices,
   useMediaAction,
   useOnLocalNetwork,
 } from '@renderer/util'
@@ -72,9 +73,6 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
     isError,
     refetch,
   } = useQuery<MediaInfo>({
-    refetchOnWindowFocus(query) {
-      return !query.state.error
-    },
     staleTime: 60 * 1000,
     retry: false,
     queryKey: ['mediaInfo', deviceId, regId2],
@@ -201,7 +199,7 @@ function Device({
   regId2,
   deviceType,
   deviceName,
-}: DeviceType & { thisDeviceId: string | null }) {
+}: DeviceInfo & { thisDeviceId: string | null }) {
   const onLocalNetwork = useOnLocalNetwork(deviceId)
 
   return (
@@ -233,25 +231,7 @@ function Device({
 function Devices() {
   const deviceId = useDeviceId()
 
-  const {
-    data: devices,
-    error,
-    isPending,
-    isError,
-  } = useQuery<Data<DeviceType>>({
-    queryKey: ['devices'],
-    queryFn: async () => {
-      const joinUrl = 'https://joinjoaomgcd.appspot.com/_ah/api'
-      const token = await window.api.getAccessToken()
-      const res = await fetch(`${joinUrl}/registration/v1/listDevices`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      return await res.json()
-    },
-  })
-
+  const { data: devices, error, isPending, isError } = useDevices()
   if (isPending) {
     return <div>Loading...</div>
   }

@@ -22,6 +22,9 @@ export const api = {
     r.invoke('media-action', deviceId, regId, action),
   media: (deviceId: string, regId: string) => r.invoke('media', deviceId, regId),
 
+  folders: (deviceId: string, regId: string, path: string) =>
+    r.invoke('folders', deviceId, regId, path),
+
   // TODO: add refactoring scope for this
 
   onLocalNetwork: (cb: (deviceId: string, onLocalNetwork: boolean) => void) => {
