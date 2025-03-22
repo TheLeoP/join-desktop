@@ -84,12 +84,13 @@ const devicesTypes = {
   ifttt: 12,
   ip: 13,
   mqtt: 14,
-}
+} as const
+type DeviceType = typeof devicesTypes
 
-const id = '596310809542-giumrib7hohfiftljqmj7eaio3kl21ek.apps.googleusercontent.com'
-const secret = 'NTA9UbFpNhaIP74B_lpxGgvR'
-const redirectUri = 'http://127.0.0.1:9876'
-const oauth2Client = new google.auth.OAuth2(id, secret, redirectUri)
+const joinAppId = '596310809542-giumrib7hohfiftljqmj7eaio3kl21ek.apps.googleusercontent.com'
+const joinAppSecret = 'NTA9UbFpNhaIP74B_lpxGgvR'
+const joinRedirectUri = 'http://127.0.0.1:9876'
+const oauth2Client = new google.auth.OAuth2(joinAppId, joinAppSecret, joinRedirectUri)
 google.options({ auth: oauth2Client })
 
 const email = 'fcm-sender@join-external-gcm.iam.gserviceaccount.com'
@@ -352,8 +353,75 @@ type File = {
   size: number // TODO: mb?
 }
 
+type Data<T> = {
+  success: boolean
+  userAuthError: boolean
+  errorMessage?: string
+  records: T[]
+}
+
+type DeviceInfo = {
+  id: string
+  regId: string
+  regId2: string
+  userAccount: string
+  deviceId: string
+  deviceName: string
+  deviceType: DeviceType[keyof DeviceType]
+  apiLevel: number // TODO: enum?
+  hasTasker: boolean
+}
+
+async function testLocalAddress(id: string, url: string, win: BrowserWindow) {
+  const body = JSON.stringify({
+    type: 'GCMLocalNetworkTest',
+    json: JSON.stringify({
+      type: 'GCMLocalNetworkTest',
+      senderID: thisDeviceId,
+    }),
+  })
+
+  const token = await oauth2Client.getAccessToken()
+  const req = https.request(`${url}gcm?token=${token.token}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Length': body.length,
+    },
+    rejectUnauthorized: false,
+    insecureHTTPParser: true,
+  })
+  req.write(body)
+  req.end()
+
+  return new Promise<boolean>((res, rej) => {
+    req.on('response', async () => {
+      if (!devices.has(id)) {
+        devices.set(id, { secureServerAddress: url })
+      } else if (devices.has(id)) {
+        const device = devices.get(id)
+        device!.secureServerAddress = url
+      }
+      await afs.writeFile(devicesFile, JSON.stringify(devices, mapReplacer), 'utf-8')
+      win.webContents.send('on-local-network', id, true)
+
+      res(true)
+    })
+    req.on('error', async () => {
+      if (!devices.has(id)) return
+
+      const device = devices.get(id)
+      delete device?.secureServerAddress
+      await afs.writeFile(devicesFile, JSON.stringify(devices, mapReplacer), 'utf-8')
+      win.webContents.send('on-local-network', id, false)
+
+      res(false)
+    })
+  })
+}
+
 let lastBatteryNotification: Notification | undefined
-async function startPushReceiver(win: BrowserWindow) {
+async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void>) {
   const persistentIds = await new Promise<string[]>((res, rej) => {
     fs.readFile(persistentIdsFile, 'utf-8', (err, content) => {
       if (err && err.code == 'ENOENT') return res([])
@@ -376,6 +444,7 @@ async function startPushReceiver(win: BrowserWindow) {
     },
     credentials: credentials,
   })
+  instance.onReady(onReady)
 
   instance.onCredentialsChanged(async ({ oldCredentials, newCredentials }) => {
     credentials = newCredentials
@@ -483,44 +552,7 @@ async function startPushReceiver(win: BrowserWindow) {
           const id = localReq.senderId
           if (!url || !id) return
 
-          const body = JSON.stringify({
-            type: 'GCMLocalNetworkTest',
-            json: JSON.stringify({
-              type: 'GCMLocalNetworkTest',
-              senderID: thisDeviceId,
-            }),
-          })
-
-          const token = await oauth2Client.getAccessToken()
-          const req = https.request(`${url}gcm?token=${token.token}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Content-Length': body.length,
-            },
-            rejectUnauthorized: false,
-            insecureHTTPParser: true,
-          })
-          req.write(body)
-          req.end()
-          req.on('response', async (res) => {
-            if (!devices.has(id)) {
-              devices.set(id, { secureServerAddress: url })
-            } else if (devices.has(id)) {
-              const device = devices.get(id)
-              device!.secureServerAddress = url
-            }
-            await afs.writeFile(devicesFile, JSON.stringify(devices, mapReplacer), 'utf-8')
-            win.webContents.send('on-local-network', id, true)
-          })
-          req.on('error', async (err) => {
-            if (!devices.has(id)) return
-
-            const device = devices.get(id)
-            delete device?.secureServerAddress
-            await afs.writeFile(devicesFile, JSON.stringify(devices, mapReplacer), 'utf-8')
-            win.webContents.send('on-local-network', id, false)
-          })
+          testLocalAddress(id, url, win)
 
           break
         }
@@ -632,7 +664,67 @@ function createWindow(tray: Tray) {
     },
   })
 
-  m.handle('start-push-receiver', () => startPushReceiver(win))
+  m.handle('start-push-receiver', () =>
+    startPushReceiver(win, async () => {
+      const token = await oauth2Client.getAccessToken()
+      const res = await fetch(
+        `${joinUrl}/registration/v1/listDevices`,
+
+        {
+          headers: {
+            Authorization: `Bearer ${token.token}`,
+          },
+        },
+      )
+      const parsedRes = (await res.json()) as Data<DeviceInfo>
+      // TODO: toast in frontend with errors? Notifications?
+      if (!parsedRes.success) return
+
+      const devicesInfo = parsedRes.records
+
+      const results = await Promise.all(
+        devicesInfo.map(async (info) => {
+          const localInfo = devices.get(info.deviceId)
+          if (!localInfo || !localInfo?.secureServerAddress) return { info, success: false }
+
+          const success = await testLocalAddress(info.deviceId, localInfo.secureServerAddress, win)
+          return { info, success }
+        }),
+      )
+      await Promise.all(
+        results
+          .filter((result) => !result.success)
+          .map(async ({ info }) => {
+            const addressesFileName = `serveraddresses=:=${info.deviceId}`
+            const response = await drive.files.list({
+              q: `name = '${addressesFileName}' and trashed = false`,
+            })
+            const files = response.data.files
+            if (!files) return
+
+            // TODO: is this correct? This is what the join app does
+            const fileInfo = files[0]
+            if (!fileInfo || !fileInfo.id) return
+
+            const file = (
+              await drive.files.get({
+                alt: 'media',
+                fileId: fileInfo.id,
+              })
+            ).data
+
+            // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
+            const text = await file.text()
+            const localReq = JSON.parse(text) as LocalNetworkRequest
+            const url = localReq.secureServerAddress
+            const id = localReq.senderId
+            if (!url || !id) return
+
+            await testLocalAddress(id, url, win)
+          }),
+      )
+    }),
+  )
   m.on('log-in-with-google', () => {
     logInWithGoogle(win)
   })
@@ -681,10 +773,6 @@ function createWindow(tray: Tray) {
     try {
       const content = await afs.readFile(devicesFile, 'utf-8')
       devices = JSON.parse(content, mapReviver)
-      devices.forEach((device, id) => {
-        if (!device.secureServerAddress) return
-        win.webContents.send('on-local-network', id, true)
-      })
     } catch {
       devices = new Map()
     }
