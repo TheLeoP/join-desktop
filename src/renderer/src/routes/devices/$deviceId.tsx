@@ -1,5 +1,5 @@
 import { Folder } from '@renderer/svgs'
-import { useDevices } from '@renderer/util'
+import { formatBytes, useDevices } from '@renderer/util'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { atom, PrimitiveAtom, useAtom, useAtomValue } from 'jotai'
@@ -10,7 +10,7 @@ type File = {
   date: number
   isFolder: boolean
   name: string
-  size: number // TODO: mb?
+  size: number //bytes
 }
 
 type FolderInfo = {
@@ -90,7 +90,8 @@ function Directory({
   const rowVirtualizer = useVirtualizer({
     count: foldersInfo?.files.length ?? 0,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 35,
+    // TODO: make items bigger when they have long text
+    estimateSize: () => 55,
   })
   const items = rowVirtualizer.getVirtualItems()
   useEffect(() => {
@@ -106,13 +107,19 @@ function Directory({
   }
 
   return (
-    <div className="w-1/4 overflow-y-auto" ref={parentRef}>
-      <div className="relative" style={{ height: rowVirtualizer.getTotalSize() }}>
-        {items.map((virtualItem) => (
-          <div key={virtualItem.key}>
+    <div
+      data-active={active ? 'active' : undefined}
+      className="w-1/4 overflow-y-auto data-active:bg-yellow-200 data-active:p-1"
+      ref={parentRef}
+    >
+      <div style={{ position: 'relative', height: rowVirtualizer.getTotalSize() }}>
+        {items.map((virtualItem) => {
+          const item = foldersInfo.files[virtualItem.index]
+          return (
             <div
+              key={virtualItem.key}
               data-active={virtualItem.index === current ? 'active' : undefined}
-              className="flex items-center border-s border-b bg-orange-300 text-xl data-active:bg-orange-400"
+              className="truncate border-b bg-orange-300 data-active:bg-orange-400"
               style={{
                 position: 'absolute',
                 top: 0,
@@ -122,11 +129,15 @@ function Directory({
                 transform: `translateY(${virtualItem.start}px)`,
               }}
             >
-              {foldersInfo.files[virtualItem.index].isFolder && <Folder />}
-              {foldersInfo.files[virtualItem.index].name}
+              {/* TODO: handle long names? */}
+              <div className="flex items-center text-xl">
+                {item.isFolder && <Folder />}
+                {item.name}
+              </div>
+              {!item.isFolder && formatBytes(item.size)}
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

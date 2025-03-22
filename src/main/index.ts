@@ -350,7 +350,7 @@ type File = {
   date: number
   isFolder: boolean
   name: string
-  size: number // TODO: mb?
+  size: number // bytes
 }
 
 type Data<T> = {
