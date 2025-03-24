@@ -583,6 +583,7 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
               icon: notificationIcon,
             })
           } else if (push.title) {
+            // TODO: handle custom commands. The will be on `text` and there won't be any title
             n = new Notification({
               title: push.title,
               body: push.text,

@@ -1,4 +1,4 @@
-import { LocalNetwork, Next, Pause, Play, Previous } from '@renderer/svgs'
+import * as svg from '@renderer/svgs'
 import {
   DeviceInfo,
   DeviceType,
@@ -134,7 +134,7 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
                     })
                   }}
                 >
-                  <Previous />
+                  <svg.Previous />
                 </button>
 
                 <button
@@ -147,7 +147,7 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
                     })
                   }}
                 >
-                  {info.playing ? <Pause /> : <Play />}
+                  {info.playing ? <svg.Pause /> : <svg.Play />}
                 </button>
                 <button
                   className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700"
@@ -157,7 +157,7 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
                     })
                   }}
                 >
-                  <Next />
+                  <svg.Next />
                 </button>
               </div>
               <div>
@@ -173,21 +173,10 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
     <div className="flex flex-col items-center space-y-1">
       {info}
       <button
-        className="w-10 cursor-pointer bg-orange-100 stroke-black hover:stroke-gray-500 active:stroke-gray-700"
+        className="flex w-full cursor-pointer flex-col items-center bg-orange-100 stroke-black hover:stroke-gray-500 active:stroke-gray-700"
         onClick={async () => await refetch()}
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-          <path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" />
-          <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" />
-        </svg>
+        <svg.Refresh className="w-10" />
       </button>
     </div>
   )
@@ -204,25 +193,35 @@ function Device({
 
   return (
     <div className="flex w-60 flex-col items-center">
-      <Link to="/devices/$deviceId" params={{ deviceId }} from="/devices">
-        <img
-          src={`src/assets/${ReverseDeviceType[deviceType]}.png`}
-          className="max-w-40 rounded-full bg-orange-300 p-2"
-        />
-      </Link>
+      <img
+        src={`src/assets/${ReverseDeviceType[deviceType]}.png`}
+        className="max-w-40 rounded-full bg-orange-300 p-2"
+      />
       <div className="flex items-center space-x-1">
         <h2 className="text-center text-2xl">
           {thisDeviceId === deviceId ? `${deviceName} (this device)` : deviceName}
         </h2>
         {onLocalNetwork && (
           <div className="rounded-full bg-orange-300 fill-white p-1">
-            <LocalNetwork />
+            <svg.LocalNetwork />
           </div>
         )}
       </div>
       {/* NOTE: Join does this, I don't know if it's correct */}
       {(deviceType == DeviceType.android_phone || deviceType === DeviceType.android_tablet) && (
-        <Media deviceId={deviceId} regId2={regId2} />
+        <div className="flex flex-col space-y-1">
+          <Media deviceId={deviceId} regId2={regId2} />
+
+          <hr />
+          <Link
+            to="/devices/media/$deviceId"
+            params={{ deviceId }}
+            from="/devices"
+            className="w-full bg-orange-100 text-center text-xl"
+          >
+            Media
+          </Link>
+        </div>
       )}
     </div>
   )
