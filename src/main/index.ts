@@ -21,6 +21,7 @@ import { type MessageEnvelope, type Credentials } from '@eneris/push-receiver/di
 import { google } from 'googleapis'
 import * as https from 'node:https'
 import { v4 as uuidv4 } from 'uuid'
+import AutoLaunch from 'auto-launch'
 
 const joinUrl = 'https://joinjoaomgcd.appspot.com/_ah/api'
 
@@ -130,6 +131,10 @@ const jwtClient = new google.auth.JWT({
 })
 const fcm = google.fcm('v1')
 const drive = google.drive('v3')
+
+const joinAutoLauncher = new AutoLaunch({ name: 'join-desktop', isHidden: true })
+// TODO: allow disabling in settings
+joinAutoLauncher.enable()
 
 async function logInWithGoogle(win: BrowserWindow) {
   if (Object.keys(oauth2Client.credentials).length !== 0) return win.webContents.send('on-log-in')

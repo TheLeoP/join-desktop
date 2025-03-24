@@ -28,6 +28,8 @@
     "@tanstack/react-query": "^5.67.3",
     "@tanstack/react-router": "^1.112.13",
     "@tanstack/react-virtual": "^3.13.4",
+    "@types/auto-launch": "^5.0.5",
+    "auto-launch": "^5.0.6",
     "googleapis": "^146.0.0",
     "jotai": "^2.12.2",
     "lodash.debounce": "^4.0.8",
