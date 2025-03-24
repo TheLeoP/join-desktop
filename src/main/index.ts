@@ -208,6 +208,7 @@ type JoinData = {
     | 'GCMPush'
     | 'GCMNotificationClear'
     | 'GCMLocalNetworkRequest'
+    | 'GCMLocalNetworkTestRequest' // TODO: do I need to handle this?
     | 'GCMDeviceNotOnLocalNetwork'
     | 'GCMStatus'
     | 'GCMRespondFile'
@@ -682,7 +683,7 @@ function createWindow(tray: Tray) {
 
       const devicesInfo = parsedRes.records
 
-      const results = await Promise.all(
+      const resultsLocal = await Promise.all(
         devicesInfo.map(async (info) => {
           const localInfo = devices.get(info.deviceId)
           if (!localInfo || !localInfo?.secureServerAddress) return { info, success: false }
@@ -691,8 +692,8 @@ function createWindow(tray: Tray) {
           return { info, success }
         }),
       )
-      await Promise.all(
-        results
+      const resultsDrive = await Promise.all(
+        resultsLocal
           .filter((result) => !result.success)
           .map(async ({ info }) => {
             const addressesFileName = `serveraddresses=:=${info.deviceId}`
@@ -720,7 +721,34 @@ function createWindow(tray: Tray) {
             const id = localReq.senderId
             if (!url || !id) return
 
-            await testLocalAddress(id, url, win)
+            const success = await testLocalAddress(id, url, win)
+            return { info, success }
+          }),
+      )
+      await Promise.all(
+        resultsDrive
+          .filter((result) => !!result)
+          .filter((result) => !result?.success)
+          .map(async ({ info }) => {
+            await fcm.projects.messages.send({
+              auth: jwtClient,
+              parent: 'projects/join-external-gcm',
+              requestBody: {
+                message: {
+                  token: info.regId2,
+                  android: {
+                    priority: 'high',
+                  },
+                  data: {
+                    type: 'GCMLocalNetworkTestRequest',
+                    json: JSON.stringify({
+                      type: 'GCMLocalNetworkTestRequest',
+                      senderId: thisDeviceId,
+                    }),
+                  },
+                },
+              },
+            })
           }),
       )
     }),
@@ -735,6 +763,7 @@ function createWindow(tray: Tray) {
       const token = await oauth2Client.getAccessToken()
       shell.openExternal(`${url}files${path}?token=${token.token}`)
     } else {
+      // TODO: when not in local network
     }
   })
   m.handle('get-remote-url', async (_, deviceId: string, path: string) => {
@@ -745,6 +774,7 @@ function createWindow(tray: Tray) {
       const remoteUrl = `${url}files${path}?token=${token.token}`
       return remoteUrl
     } else {
+      // TODO: when not in local network
     }
   })
 
