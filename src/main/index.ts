@@ -220,20 +220,21 @@ type JoinData = {
 
 type Push = {
   push: {
-    language: string | undefined
-    say: string | undefined
-    title: string | undefined
-    url: string | undefined
+    language?: string
+    say?: string
+    title?: string
+    url?: string
     areLocalFiles: boolean
     back: boolean
-    clipboard: string
+    clipboard?: string
+    clipboardget?: boolean
     commandLine: boolean
     date: number
     deviceId: string
-    files: string[] | undefined
+    files?: string[]
     find: boolean
     fromTasker: boolean
-    id: string | undefined
+    id?: string
     localFilesChecked: boolean
     location: boolean
     next: boolean
@@ -510,6 +511,44 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
               title: 'Clipboard set',
               icon: notificationIcon,
             })
+          } else if (push.clipboardget) {
+            n = new Notification({
+              title: 'Clipboard requested',
+              body: push.url,
+              icon: notificationIcon,
+            })
+
+            const devicesInfo = await getDevicesInfo()
+            if (!devicesInfo) return
+
+            const receiver = devicesInfo.find((device) => device.deviceId === push.senderId)
+            if (!receiver) return
+
+            // TODO: extract info function? this is a push to set clipboard and can be used on any device
+            await fcm.projects.messages.send({
+              auth: jwtClient,
+              parent: 'projects/join-external-gcm',
+              requestBody: {
+                message: {
+                  token: receiver.regId2,
+                  android: {
+                    priority: 'high',
+                  },
+                  data: {
+                    type: 'GCMPush',
+                    json: JSON.stringify({
+                      type: 'GCMPush',
+                      push: {
+                        clipboard: clipboard.readText(),
+                        id: uuidv4(),
+                        senderId: thisDeviceId,
+                      },
+                      senderId: thisDeviceId,
+                    }),
+                  },
+                },
+              },
+            })
           } else if (push.url) {
             shell.openExternal(push.url)
             n = new Notification({
@@ -698,6 +737,25 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
   await instance.connect()
 }
 
+async function getDevicesInfo() {
+  const token = await oauth2Client.getAccessToken()
+  const res = await fetch(
+    `${joinUrl}/registration/v1/listDevices`,
+
+    {
+      headers: {
+        Authorization: `Bearer ${token.token}`,
+      },
+    },
+  )
+  const parsedRes = (await res.json()) as Data<DeviceInfo>
+  // TODO: toast in frontend with errors? Notifications?
+  if (!parsedRes.success) return
+
+  const devicesInfo = parsedRes.records
+  return devicesInfo
+}
+
 function createWindow(tray: Tray) {
   // Create the browser window.
   const win = new BrowserWindow({
@@ -714,21 +772,8 @@ function createWindow(tray: Tray) {
 
   m.handle('start-push-receiver', () =>
     startPushReceiver(win, async () => {
-      const token = await oauth2Client.getAccessToken()
-      const res = await fetch(
-        `${joinUrl}/registration/v1/listDevices`,
-
-        {
-          headers: {
-            Authorization: `Bearer ${token.token}`,
-          },
-        },
-      )
-      const parsedRes = (await res.json()) as Data<DeviceInfo>
-      // TODO: toast in frontend with errors? Notifications?
-      if (!parsedRes.success) return
-
-      const devicesInfo = parsedRes.records
+      const devicesInfo = await getDevicesInfo()
+      if (!devicesInfo) return
 
       const resultsLocal = await Promise.all(
         devicesInfo.map(async (info) => {
