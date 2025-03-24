@@ -2,10 +2,10 @@ import { Folder } from '@renderer/svgs'
 import { formatBytes, useDevices, useOnLocalNetwork } from '@renderer/util'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { atom, PrimitiveAtom, useAtom, useAtomValue, useSetAtom } from 'jotai'
-import { atomFamily } from 'jotai/utils'
+import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useEffect, useState, useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { useDebounce } from 'use-debounce'
 
 type File = {
   date: number
@@ -111,12 +111,14 @@ function Directory({
           break
         }
         case 'Enter': {
+          if (!regId2) return
+
           if (!foldersInfo) return
           const item = foldersInfo.files[current]
           if (!item) return
           if (item.isFolder) return
 
-          window.api.openRemoteFile(deviceId, `${path}/${item.name}`)
+          window.api.openRemoteFile(deviceId, regId2, `${path}/${item.name}`, item.name)
           // TODO: toast to show some kind of progress?
 
           break
@@ -127,7 +129,7 @@ function Directory({
     return () => {
       document.removeEventListener('keydown', f)
     }
-  }, [active, current, deviceId, foldersInfo, onLocalNetwork, path, setCurrent])
+  }, [active, current, deviceId, foldersInfo, onLocalNetwork, path, regId2, setCurrent])
 
   const parentRef = useRef(null)
   const rowVirtualizer = useVirtualizer({
@@ -194,9 +196,12 @@ function RouteComponent() {
   const regId2 = devices?.records.find((device) => device.deviceId === deviceId)?.regId2
 
   const [paths, setPaths] = useAtom(pathsAtom)
+  const [debouncedPaths] = useDebounce(paths, 250)
   const currentFile = useAtomValue(currentFileAtom)
   const previewPath = currentFile ? `/${paths.join('/')}/${currentFile}` : undefined
   const [preview, setPreview] = useState<string | null>(null)
+  const [debouncedPreview] = useDebounce(preview, 250)
+
   useEffect(() => {
     async function getPreview() {
       if (!previewPath) return setPreview(null)
@@ -259,8 +264,10 @@ function RouteComponent() {
   // TODO: use Virtualizer to vertically virtuallize up to 3 directories
   return (
     <div className="flex h-[calc(100vh-44px)]">
-      {paths.map((_, i, paths) => {
-        const path = `/${paths.slice(0, i + 1).join('/')}`
+      {debouncedPaths.map((_, i, paths) => {
+        let path = `${paths.slice(0, i + 1).join('/')}`
+        if (path === '') path = '/'
+
         return (
           <Directory
             key={i}
@@ -274,7 +281,7 @@ function RouteComponent() {
       })}
       {/* TODO: support more kind of previews? */}
       {/* TODO: there are some bugs with previews not being removed when changing from image to previous directory */}
-      <div className="w-1/4">{preview && <img src={preview} />}</div>
+      <div className="w-1/4">{debouncedPreview && <img src={debouncedPreview} />}</div>
     </div>
   )
 }

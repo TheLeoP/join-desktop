@@ -17,7 +17,7 @@ import { promises as afs } from 'node:fs'
 import * as http from 'node:http'
 import { URL } from 'node:url'
 import { PushReceiver } from '@eneris/push-receiver'
-import { type Credentials } from '@eneris/push-receiver/dist/types'
+import { type MessageEnvelope, type Credentials } from '@eneris/push-receiver/dist/types'
 import { google } from 'googleapis'
 import * as https from 'node:https'
 import { v4 as uuidv4 } from 'uuid'
@@ -48,6 +48,7 @@ let devices: Map<string, { secureServerAddress?: string }>
 
 const mediaRequests = new Map<string, (mediaInfo: MediaInfo | null) => void>()
 const folderRequests = new Map<string, (folderInfo: FolderInfo | null) => void>()
+const fileRequests = new Map<string, (folderInfo: FileInfo | null) => void>()
 
 function mapReplacer(key, value: []) {
   if (value instanceof Map) {
@@ -213,6 +214,7 @@ type JoinData = {
     | 'GCMStatus'
     | 'GCMRespondFile'
     | 'GCMFolder'
+    | 'GCMFile'
     | ''
 }
 
@@ -354,6 +356,11 @@ type File = {
   size: number // bytes
 }
 
+type FileInfo = {
+  fileName: string
+  url: string
+}
+
 type Data<T> = {
   success: boolean
   userAuthError: boolean
@@ -421,6 +428,7 @@ async function testLocalAddress(id: string, url: string, win: BrowserWindow) {
   })
 }
 
+const multiNotifications = new Map<string, string[]>()
 let lastBatteryNotification: Notification | undefined
 async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void>) {
   const persistentIds = await new Promise<string[]>((res, rej) => {
@@ -452,17 +460,46 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
     await afs.writeFile(credentialsFile, JSON.stringify(credentials), 'utf-8')
   })
 
-  instance.onNotification(async (notification) => {
+  const handleNotification = async (notification: MessageEnvelope) => {
     // TODO: remove
     console.log('Notification received', notification)
 
     const rawData = notification.message.data
-    if (rawData && rawData.json && typeof rawData.json === 'string') {
+    if (
+      rawData &&
+      rawData.multi &&
+      typeof rawData.multi === 'string' &&
+      rawData.value &&
+      typeof rawData.value === 'string' &&
+      rawData.id &&
+      typeof rawData.id === 'string' &&
+      !rawData.length
+    ) {
+      if (!multiNotifications.has(rawData.id)) multiNotifications.set(rawData.id, [])
+      const acc = multiNotifications.get(rawData.id) as string[]
+      acc[+rawData.multi] = rawData.value
+    } else if (
+      rawData &&
+      rawData.multi &&
+      typeof rawData.multi === 'string' &&
+      rawData.id &&
+      typeof rawData.id === 'string' &&
+      rawData.value &&
+      typeof rawData.value === 'string' &&
+      rawData.type &&
+      typeof rawData.type === 'string'
+    ) {
+      const acc = multiNotifications.get(rawData.id) as string[]
+      acc[+rawData.multi] = rawData.value
+      await handleNotification({
+        message: { data: { json: acc.join(''), type: rawData.type } },
+        persistentId: notification.persistentId,
+      })
+    } else if (rawData && rawData.json && typeof rawData.json === 'string') {
       const data = rawData as JoinData
       const content = JSON.parse(data.json)
 
       // TODO: support reading settings and modyfing behaviour accordingly?
-      // TODO: support play/pause/volume and other things I'm not doing yet? Check the other repo. Is this a differnet kind of push?
       let n: Notification | undefined
       switch (data.type) {
         case 'GCMPush': {
@@ -642,11 +679,21 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
           folderRequests.delete(path)
           break
         }
+        case 'GCMFile': {
+          const response = content as FileInfo
+
+          const request = fileRequests.get(response.fileName)
+          if (!request) return
+          request(response)
+          fileRequests.delete(response.fileName)
+          break
+        }
       }
     }
 
     await afs.writeFile(persistentIdsFile, JSON.stringify(persistentIds), 'utf-8')
-  })
+  }
+  instance.onNotification(handleNotification)
 
   await instance.connect()
 }
@@ -756,16 +803,47 @@ function createWindow(tray: Tray) {
   m.on('log-in-with-google', () => {
     logInWithGoogle(win)
   })
-  m.on('open-remote-file', async (_, deviceId: string, path: string) => {
-    const device = devices.get(deviceId)
-    if (device && device.secureServerAddress) {
-      const url = device.secureServerAddress
-      const token = await oauth2Client.getAccessToken()
-      shell.openExternal(`${url}files${path}?token=${token.token}`)
-    } else {
-      // TODO: when not in local network
-    }
-  })
+  m.on(
+    'open-remote-file',
+    async (_, deviceId: string, regId: string, path: string, fileName: string) => {
+      const device = devices.get(deviceId)
+      if (device && device.secureServerAddress) {
+        const url = device.secureServerAddress
+        const token = await oauth2Client.getAccessToken()
+        shell.openExternal(`${url}files${path}?token=${token.token}`)
+      } else {
+        await fcm.projects.messages.send({
+          auth: jwtClient,
+          parent: 'projects/join-external-gcm',
+          requestBody: {
+            message: {
+              token: regId,
+              android: {
+                priority: 'high',
+              },
+              data: {
+                type: 'GCMFolderRequest',
+                json: JSON.stringify({
+                  type: 'GCMFolderRequest',
+                  path,
+                  senderId: thisDeviceId,
+                }),
+              },
+            },
+          },
+        })
+
+        const request = fileRequests.get(fileName)
+        if (request) request(null)
+
+        fileRequests.set(fileName, (fileInfo) => {
+          if (!fileInfo) return
+
+          shell.openExternal(fileInfo.url)
+        })
+      }
+    },
+  )
   m.handle('get-remote-url', async (_, deviceId: string, path: string) => {
     const device = devices.get(deviceId)
     if (device && device.secureServerAddress) {
@@ -774,7 +852,8 @@ function createWindow(tray: Tray) {
       const remoteUrl = `${url}files${path}?token=${token.token}`
       return remoteUrl
     } else {
-      // TODO: when not in local network
+      // NOTE: Can't preview file if device is outside of local network because google drive links are not public
+      return null
     }
   })
 
@@ -925,7 +1004,7 @@ app.whenReady().then(() => {
         setTimeout(() => {
           mediaRequests.delete(deviceId)
           rej(new Error('Media request timed out'))
-        }, 10 * 1000)
+        }, 30 * 1000)
       })
     }
   })
@@ -993,10 +1072,13 @@ app.whenReady().then(() => {
         folderRequests.set(path, (folderInfo) => {
           res(folderInfo)
         })
-        setTimeout(() => {
-          folderRequests.delete(path)
-          rej(new Error('Folder request timed out'))
-        }, 10 * 1000)
+        setTimeout(
+          () => {
+            folderRequests.delete(path)
+            rej(new Error('Folder request timed out'))
+          },
+          2 * 60 * 1000,
+        )
       })
     }
   })
