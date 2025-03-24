@@ -50,6 +50,7 @@ let devices: Map<string, { secureServerAddress?: string }>
 const mediaRequests = new Map<string, (mediaInfo: MediaInfo | null) => void>()
 const folderRequests = new Map<string, (folderInfo: FolderInfo | null) => void>()
 const fileRequests = new Map<string, (folderInfo: FileInfo | null) => void>()
+const contactRequests = new Map<string, (contactInfo: ContactInfo | null) => void>()
 
 function mapReplacer(key, value: []) {
   if (value instanceof Map) {
@@ -386,6 +387,12 @@ type DeviceInfo = {
   hasTasker: boolean
 }
 
+type ContactInfo = {
+  name: string
+  number: string
+  photo: string
+}
+
 async function testLocalAddress(id: string, url: string, win: BrowserWindow) {
   const body = JSON.stringify({
     type: 'GCMLocalNetworkTest',
@@ -432,6 +439,33 @@ async function testLocalAddress(id: string, url: string, win: BrowserWindow) {
       res(false)
     })
   })
+}
+
+async function getContacts(deviceId: string) {
+  const contactsFileName = `contacts=:=${deviceId}`
+  const response = await drive.files.list({
+    q: `name = '${contactsFileName}' and trashed = false`,
+  })
+  const files = response.data.files
+  if (!files) throw new Error(`No files with the name ${contactsFileName}`)
+
+  // TODO: is this correct? This is what the join app does
+  const fileInfo = files[0]
+  if (!fileInfo) throw new Error(`No files with the name ${contactsFileName}`)
+  if (!fileInfo.id)
+    throw new Error(`Contacts file for deviceId ${deviceId} has no defined id on Google Drive`)
+
+  const file = (
+    await drive.files.get({
+      alt: 'media',
+      fileId: fileInfo.id,
+    })
+  ).data
+
+  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
+  const text = await file.text()
+  const contactsInfo = JSON.parse(text).contacts as ContactInfo
+  return contactsInfo
 }
 
 const multiNotifications = new Map<string, string[]>()
@@ -708,6 +742,19 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
 
                 mediaRequest(mediaInfo)
               })
+
+              break
+            }
+            case respondFileTypes.sms_threads: {
+              await Promise.all(
+                response.request.deviceIds.map(async (deviceId) => {
+                  const contactRequest = contactRequests.get(deviceId)
+                  if (!contactRequest) return
+
+                  const contactsInfo = await getContacts(deviceId)
+                  contactRequest(contactsInfo)
+                }),
+              )
 
               break
             }
@@ -1066,7 +1113,6 @@ app.whenReady().then(() => {
       const token = await oauth2Client.getAccessToken()
       const req = https.request(`${url}folders${path}`, {
         headers: {
-          'accept-encoding': 'gzip, deflate, br, zstd',
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token.token}`,
         },
@@ -1074,7 +1120,7 @@ app.whenReady().then(() => {
         insecureHTTPParser: true,
       })
       req.end()
-      return new Promise((res, rej) => {
+      return new Promise<FolderInfo>((res, rej) => {
         req.on('response', (resp) => {
           resp.setEncoding('utf8')
           const body: string[] = []
@@ -1086,7 +1132,7 @@ app.whenReady().then(() => {
             const parsedData = JSON.parse(data) as GenericResponse
             if (!parsedData.success) return rej(parsedData.errorMessage)
 
-            const foldersInfo = parsedData.payload as FoldersResponse
+            const foldersInfo = parsedData.payload as FoldersInfo
             res(foldersInfo)
           })
         })
@@ -1195,6 +1241,89 @@ app.whenReady().then(() => {
           },
         },
       })
+    }
+  })
+  m.handle('contacts', async (_, deviceId, regId) => {
+    const device = devices.get(deviceId)
+    if (device && device.secureServerAddress) {
+      const url = device.secureServerAddress
+      const token = await oauth2Client.getAccessToken()
+      const req = https.request(`${url}contacts`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token.token}`,
+        },
+        rejectUnauthorized: false,
+        insecureHTTPParser: true,
+      })
+      req.end()
+      return new Promise<ContactInfo[]>((res, rej) => {
+        req.on('response', (resp) => {
+          resp.setEncoding('utf8')
+          const body: string[] = []
+          resp.on('data', (data) => {
+            body.push(data)
+          })
+          resp.on('end', () => {
+            const data = body.join('')
+            const parsedData = JSON.parse(data) as GenericResponse
+            if (!parsedData.success) return rej(parsedData.errorMessage)
+
+            const contactsInfo = parsedData.payload as ContactInfo[]
+            res(contactsInfo)
+          })
+        })
+        req.on('error', (err) => {
+          rej(err)
+        })
+      })
+    } else {
+      // when the contacts file doesn't exists yet, we need to send a message to the device to create it
+      try {
+        const contactsInfo = await getContacts(deviceId)
+        return contactsInfo
+      } catch (e) {
+        await fcm.projects.messages.send({
+          auth: jwtClient,
+          parent: 'projects/join-external-gcm',
+          requestBody: {
+            message: {
+              token: regId,
+              android: {
+                priority: 'high',
+              },
+              data: {
+                type: 'GCMRequestFile',
+                json: JSON.stringify({
+                  type: 'GCMRequestFile',
+                  requestFile: {
+                    requestType: respondFileTypes.sms_threads,
+                    senderId: thisDeviceId,
+                    deviceIds: [deviceId],
+                  },
+                  senderId: thisDeviceId,
+                }),
+              },
+            },
+          },
+        })
+
+        return await new Promise((res, rej) => {
+          const request = contactRequests.get(deviceId)
+          if (request) request(null)
+
+          contactRequests.set(deviceId, (contactInfo) => {
+            res(contactInfo)
+          })
+          setTimeout(
+            () => {
+              contactRequests.delete(deviceId)
+              rej(new Error('Contact request timed out'))
+            },
+            2 * 60 * 1000,
+          )
+        })
+      }
     }
   })
 

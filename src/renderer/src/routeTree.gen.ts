@@ -15,6 +15,7 @@ import { Route as LoginImport } from './routes/login'
 import { Route as IndexImport } from './routes/index'
 import { Route as DevicesIndexImport } from './routes/devices/index'
 import { Route as DevicesMediaDeviceIdImport } from './routes/devices/media.$deviceId'
+import { Route as DevicesContactsDeviceIdImport } from './routes/devices/contacts.$deviceId'
 
 // Create/Update Routes
 
@@ -39,6 +40,12 @@ const DevicesIndexRoute = DevicesIndexImport.update({
 const DevicesMediaDeviceIdRoute = DevicesMediaDeviceIdImport.update({
   id: '/devices/media/$deviceId',
   path: '/devices/media/$deviceId',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const DevicesContactsDeviceIdRoute = DevicesContactsDeviceIdImport.update({
+  id: '/devices/contacts/$deviceId',
+  path: '/devices/contacts/$deviceId',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -67,6 +74,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevicesIndexImport
       parentRoute: typeof rootRoute
     }
+    '/devices/contacts/$deviceId': {
+      id: '/devices/contacts/$deviceId'
+      path: '/devices/contacts/$deviceId'
+      fullPath: '/devices/contacts/$deviceId'
+      preLoaderRoute: typeof DevicesContactsDeviceIdImport
+      parentRoute: typeof rootRoute
+    }
     '/devices/media/$deviceId': {
       id: '/devices/media/$deviceId'
       path: '/devices/media/$deviceId'
@@ -83,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/devices': typeof DevicesIndexRoute
+  '/devices/contacts/$deviceId': typeof DevicesContactsDeviceIdRoute
   '/devices/media/$deviceId': typeof DevicesMediaDeviceIdRoute
 }
 
@@ -90,6 +105,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/devices': typeof DevicesIndexRoute
+  '/devices/contacts/$deviceId': typeof DevicesContactsDeviceIdRoute
   '/devices/media/$deviceId': typeof DevicesMediaDeviceIdRoute
 }
 
@@ -98,15 +114,32 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/devices/': typeof DevicesIndexRoute
+  '/devices/contacts/$deviceId': typeof DevicesContactsDeviceIdRoute
   '/devices/media/$deviceId': typeof DevicesMediaDeviceIdRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/devices' | '/devices/media/$deviceId'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/devices'
+    | '/devices/contacts/$deviceId'
+    | '/devices/media/$deviceId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/devices' | '/devices/media/$deviceId'
-  id: '__root__' | '/' | '/login' | '/devices/' | '/devices/media/$deviceId'
+  to:
+    | '/'
+    | '/login'
+    | '/devices'
+    | '/devices/contacts/$deviceId'
+    | '/devices/media/$deviceId'
+  id:
+    | '__root__'
+    | '/'
+    | '/login'
+    | '/devices/'
+    | '/devices/contacts/$deviceId'
+    | '/devices/media/$deviceId'
   fileRoutesById: FileRoutesById
 }
 
@@ -114,6 +147,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   DevicesIndexRoute: typeof DevicesIndexRoute
+  DevicesContactsDeviceIdRoute: typeof DevicesContactsDeviceIdRoute
   DevicesMediaDeviceIdRoute: typeof DevicesMediaDeviceIdRoute
 }
 
@@ -121,6 +155,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   DevicesIndexRoute: DevicesIndexRoute,
+  DevicesContactsDeviceIdRoute: DevicesContactsDeviceIdRoute,
   DevicesMediaDeviceIdRoute: DevicesMediaDeviceIdRoute,
 }
 
@@ -137,6 +172,7 @@ export const routeTree = rootRoute
         "/",
         "/login",
         "/devices/",
+        "/devices/contacts/$deviceId",
         "/devices/media/$deviceId"
       ]
     },
@@ -148,6 +184,9 @@ export const routeTree = rootRoute
     },
     "/devices/": {
       "filePath": "devices/index.tsx"
+    },
+    "/devices/contacts/$deviceId": {
+      "filePath": "devices/contacts.$deviceId.tsx"
     },
     "/devices/media/$deviceId": {
       "filePath": "devices/media.$deviceId.tsx"

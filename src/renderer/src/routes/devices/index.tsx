@@ -221,6 +221,14 @@ function Device({
           >
             Media
           </Link>
+          <Link
+            to="/devices/contacts/$deviceId"
+            params={{ deviceId }}
+            from="/devices"
+            className="w-full bg-orange-100 text-center text-xl"
+          >
+            Contacts
+          </Link>
         </div>
       )}
     </div>

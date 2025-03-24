@@ -28,6 +28,7 @@ export const api = {
 
   folders: (deviceId: string, regId: string, path: string) =>
     r.invoke('folders', deviceId, regId, path),
+  contacts: (deviceId: string, regId: string) => r.invoke('contacts', deviceId, regId),
 
   // TODO: add refactoring scope for this
 
