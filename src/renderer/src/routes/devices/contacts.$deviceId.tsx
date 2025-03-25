@@ -1,6 +1,7 @@
 import { useContacts, useDevices } from '@renderer/util'
 import * as svg from '@renderer/svgs'
 import { createFileRoute } from '@tanstack/react-router'
+import { PhotoOrChar } from '@renderer/components'
 
 export const Route = createFileRoute('/devices/contacts/$deviceId')({
   component: RouteComponent,
@@ -26,13 +27,7 @@ function RouteComponent() {
           key={contact.number}
           className="flex w-[calc(20%-4px)] items-center space-x-1 bg-orange-100"
         >
-          {contact.photo ? (
-            <img className="h-20 w-20" src={contact.photo} />
-          ) : (
-            <div className="flex h-20 w-20 items-center justify-center bg-orange-400 text-center text-6xl text-white">
-              {contact.name.substring(0, 1)}
-            </div>
-          )}
+          <PhotoOrChar photo={contact.photo} char={contact.name.substring(0, 1)} />
           <div className="flex w-2/5 flex-col justify-center">
             <h2 className="truncate text-xl">{contact.name}</h2>
             <h3 className="text-md">{contact.number}</h3>

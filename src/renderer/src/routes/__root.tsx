@@ -33,6 +33,7 @@ function Root() {
           Devices
         </Link>
       </div>
+      <hr />
       <Outlet />
       <TanStackRouterDevtools />
     </>

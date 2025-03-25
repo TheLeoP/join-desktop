@@ -1,10 +1,11 @@
-import { SmsInfo, useContacts, useDevices, useSms } from '@renderer/util'
+import { SmsInfo, useContacts, useDevices } from '@renderer/util'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { zodValidator } from '@tanstack/zod-adapter'
+import { PhotoOrChar } from '@renderer/components'
 
-const searchSchema = z.object({ address: z.string() })
+const searchSchema = z.object({ address: z.string(), name: z.string() })
 
 export const Route = createFileRoute('/devices/smsChat/$deviceId')({
   component: RouteComponent,
@@ -31,6 +32,13 @@ function RouteComponent() {
   const regId2 = devices?.records.find((device) => device.deviceId === deviceId)?.regId2
 
   const { data: smsChat, isPending, isError, error } = useSmsChat(deviceId, regId2, address)
+  const {
+    data: contacts,
+    isPending: isPendingContacts,
+    isError: isErrorContacts,
+    error: errorContacts,
+  } = useContacts(deviceId, regId2)
+  const contact = contacts?.find((contact) => contact.number === address)
 
   if (isPending) {
     return <div>Loading...</div>
@@ -39,8 +47,39 @@ function RouteComponent() {
   }
 
   return (
-    <div>
-      <pre>{JSON.stringify(smsChat)}</pre>
+    <div className="">
+      {contact && (
+        <div className="mx-auto my-1 flex w-fit items-center justify-center space-x-1 rounded-md bg-orange-100 p-2">
+          <PhotoOrChar photo={contact.photo} char={contact.name.substring(0, 1)} />
+          <h1 className="text-4xl">{contact.name}</h1>
+        </div>
+      )}
+      <div className="mx-1 flex flex-col space-y-4">
+        {smsChat
+          .sort((a, b) => a.date - b.date)
+          .map((message) => {
+            return (
+              <div
+                key={message.id}
+                className="flex w-full justify-end text-right data-received:justify-start data-received:text-left"
+                data-received={message.received ? true : undefined}
+              >
+                <div className="max-w-5/7">
+                  <div
+                    data-received={message.received ? true : undefined}
+                    className="rounded-md bg-orange-100 p-2 text-xl break-words data-received:bg-orange-200"
+                  >
+                    {message.text}
+                  </div>
+                  {/* TODO: better date format */}
+                  <div className="mt-2 text-xs text-gray-400">
+                    {new Date(message.date).toString()}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+      </div>
     </div>
   )
 }
