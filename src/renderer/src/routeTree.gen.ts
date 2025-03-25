@@ -14,7 +14,8 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as LoginImport } from './routes/login'
 import { Route as IndexImport } from './routes/index'
 import { Route as DevicesIndexImport } from './routes/devices/index'
-import { Route as DevicesMediaDeviceIdImport } from './routes/devices/media.$deviceId'
+import { Route as DevicesSmsDeviceIdImport } from './routes/devices/sms.$deviceId'
+import { Route as DevicesFilesDeviceIdImport } from './routes/devices/files.$deviceId'
 import { Route as DevicesContactsDeviceIdImport } from './routes/devices/contacts.$deviceId'
 
 // Create/Update Routes
@@ -37,9 +38,15 @@ const DevicesIndexRoute = DevicesIndexImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const DevicesMediaDeviceIdRoute = DevicesMediaDeviceIdImport.update({
-  id: '/devices/media/$deviceId',
-  path: '/devices/media/$deviceId',
+const DevicesSmsDeviceIdRoute = DevicesSmsDeviceIdImport.update({
+  id: '/devices/sms/$deviceId',
+  path: '/devices/sms/$deviceId',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const DevicesFilesDeviceIdRoute = DevicesFilesDeviceIdImport.update({
+  id: '/devices/files/$deviceId',
+  path: '/devices/files/$deviceId',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -81,11 +88,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevicesContactsDeviceIdImport
       parentRoute: typeof rootRoute
     }
-    '/devices/media/$deviceId': {
-      id: '/devices/media/$deviceId'
-      path: '/devices/media/$deviceId'
-      fullPath: '/devices/media/$deviceId'
-      preLoaderRoute: typeof DevicesMediaDeviceIdImport
+    '/devices/files/$deviceId': {
+      id: '/devices/files/$deviceId'
+      path: '/devices/files/$deviceId'
+      fullPath: '/devices/files/$deviceId'
+      preLoaderRoute: typeof DevicesFilesDeviceIdImport
+      parentRoute: typeof rootRoute
+    }
+    '/devices/sms/$deviceId': {
+      id: '/devices/sms/$deviceId'
+      path: '/devices/sms/$deviceId'
+      fullPath: '/devices/sms/$deviceId'
+      preLoaderRoute: typeof DevicesSmsDeviceIdImport
       parentRoute: typeof rootRoute
     }
   }
@@ -98,7 +112,8 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/devices': typeof DevicesIndexRoute
   '/devices/contacts/$deviceId': typeof DevicesContactsDeviceIdRoute
-  '/devices/media/$deviceId': typeof DevicesMediaDeviceIdRoute
+  '/devices/files/$deviceId': typeof DevicesFilesDeviceIdRoute
+  '/devices/sms/$deviceId': typeof DevicesSmsDeviceIdRoute
 }
 
 export interface FileRoutesByTo {
@@ -106,7 +121,8 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/devices': typeof DevicesIndexRoute
   '/devices/contacts/$deviceId': typeof DevicesContactsDeviceIdRoute
-  '/devices/media/$deviceId': typeof DevicesMediaDeviceIdRoute
+  '/devices/files/$deviceId': typeof DevicesFilesDeviceIdRoute
+  '/devices/sms/$deviceId': typeof DevicesSmsDeviceIdRoute
 }
 
 export interface FileRoutesById {
@@ -115,7 +131,8 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/devices/': typeof DevicesIndexRoute
   '/devices/contacts/$deviceId': typeof DevicesContactsDeviceIdRoute
-  '/devices/media/$deviceId': typeof DevicesMediaDeviceIdRoute
+  '/devices/files/$deviceId': typeof DevicesFilesDeviceIdRoute
+  '/devices/sms/$deviceId': typeof DevicesSmsDeviceIdRoute
 }
 
 export interface FileRouteTypes {
@@ -125,21 +142,24 @@ export interface FileRouteTypes {
     | '/login'
     | '/devices'
     | '/devices/contacts/$deviceId'
-    | '/devices/media/$deviceId'
+    | '/devices/files/$deviceId'
+    | '/devices/sms/$deviceId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/devices'
     | '/devices/contacts/$deviceId'
-    | '/devices/media/$deviceId'
+    | '/devices/files/$deviceId'
+    | '/devices/sms/$deviceId'
   id:
     | '__root__'
     | '/'
     | '/login'
     | '/devices/'
     | '/devices/contacts/$deviceId'
-    | '/devices/media/$deviceId'
+    | '/devices/files/$deviceId'
+    | '/devices/sms/$deviceId'
   fileRoutesById: FileRoutesById
 }
 
@@ -148,7 +168,8 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   DevicesIndexRoute: typeof DevicesIndexRoute
   DevicesContactsDeviceIdRoute: typeof DevicesContactsDeviceIdRoute
-  DevicesMediaDeviceIdRoute: typeof DevicesMediaDeviceIdRoute
+  DevicesFilesDeviceIdRoute: typeof DevicesFilesDeviceIdRoute
+  DevicesSmsDeviceIdRoute: typeof DevicesSmsDeviceIdRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
@@ -156,7 +177,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   DevicesIndexRoute: DevicesIndexRoute,
   DevicesContactsDeviceIdRoute: DevicesContactsDeviceIdRoute,
-  DevicesMediaDeviceIdRoute: DevicesMediaDeviceIdRoute,
+  DevicesFilesDeviceIdRoute: DevicesFilesDeviceIdRoute,
+  DevicesSmsDeviceIdRoute: DevicesSmsDeviceIdRoute,
 }
 
 export const routeTree = rootRoute
@@ -173,7 +195,8 @@ export const routeTree = rootRoute
         "/login",
         "/devices/",
         "/devices/contacts/$deviceId",
-        "/devices/media/$deviceId"
+        "/devices/files/$deviceId",
+        "/devices/sms/$deviceId"
       ]
     },
     "/": {
@@ -188,8 +211,11 @@ export const routeTree = rootRoute
     "/devices/contacts/$deviceId": {
       "filePath": "devices/contacts.$deviceId.tsx"
     },
-    "/devices/media/$deviceId": {
-      "filePath": "devices/media.$deviceId.tsx"
+    "/devices/files/$deviceId": {
+      "filePath": "devices/files.$deviceId.tsx"
+    },
+    "/devices/sms/$deviceId": {
+      "filePath": "devices/sms.$deviceId.tsx"
     }
   }
 }

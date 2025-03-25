@@ -51,6 +51,7 @@ const mediaRequests = new Map<string, (mediaInfo: MediaInfo | null) => void>()
 const folderRequests = new Map<string, (folderInfo: FolderInfo | null) => void>()
 const fileRequests = new Map<string, (folderInfo: FileInfo | null) => void>()
 const contactRequests = new Map<string, (contactInfo: ContactInfo[] | null) => void>()
+const smsThreadRequests = new Map<string, (smsThreadInfo: SmsThreadInfo[] | null) => void>()
 
 function mapReplacer(key, value: []) {
   if (value instanceof Map) {
@@ -392,8 +393,22 @@ type ContactInfo = {
   number: string
   photo: string
 }
+
+type SmsThreadInfo = {
+  address: string
+  date: number
+  isMMS: boolean
+  received: boolean
+  text: string
+  id: string // it's a number on a string
+}
+
+type SmsThreadResponse = {
+  payload: SmsThreadInfo[]
+} & GenericResponse
+
 async function setClipboard(regId2: string) {
-  // TODO: handle local network
+  // TODO: handle local network by sending push to `${url}gcm`
   await fcm.projects.messages.send({
     auth: jwtClient,
     parent: 'projects/join-external-gcm',
@@ -421,7 +436,7 @@ async function setClipboard(regId2: string) {
 }
 
 async function call(callnumber: string, regId2: string) {
-  // TODO: handle local network
+  // TODO: handle local network by sending push to `${url}gcm`
   await fcm.projects.messages.send({
     auth: jwtClient,
     parent: 'projects/join-external-gcm',
@@ -521,6 +536,33 @@ async function getContacts(deviceId: string) {
   const text = await file.text()
   const contactsInfo = JSON.parse(text).contacts as ContactInfo[]
   return contactsInfo
+}
+
+async function getSmsThreads(deviceId: string) {
+  const smssFileName = `lastsms=:=${deviceId}`
+  const response = await drive.files.list({
+    q: `name = '${smssFileName}' and trashed = false`,
+  })
+  const files = response.data.files
+  if (!files) throw new Error(`No files with the name ${smssFileName}`)
+
+  // TODO: is this correct? This is what the join app does
+  const fileInfo = files[0]
+  if (!fileInfo) throw new Error(`No files with the name ${smssFileName}`)
+  if (!fileInfo.id)
+    throw new Error(`Smss file for deviceId ${deviceId} has no defined id on Google Drive`)
+
+  const file = (
+    await drive.files.get({
+      alt: 'media',
+      fileId: fileInfo.id,
+    })
+  ).data
+
+  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
+  const text = await file.text()
+  const smssThreadInfo = JSON.parse(text) as SmsThreadInfo[]
+  return smssThreadInfo
 }
 
 const multiNotifications = new Map<string, string[]>()
@@ -653,7 +695,7 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
               icon: notificationIcon,
             })
           } else if (push.title) {
-            // TODO: handle custom commands. The will be on `text` and there won't be any title
+            // TODO: handle custom commands. They will be on `text` and there won't be any title
             n = new Notification({
               title: push.title,
               body: push.text,
@@ -780,10 +822,15 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
               await Promise.all(
                 response.request.deviceIds.map(async (deviceId) => {
                   const contactRequest = contactRequests.get(deviceId)
-                  if (!contactRequest) return
-
-                  const contactsInfo = await getContacts(deviceId)
-                  contactRequest(contactsInfo)
+                  if (contactRequest) {
+                    const contactsInfo = await getContacts(deviceId)
+                    contactRequest(contactsInfo)
+                  }
+                  const smsThreadRequest = smsThreadRequests.get(deviceId)
+                  if (smsThreadRequest) {
+                    const smsInfo = await getSmsThreads(deviceId)
+                    smsThreadRequest(smsInfo)
+                  }
                 }),
               )
 
@@ -1009,7 +1056,7 @@ function createWindow(tray: Tray) {
   win.on('show', () => tray.setContextMenu(hideMenu))
 
   win.on('ready-to-show', async () => {
-    // TODO: hide by default and use https://github.com/Teamwork/node-auto-launch to auto launch on all OSs
+    // TODO: hide by default
     win.show()
 
     // TODO: can there be a race condition in here? Should I wait for an event after the website is shown?
@@ -1048,6 +1095,33 @@ function createWindow(tray: Tray) {
   } else {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
+}
+
+async function requestContactsAndLastSmSCreation(deviceId: string, regId: string) {
+  await fcm.projects.messages.send({
+    auth: jwtClient,
+    parent: 'projects/join-external-gcm',
+    requestBody: {
+      message: {
+        token: regId,
+        android: {
+          priority: 'high',
+        },
+        data: {
+          type: 'GCMRequestFile',
+          json: JSON.stringify({
+            type: 'GCMRequestFile',
+            requestFile: {
+              requestType: respondFileTypes.sms_threads,
+              senderId: thisDeviceId,
+              deviceIds: [deviceId],
+            },
+            senderId: thisDeviceId,
+          }),
+        },
+      },
+    },
+  })
 }
 
 app.whenReady().then(() => {
@@ -1161,10 +1235,10 @@ app.whenReady().then(() => {
           })
           resp.on('end', () => {
             const data = body.join('')
-            const parsedData = JSON.parse(data) as GenericResponse
+            const parsedData = JSON.parse(data) as FoldersResponse
             if (!parsedData.success) return rej(parsedData.errorMessage)
 
-            const foldersInfo = parsedData.payload as FolderInfo
+            const foldersInfo = parsedData.payload
             res(foldersInfo)
           })
         })
@@ -1315,30 +1389,7 @@ app.whenReady().then(() => {
         const contactsInfo = await getContacts(deviceId)
         return contactsInfo
       } catch (e) {
-        await fcm.projects.messages.send({
-          auth: jwtClient,
-          parent: 'projects/join-external-gcm',
-          requestBody: {
-            message: {
-              token: regId,
-              android: {
-                priority: 'high',
-              },
-              data: {
-                type: 'GCMRequestFile',
-                json: JSON.stringify({
-                  type: 'GCMRequestFile',
-                  requestFile: {
-                    requestType: respondFileTypes.sms_threads,
-                    senderId: thisDeviceId,
-                    deviceIds: [deviceId],
-                  },
-                  senderId: thisDeviceId,
-                }),
-              },
-            },
-          },
-        })
+        await requestContactsAndLastSmSCreation(deviceId, regId)
 
         return await new Promise((res, rej) => {
           const request = contactRequests.get(deviceId)
@@ -1351,6 +1402,68 @@ app.whenReady().then(() => {
             () => {
               contactRequests.delete(deviceId)
               rej(new Error('Contact request timed out'))
+            },
+            2 * 60 * 1000,
+          )
+        })
+      }
+    }
+  })
+  m.handle('sms', async (_, deviceId, regId) => {
+    const device = devices.get(deviceId)
+    if (device && device.secureServerAddress) {
+      const url = device.secureServerAddress
+      const token = await oauth2Client.getAccessToken()
+      const req = https.request(`${url}sms`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token.token}`,
+        },
+        rejectUnauthorized: false,
+        insecureHTTPParser: true,
+      })
+      req.end()
+      return new Promise<SmsThreadInfo[]>((res, rej) => {
+        req.on('response', (resp) => {
+          resp.setEncoding('utf8')
+          const body: string[] = []
+          resp.on('data', (data) => {
+            body.push(data)
+          })
+          resp.on('end', () => {
+            const data = body.join('')
+            const parsedData = JSON.parse(data) as SmsThreadResponse
+            if (!parsedData.success) return rej(parsedData.errorMessage)
+
+            const smsInfo = parsedData.payload
+            res(smsInfo)
+          })
+        })
+        req.on('error', (err) => {
+          rej(err)
+        })
+      })
+    } else {
+      // when the lastsms file doesn't exists yet, we need to send a message to the device to create it
+      try {
+        const smsThreadsInfo = await getSmsThreads(deviceId)
+        // __AUTO_GENERATED_PRINT_VAR_START__
+        console.log('(anon)#(anon)#if smsThreadsInfo: %s', JSON.stringify(smsThreadsInfo)) // __AUTO_GENERATED_PRINT_VAR_END__
+        return smsThreadsInfo
+      } catch (e) {
+        await requestContactsAndLastSmSCreation(deviceId, regId)
+
+        return await new Promise((res, rej) => {
+          const request = smsThreadRequests.get(deviceId)
+          if (request) request(null)
+
+          smsThreadRequests.set(deviceId, (smsThreadInfo) => {
+            res(smsThreadInfo)
+          })
+          setTimeout(
+            () => {
+              smsThreadRequests.delete(deviceId)
+              rej(new Error('SmsThread request timed out'))
             },
             2 * 60 * 1000,
           )

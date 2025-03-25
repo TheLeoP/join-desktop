@@ -19,7 +19,7 @@ type FolderInfo = {
   pathSegments: string[]
 }
 
-export const Route = createFileRoute('/devices/media/$deviceId')({
+export const Route = createFileRoute('/devices/files/$deviceId')({
   component: RouteComponent,
 })
 

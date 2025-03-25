@@ -209,14 +209,15 @@ function Device({
       </div>
       {/* NOTE: Join does this, I don't know if it's correct */}
       {(deviceType == DeviceType.android_phone || deviceType === DeviceType.android_tablet) && (
+        // TODO: make this width fixed
         <div className="flex flex-col space-y-1">
           <Link
-            to="/devices/media/$deviceId"
+            to="/devices/files/$deviceId"
             params={{ deviceId }}
             from="/devices"
             className="w-full bg-orange-100 text-center text-xl"
           >
-            Media
+            Files
           </Link>
           <Link
             to="/devices/contacts/$deviceId"
@@ -225,6 +226,14 @@ function Device({
             className="w-full bg-orange-100 text-center text-xl"
           >
             Contacts
+          </Link>
+          <Link
+            to="/devices/sms/$deviceId"
+            params={{ deviceId }}
+            from="/devices"
+            className="w-full bg-orange-100 text-center text-xl"
+          >
+            SMS
           </Link>
 
           <hr />
