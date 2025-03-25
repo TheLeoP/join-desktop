@@ -58,7 +58,14 @@ function RouteComponent() {
             <h2 className="truncate text-xl">{contact.name}</h2>
             <h3 className="text-md">{contact.number}</h3>
           </div>
-          <button className="ms-auto rounded-md bg-orange-200 stroke-black hover:stroke-gray-600 active:stroke-gray-400">
+          <button
+            className="ms-auto rounded-md bg-orange-200 stroke-black hover:stroke-gray-500 active:stroke-gray-400"
+            onClick={() => {
+              if (!regId2) return
+
+              window.api.call(contact.number, regId2)
+            }}
+          >
             <svg.Phone className="h-15 w-15" />
           </button>
         </div>

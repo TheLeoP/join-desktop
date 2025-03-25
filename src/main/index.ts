@@ -50,7 +50,7 @@ let devices: Map<string, { secureServerAddress?: string }>
 const mediaRequests = new Map<string, (mediaInfo: MediaInfo | null) => void>()
 const folderRequests = new Map<string, (folderInfo: FolderInfo | null) => void>()
 const fileRequests = new Map<string, (folderInfo: FileInfo | null) => void>()
-const contactRequests = new Map<string, (contactInfo: ContactInfo | null) => void>()
+const contactRequests = new Map<string, (contactInfo: ContactInfo[] | null) => void>()
 
 function mapReplacer(key, value: []) {
   if (value instanceof Map) {
@@ -392,6 +392,61 @@ type ContactInfo = {
   number: string
   photo: string
 }
+async function setClipboard(regId2: string) {
+  // TODO: handle local network
+  await fcm.projects.messages.send({
+    auth: jwtClient,
+    parent: 'projects/join-external-gcm',
+    requestBody: {
+      message: {
+        token: regId2,
+        android: {
+          priority: 'high',
+        },
+        data: {
+          type: 'GCMPush',
+          json: JSON.stringify({
+            type: 'GCMPush',
+            push: {
+              clipboard: clipboard.readText(),
+              id: uuidv4(),
+              senderId: thisDeviceId,
+            },
+            senderId: thisDeviceId,
+          }),
+        },
+      },
+    },
+  })
+}
+
+async function call(callnumber: string, regId2: string) {
+  // TODO: handle local network
+  await fcm.projects.messages.send({
+    auth: jwtClient,
+    parent: 'projects/join-external-gcm',
+    requestBody: {
+      message: {
+        token: regId2,
+        android: {
+          priority: 'high',
+        },
+        data: {
+          type: 'GCMPush',
+          json: JSON.stringify({
+            type: 'GCMPush',
+            push: {
+              callnumber: callnumber,
+              id: uuidv4(),
+              senderId: thisDeviceId,
+            },
+            senderId: thisDeviceId,
+          }),
+        },
+      },
+    },
+  })
+}
 
 async function testLocalAddress(id: string, url: string, win: BrowserWindow) {
   const body = JSON.stringify({
@@ -563,31 +618,7 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
             const receiver = devicesInfo.find((device) => device.deviceId === push.senderId)
             if (!receiver) return
 
-            // TODO: extract info function? this is a push to set clipboard and can be used on any device
-            await fcm.projects.messages.send({
-              auth: jwtClient,
-              parent: 'projects/join-external-gcm',
-              requestBody: {
-                message: {
-                  token: receiver.regId2,
-                  android: {
-                    priority: 'high',
-                  },
-                  data: {
-                    type: 'GCMPush',
-                    json: JSON.stringify({
-                      type: 'GCMPush',
-                      push: {
-                        clipboard: clipboard.readText(),
-                        id: uuidv4(),
-                        senderId: thisDeviceId,
-                      },
-                      senderId: thisDeviceId,
-                    }),
-                  },
-                },
-              },
-            })
+            setClipboard(receiver.regId2)
           } else if (push.url) {
             shell.openExternal(push.url)
             n = new Notification({
@@ -901,6 +932,7 @@ function createWindow(tray: Tray) {
   m.on('log-in-with-google', () => {
     logInWithGoogle(win)
   })
+  m.on('call', (_, callnumber, regId2) => call(callnumber, regId2))
   m.on(
     'open-remote-file',
     async (_, deviceId: string, regId: string, path: string, fileName: string) => {
@@ -1132,7 +1164,7 @@ app.whenReady().then(() => {
             const parsedData = JSON.parse(data) as GenericResponse
             if (!parsedData.success) return rej(parsedData.errorMessage)
 
-            const foldersInfo = parsedData.payload as FoldersInfo
+            const foldersInfo = parsedData.payload as FolderInfo
             res(foldersInfo)
           })
         })
