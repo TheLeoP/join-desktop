@@ -464,7 +464,7 @@ async function getContacts(deviceId: string) {
 
   // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
   const text = await file.text()
-  const contactsInfo = JSON.parse(text).contacts as ContactInfo
+  const contactsInfo = JSON.parse(text).contacts as ContactInfo[]
   return contactsInfo
 }
 

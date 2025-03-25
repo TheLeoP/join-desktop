@@ -210,9 +210,6 @@ function Device({
       {/* NOTE: Join does this, I don't know if it's correct */}
       {(deviceType == DeviceType.android_phone || deviceType === DeviceType.android_tablet) && (
         <div className="flex flex-col space-y-1">
-          <Media deviceId={deviceId} regId2={regId2} />
-
-          <hr />
           <Link
             to="/devices/media/$deviceId"
             params={{ deviceId }}
@@ -229,6 +226,10 @@ function Device({
           >
             Contacts
           </Link>
+
+          <hr />
+
+          <Media deviceId={deviceId} regId2={regId2} />
         </div>
       )}
     </div>
