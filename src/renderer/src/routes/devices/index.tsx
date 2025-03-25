@@ -60,7 +60,7 @@ function Volume({
           debouncedMediaAction.current({ action: { mediaVolume: e.target.value } })
         }}
       />
-      {volume}
+      <span className="m-auto">{volume}</span>
     </div>
   )
 }
@@ -207,10 +207,8 @@ function Device({
           </div>
         )}
       </div>
-      {/* NOTE: Join does this, I don't know if it's correct */}
       {(deviceType == DeviceType.android_phone || deviceType === DeviceType.android_tablet) && (
-        // TODO: make this width fixed
-        <div className="flex flex-col space-y-1">
+        <div className="flex w-full flex-col space-y-1">
           <Link
             to="/devices/files/$deviceId"
             params={{ deviceId }}
