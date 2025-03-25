@@ -1,31 +1,10 @@
-import { useDevices } from '@renderer/util'
+import { useContacts, useDevices } from '@renderer/util'
 import * as svg from '@renderer/svgs'
-import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/devices/contacts/$deviceId')({
   component: RouteComponent,
 })
-
-type ContactInfo = {
-  name: string
-  number: string
-  photo: string
-}
-
-function useContacts(deviceId: string, regId2: string | undefined) {
-  return useQuery<ContactInfo[], Error, ContactInfo[], readonly string[]>({
-    staleTime: 60 * 1000,
-    // TODO: allow retrying all queries
-    retry: false,
-    queryKey: ['contacts', deviceId, regId2 as string],
-    enabled: !!regId2,
-    queryFn: async ({ queryKey }) => {
-      const [_, deviceId, regId2] = queryKey
-      return await window.api.contacts(deviceId, regId2)
-    },
-  })
-}
 
 function RouteComponent() {
   const { deviceId } = Route.useParams()
@@ -41,7 +20,7 @@ function RouteComponent() {
   }
 
   return (
-    <div className="flex flex-wrap space-y-1 space-x-1">
+    <div className="ms-1 flex flex-wrap space-y-1 space-x-1">
       {contacts.map((contact) => (
         <div
           key={contact.number}
