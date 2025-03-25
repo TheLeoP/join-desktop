@@ -14,6 +14,7 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as LoginImport } from './routes/login'
 import { Route as IndexImport } from './routes/index'
 import { Route as DevicesIndexImport } from './routes/devices/index'
+import { Route as DevicesSmsChatDeviceIdImport } from './routes/devices/smsChat.$deviceId'
 import { Route as DevicesSmsDeviceIdImport } from './routes/devices/sms.$deviceId'
 import { Route as DevicesFilesDeviceIdImport } from './routes/devices/files.$deviceId'
 import { Route as DevicesContactsDeviceIdImport } from './routes/devices/contacts.$deviceId'
@@ -35,6 +36,12 @@ const IndexRoute = IndexImport.update({
 const DevicesIndexRoute = DevicesIndexImport.update({
   id: '/devices/',
   path: '/devices/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const DevicesSmsChatDeviceIdRoute = DevicesSmsChatDeviceIdImport.update({
+  id: '/devices/smsChat/$deviceId',
+  path: '/devices/smsChat/$deviceId',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -102,6 +109,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevicesSmsDeviceIdImport
       parentRoute: typeof rootRoute
     }
+    '/devices/smsChat/$deviceId': {
+      id: '/devices/smsChat/$deviceId'
+      path: '/devices/smsChat/$deviceId'
+      fullPath: '/devices/smsChat/$deviceId'
+      preLoaderRoute: typeof DevicesSmsChatDeviceIdImport
+      parentRoute: typeof rootRoute
+    }
   }
 }
 
@@ -114,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/devices/contacts/$deviceId': typeof DevicesContactsDeviceIdRoute
   '/devices/files/$deviceId': typeof DevicesFilesDeviceIdRoute
   '/devices/sms/$deviceId': typeof DevicesSmsDeviceIdRoute
+  '/devices/smsChat/$deviceId': typeof DevicesSmsChatDeviceIdRoute
 }
 
 export interface FileRoutesByTo {
@@ -123,6 +138,7 @@ export interface FileRoutesByTo {
   '/devices/contacts/$deviceId': typeof DevicesContactsDeviceIdRoute
   '/devices/files/$deviceId': typeof DevicesFilesDeviceIdRoute
   '/devices/sms/$deviceId': typeof DevicesSmsDeviceIdRoute
+  '/devices/smsChat/$deviceId': typeof DevicesSmsChatDeviceIdRoute
 }
 
 export interface FileRoutesById {
@@ -133,6 +149,7 @@ export interface FileRoutesById {
   '/devices/contacts/$deviceId': typeof DevicesContactsDeviceIdRoute
   '/devices/files/$deviceId': typeof DevicesFilesDeviceIdRoute
   '/devices/sms/$deviceId': typeof DevicesSmsDeviceIdRoute
+  '/devices/smsChat/$deviceId': typeof DevicesSmsChatDeviceIdRoute
 }
 
 export interface FileRouteTypes {
@@ -144,6 +161,7 @@ export interface FileRouteTypes {
     | '/devices/contacts/$deviceId'
     | '/devices/files/$deviceId'
     | '/devices/sms/$deviceId'
+    | '/devices/smsChat/$deviceId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -152,6 +170,7 @@ export interface FileRouteTypes {
     | '/devices/contacts/$deviceId'
     | '/devices/files/$deviceId'
     | '/devices/sms/$deviceId'
+    | '/devices/smsChat/$deviceId'
   id:
     | '__root__'
     | '/'
@@ -160,6 +179,7 @@ export interface FileRouteTypes {
     | '/devices/contacts/$deviceId'
     | '/devices/files/$deviceId'
     | '/devices/sms/$deviceId'
+    | '/devices/smsChat/$deviceId'
   fileRoutesById: FileRoutesById
 }
 
@@ -170,6 +190,7 @@ export interface RootRouteChildren {
   DevicesContactsDeviceIdRoute: typeof DevicesContactsDeviceIdRoute
   DevicesFilesDeviceIdRoute: typeof DevicesFilesDeviceIdRoute
   DevicesSmsDeviceIdRoute: typeof DevicesSmsDeviceIdRoute
+  DevicesSmsChatDeviceIdRoute: typeof DevicesSmsChatDeviceIdRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
@@ -179,6 +200,7 @@ const rootRouteChildren: RootRouteChildren = {
   DevicesContactsDeviceIdRoute: DevicesContactsDeviceIdRoute,
   DevicesFilesDeviceIdRoute: DevicesFilesDeviceIdRoute,
   DevicesSmsDeviceIdRoute: DevicesSmsDeviceIdRoute,
+  DevicesSmsChatDeviceIdRoute: DevicesSmsChatDeviceIdRoute,
 }
 
 export const routeTree = rootRoute
@@ -196,7 +218,8 @@ export const routeTree = rootRoute
         "/devices/",
         "/devices/contacts/$deviceId",
         "/devices/files/$deviceId",
-        "/devices/sms/$deviceId"
+        "/devices/sms/$deviceId",
+        "/devices/smsChat/$deviceId"
       ]
     },
     "/": {
@@ -216,6 +239,9 @@ export const routeTree = rootRoute
     },
     "/devices/sms/$deviceId": {
       "filePath": "devices/sms.$deviceId.tsx"
+    },
+    "/devices/smsChat/$deviceId": {
+      "filePath": "devices/smsChat.$deviceId.tsx"
     }
   }
 }

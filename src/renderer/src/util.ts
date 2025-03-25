@@ -188,12 +188,35 @@ export function useContacts(deviceId: string, regId2: string | undefined) {
   return useQuery<ContactInfo[], Error, ContactInfo[], readonly string[]>({
     staleTime: 60 * 1000,
     // TODO: allow retrying all queries
+    // TODO: when using loaders, maybe make them less eager if not in local network(?
     retry: false,
     queryKey: ['contacts', deviceId, regId2 as string],
     enabled: !!regId2,
     queryFn: async ({ queryKey }) => {
       const [_, deviceId, regId2] = queryKey
       return await window.api.contacts(deviceId, regId2)
+    },
+  })
+}
+
+export type SmsInfo = {
+  address: string
+  date: number
+  isMMS: boolean
+  received: boolean
+  text: string
+  id: string // it's a number on a string
+}
+
+export function useSms(deviceId: string, regId2: string | undefined) {
+  return useQuery<SmsInfo[], Error, SmsInfo[], readonly string[]>({
+    staleTime: 60 * 1000,
+    retry: false,
+    queryKey: ['sms', deviceId, regId2 as string],
+    enabled: !!regId2,
+    queryFn: async ({ queryKey }) => {
+      const [_, deviceId, regId2] = queryKey
+      return await window.api.sms(deviceId, regId2)
     },
   })
 }

@@ -51,7 +51,8 @@ const mediaRequests = new Map<string, (mediaInfo: MediaInfo | null) => void>()
 const folderRequests = new Map<string, (folderInfo: FolderInfo | null) => void>()
 const fileRequests = new Map<string, (folderInfo: FileInfo | null) => void>()
 const contactRequests = new Map<string, (contactInfo: ContactInfo[] | null) => void>()
-const smsThreadRequests = new Map<string, (smsThreadInfo: SmsThreadInfo[] | null) => void>()
+const smsThreadRequests = new Map<string, (smsThreadInfo: SmsInfo[] | null) => void>()
+const smsChatRequests = new Map<string, (smsChatInfo: SmsInfo[] | null) => void>()
 
 function mapReplacer(key, value: []) {
   if (value instanceof Map) {
@@ -315,6 +316,7 @@ type RespondFile = {
       requestType: RespondFileTypes[keyof RespondFileTypes]
       senderId: string
       requestId: string
+      payload?: string
     }
     senderId: string
     viewUrl: string
@@ -394,7 +396,7 @@ type ContactInfo = {
   photo: string
 }
 
-type SmsThreadInfo = {
+type SmsInfo = {
   address: string
   date: number
   isMMS: boolean
@@ -403,8 +405,8 @@ type SmsThreadInfo = {
   id: string // it's a number on a string
 }
 
-type SmsThreadResponse = {
-  payload: SmsThreadInfo[]
+type SmsResponse = {
+  payload: SmsInfo[]
 } & GenericResponse
 
 async function setClipboard(regId2: string) {
@@ -511,7 +513,7 @@ async function testLocalAddress(id: string, url: string, win: BrowserWindow) {
   })
 }
 
-async function getContacts(deviceId: string) {
+async function getContactsNonLocal(deviceId: string) {
   const contactsFileName = `contacts=:=${deviceId}`
   const response = await drive.files.list({
     q: `name = '${contactsFileName}' and trashed = false`,
@@ -538,7 +540,7 @@ async function getContacts(deviceId: string) {
   return contactsInfo
 }
 
-async function getSmsThreads(deviceId: string) {
+async function getSmsThreadsNonLocal(deviceId: string) {
   const smssFileName = `lastsms=:=${deviceId}`
   const response = await drive.files.list({
     q: `name = '${smssFileName}' and trashed = false`,
@@ -561,8 +563,35 @@ async function getSmsThreads(deviceId: string) {
 
   // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
   const text = await file.text()
-  const smssThreadInfo = JSON.parse(text) as SmsThreadInfo[]
+  const smssThreadInfo = JSON.parse(text) as SmsInfo[]
   return smssThreadInfo
+}
+
+async function getSmsChatsNonLocal(deviceId: string, address: string) {
+  const smssFileName = `sms=:=${deviceId}=:=${address}`
+  const response = await drive.files.list({
+    q: `name = '${smssFileName}' and trashed = false`,
+  })
+  const files = response.data.files
+  if (!files) throw new Error(`No files with the name ${smssFileName}`)
+
+  // TODO: is this correct? This is what the join app does
+  const fileInfo = files[0]
+  if (!fileInfo) throw new Error(`No files with the name ${smssFileName}`)
+  if (!fileInfo.id)
+    throw new Error(`Smss file for deviceId ${deviceId} has no defined id on Google Drive`)
+
+  const file = (
+    await drive.files.get({
+      alt: 'media',
+      fileId: fileInfo.id,
+    })
+  ).data
+
+  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
+  const text = await file.text()
+  const smssChatInfo = JSON.parse(text) as { number: string; smses: SmsInfo[] }
+  return smssChatInfo.smses
 }
 
 const multiNotifications = new Map<string, string[]>()
@@ -771,6 +800,7 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
               icon: batteryOkIcon,
             })
           } else if (status.charging) {
+            // TODO: only show first charging notification, ignore the next ones until the state is no longer charging
             n = new Notification({
               title: 'Battery charging',
               body: `Battery at ${status.batteryPercentage}%`,
@@ -823,14 +853,30 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
                 response.request.deviceIds.map(async (deviceId) => {
                   const contactRequest = contactRequests.get(deviceId)
                   if (contactRequest) {
-                    const contactsInfo = await getContacts(deviceId)
+                    const contactsInfo = await getContactsNonLocal(deviceId)
                     contactRequest(contactsInfo)
                   }
                   const smsThreadRequest = smsThreadRequests.get(deviceId)
                   if (smsThreadRequest) {
-                    const smsInfo = await getSmsThreads(deviceId)
+                    const smsInfo = await getSmsThreadsNonLocal(deviceId)
                     smsThreadRequest(smsInfo)
                   }
+                }),
+              )
+
+              break
+            }
+            case respondFileTypes.sms_conversation: {
+              const address = response.request.payload
+              if (!address) return
+
+              await Promise.all(
+                response.request.deviceIds.map(async (deviceId) => {
+                  const smsChatRequest = smsChatRequests.get(deviceId)
+                  if (!smsChatRequest) return
+
+                  const smsInfo = await getSmsChatsNonLocal(deviceId, address)
+                  smsChatRequest(smsInfo)
                 }),
               )
 
@@ -1124,6 +1170,34 @@ async function requestContactsAndLastSmSCreation(deviceId: string, regId: string
   })
 }
 
+async function requestSmsChatCreationOrUpdate(deviceId: string, regId: string, address: string) {
+  await fcm.projects.messages.send({
+    auth: jwtClient,
+    parent: 'projects/join-external-gcm',
+    requestBody: {
+      message: {
+        token: regId,
+        android: {
+          priority: 'high',
+        },
+        data: {
+          type: 'GCMRequestFile',
+          json: JSON.stringify({
+            type: 'GCMRequestFile',
+            requestFile: {
+              requestType: respondFileTypes.sms_conversation,
+              payload: address,
+              senderId: thisDeviceId,
+              deviceIds: [deviceId],
+            },
+            senderId: thisDeviceId,
+          }),
+        },
+      },
+    },
+  })
+}
+
 app.whenReady().then(() => {
   const tray = new Tray('src/renderer/src/assets/join.png')
   tray.setToolTip('Join desktop app')
@@ -1385,8 +1459,9 @@ app.whenReady().then(() => {
       })
     } else {
       // when the contacts file doesn't exists yet, we need to send a message to the device to create it
+      // TODO: the file won't be updated unless requested to. Add button to do so? Or do it always like on sms chats?
       try {
-        const contactsInfo = await getContacts(deviceId)
+        const contactsInfo = await getContactsNonLocal(deviceId)
         return contactsInfo
       } catch (e) {
         await requestContactsAndLastSmSCreation(deviceId, regId)
@@ -1423,7 +1498,7 @@ app.whenReady().then(() => {
         insecureHTTPParser: true,
       })
       req.end()
-      return new Promise<SmsThreadInfo[]>((res, rej) => {
+      return new Promise<SmsInfo[]>((res, rej) => {
         req.on('response', (resp) => {
           resp.setEncoding('utf8')
           const body: string[] = []
@@ -1432,7 +1507,7 @@ app.whenReady().then(() => {
           })
           resp.on('end', () => {
             const data = body.join('')
-            const parsedData = JSON.parse(data) as SmsThreadResponse
+            const parsedData = JSON.parse(data) as SmsResponse
             if (!parsedData.success) return rej(parsedData.errorMessage)
 
             const smsInfo = parsedData.payload
@@ -1445,10 +1520,9 @@ app.whenReady().then(() => {
       })
     } else {
       // when the lastsms file doesn't exists yet, we need to send a message to the device to create it
+      // TODO: the file won't be updated unless requested to. Add button to do so? Or do it always like on sms chats?
       try {
-        const smsThreadsInfo = await getSmsThreads(deviceId)
-        // __AUTO_GENERATED_PRINT_VAR_START__
-        console.log('(anon)#(anon)#if smsThreadsInfo: %s', JSON.stringify(smsThreadsInfo)) // __AUTO_GENERATED_PRINT_VAR_END__
+        const smsThreadsInfo = await getSmsThreadsNonLocal(deviceId)
         return smsThreadsInfo
       } catch (e) {
         await requestContactsAndLastSmSCreation(deviceId, regId)
@@ -1469,6 +1543,64 @@ app.whenReady().then(() => {
           )
         })
       }
+    }
+  })
+  m.handle('sms-chat', async (_, deviceId: string, regId: string, address: string) => {
+    const device = devices.get(deviceId)
+    if (device && device.secureServerAddress) {
+      const url = device.secureServerAddress
+      const token = await oauth2Client.getAccessToken()
+      const req = https.request(`${url}sms?address=${address}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token.token}`,
+        },
+        rejectUnauthorized: false,
+        insecureHTTPParser: true,
+      })
+      req.end()
+      return new Promise<SmsInfo[]>((res, rej) => {
+        req.on('response', (resp) => {
+          resp.setEncoding('utf8')
+          const body: string[] = []
+          resp.on('data', (data) => {
+            body.push(data)
+          })
+          resp.on('end', () => {
+            const data = body.join('')
+            const parsedData = JSON.parse(data) as SmsResponse
+            if (!parsedData.success) return rej(parsedData.errorMessage)
+
+            const smsInfo = parsedData.payload
+            res(smsInfo)
+          })
+        })
+        req.on('error', (err) => {
+          rej(err)
+        })
+      })
+    } else {
+      // NOTE: there is no way of knowing if the conversation file on Google
+      // Drive is updated or not and the Join app doesn't seem to update it
+      // unless it's request to do so. So, we always ask it to update the file
+      // before using it
+      await requestSmsChatCreationOrUpdate(deviceId, regId, address)
+
+      return await new Promise((res, rej) => {
+        const request = smsChatRequests.get(deviceId)
+        if (request) request(null)
+
+        smsChatRequests.set(deviceId, (smsChatInfo) => {
+          res(smsChatInfo)
+        })
+        setTimeout(
+          () => {
+            smsChatRequests.delete(deviceId)
+            rej(new Error('SmsChat request timed out'))
+          },
+          2 * 60 * 1000,
+        )
+      })
     }
   })
 

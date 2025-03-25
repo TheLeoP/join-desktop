@@ -28,6 +28,7 @@
     "@tanstack/react-query": "^5.67.3",
     "@tanstack/react-router": "^1.112.13",
     "@tanstack/react-virtual": "^3.13.4",
+    "@tanstack/zod-adapter": "^1.114.27",
     "@types/auto-launch": "^5.0.5",
     "auto-launch": "^5.0.6",
     "googleapis": "^146.0.0",
@@ -35,7 +36,8 @@
     "lodash.debounce": "^4.0.8",
     "tailwindcss": "^4.0.14",
     "use-debounce": "^10.0.4",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",

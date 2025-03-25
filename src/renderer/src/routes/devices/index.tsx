@@ -192,7 +192,7 @@ function Device({
   const onLocalNetwork = useOnLocalNetwork(deviceId)
 
   return (
-    <div className="flex w-60 flex-col items-center">
+    <div className="flex w-60 flex-col items-center space-y-1">
       <img
         src={`src/assets/${ReverseDeviceType[deviceType]}.png`}
         className="max-w-40 rounded-full bg-orange-300 p-2"
