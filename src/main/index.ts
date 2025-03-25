@@ -1550,7 +1550,7 @@ app.whenReady().then(() => {
     if (device && device.secureServerAddress) {
       const url = device.secureServerAddress
       const token = await oauth2Client.getAccessToken()
-      const req = https.request(`${url}sms?address=${address}`, {
+      const req = https.request(`${url}sms?address=${encodeURIComponent(address)}`, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token.token}`,
