@@ -4,6 +4,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { zodValidator } from '@tanstack/zod-adapter'
 import { PhotoOrChar } from '@renderer/components'
+import { useEffect, useRef } from 'react'
 
 const searchSchema = z.object({ address: z.string(), name: z.string() })
 
@@ -39,6 +40,11 @@ function RouteComponent() {
     error: errorContacts,
   } = useContacts(deviceId, regId2)
   const contact = contacts?.find((contact) => contact.number === address)
+
+  const endOfList = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    endOfList.current?.scrollIntoView()
+  }, [smsChat])
 
   if (isPending) {
     return <div>Loading...</div>
@@ -78,6 +84,7 @@ function RouteComponent() {
               </div>
             )
           })}
+        <div ref={endOfList}></div>
       </div>
       <div className="absolute fixed bottom-0 flex h-20 w-full items-center justify-center border-t bg-orange-200">
         <input type="textarea" className="h-5/7 w-4/5 rounded-md bg-white" />
