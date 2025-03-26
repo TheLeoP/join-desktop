@@ -21,7 +21,7 @@ export function DevicesOnLocalNetworkProvider({ children }: { children: ReactNod
   )
 }
 
-export function PhotoOrChar({ photo, char }: { photo: string; char: string }) {
+export function PhotoOrChar({ photo, char }: { photo: string | undefined; char: string }) {
   return photo ? (
     <img className="h-20 w-20" src={photo} />
   ) : (

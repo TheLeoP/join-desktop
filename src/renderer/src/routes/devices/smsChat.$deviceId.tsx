@@ -46,15 +46,14 @@ function RouteComponent() {
     return <div>Error: {error.message}</div>
   }
 
+  // TODO: scroll to end of messages on open
   return (
-    <div className="">
-      {contact && (
-        <div className="mx-auto my-1 flex w-fit items-center justify-center space-x-1 rounded-md bg-orange-100 p-2">
-          <PhotoOrChar photo={contact.photo} char={contact.name.substring(0, 1)} />
-          <h1 className="text-4xl">{contact.name}</h1>
-        </div>
-      )}
-      <div className="mx-1 flex flex-col space-y-4">
+    <div className="relative flex h-[calc(100vh-45px)] flex-col">
+      <div className="mx-auto my-1 flex h-20 w-fit items-center justify-center space-x-1 rounded-md bg-orange-100 p-2">
+        <PhotoOrChar photo={contact?.photo} char={(contact?.name ?? address).substring(0, 1)} />
+        <h1 className="text-4xl">{contact?.name ?? address}</h1>
+      </div>
+      <div className="absolute top-22 bottom-20 mx-1 flex w-[calc(100%-4px)] flex-col space-y-4 overflow-auto">
         {smsChat
           .sort((a, b) => a.date - b.date)
           .map((message) => {
@@ -79,6 +78,9 @@ function RouteComponent() {
               </div>
             )
           })}
+      </div>
+      <div className="absolute fixed bottom-0 flex h-20 w-full items-center justify-center border-t bg-orange-200">
+        <input type="textarea" className="h-5/7 w-4/5 rounded-md bg-white" />
       </div>
     </div>
   )

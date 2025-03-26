@@ -263,7 +263,7 @@ function RouteComponent() {
 
   // TODO: use Virtualizer to vertically virtuallize up to 3 directories
   return (
-    <div className="flex h-[calc(100vh-44px)]">
+    <div className="flex h-[calc(100vh-45px)]">
       {debouncedPaths.map((_, i, paths) => {
         let path = `${paths.slice(0, i + 1).join('/')}`
         if (path === '') path = '/'
