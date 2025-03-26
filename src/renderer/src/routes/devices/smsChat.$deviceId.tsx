@@ -4,7 +4,8 @@ import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { zodValidator } from '@tanstack/zod-adapter'
 import { PhotoOrChar } from '@renderer/components'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import * as svg from '@renderer/svgs'
 
 const searchSchema = z.object({ address: z.string(), name: z.string() })
 
@@ -45,6 +46,8 @@ function RouteComponent() {
   useEffect(() => {
     endOfList.current?.scrollIntoView()
   }, [smsChat])
+
+  const [message, setMessage] = useState<string>('')
 
   if (isPending) {
     return <div>Loading...</div>
@@ -96,8 +99,25 @@ function RouteComponent() {
           })}
         <div ref={endOfList}></div>
       </div>
-      <div className="absolute fixed bottom-0 flex h-20 w-full items-center justify-center border-t bg-orange-200">
-        <input type="textarea" className="h-5/7 w-4/5 rounded-md bg-white" />
+      <div className="absolute fixed bottom-0 flex h-20 w-full items-center justify-center space-x-2 border-t bg-orange-200">
+        {/* TODO: put this on a form and make ENTER send the message */}
+        <textarea
+          className="text-md h-5/7 w-6/7 resize-none appearance-none rounded-md border bg-white px-3 py-3 leading-tight shadow focus:outline-none"
+          onChange={(e) => setMessage(e.target.value)}
+          value={message}
+        />
+        <button
+          className="cursor-pointer rounded-full bg-white p-4 hover:fill-gray-500 active:fill-gray-700"
+          onClick={async () => {
+            if (message === '' || !regId2) return
+
+            console.log(message)
+            window.api.smsSend(deviceId, regId2, address, message)
+            setMessage('')
+          }}
+        >
+          <svg.Send />
+        </button>
       </div>
     </div>
   )

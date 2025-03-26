@@ -464,6 +464,10 @@ async function call(callnumber: string, regId2: string) {
     },
   })
 }
+async function smsSend(callnumber: string, regId2: string, text: string) {
+  // TODO: remote (loop chrome extension and function above)
+  // TODO: local network
+}
 
 async function testLocalAddress(id: string, url: string, win: BrowserWindow) {
   const body = JSON.stringify({
@@ -1026,6 +1030,7 @@ function createWindow(tray: Tray) {
     logInWithGoogle(win)
   })
   m.on('call', (_, callnumber, regId2) => call(callnumber, regId2))
+  m.on('sms-send', (_, callnumber, regId2, text) => smsSend(callnumber, regId2, text))
   m.on(
     'open-remote-file',
     async (_, deviceId: string, regId: string, path: string, fileName: string) => {

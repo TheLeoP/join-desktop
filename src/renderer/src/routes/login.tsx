@@ -7,7 +7,7 @@ function LogIn() {
   const isLoggedIn = useIsLoggedIn()
   const deviceId = useDeviceId()
 
-  const [deviceName, setDeviceName] = useState<string | null>(null)
+  const [deviceName, setDeviceName] = useState<string>('')
 
   return (
     // TODO: change h-screen with header?
@@ -30,8 +30,9 @@ function LogIn() {
           className="flex grow items-center justify-center"
           onSubmit={async (e) => {
             e.preventDefault()
-            if (!deviceName) return
+            if (deviceName === '') return
             await window.api.registerDevice(deviceName)
+            setDeviceName('')
           }}
         >
           <div className="flex w-full max-w-xs flex-col space-y-2 rounded-md bg-orange-200 p-10 shadow-md">
@@ -44,6 +45,7 @@ function LogIn() {
                 onChange={(e) => {
                   setDeviceName(e.target.value)
                 }}
+                value={deviceName}
               />
             </label>
 
