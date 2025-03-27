@@ -1,16 +1,26 @@
-import { useContacts, useDevices } from '@renderer/util'
+import { contactsQueryOptions, queryClient, useContacts } from '@renderer/util'
 import * as svg from '@renderer/svgs'
 import { createFileRoute } from '@tanstack/react-router'
 import { PhotoOrChar } from '@renderer/components'
+import { zodValidator } from '@tanstack/zod-adapter'
+import { z } from 'zod'
+
+const searchSchema = z.object({
+  regId2: z.string(),
+})
 
 export const Route = createFileRoute('/devices/contacts/$deviceId')({
   component: RouteComponent,
+  loaderDeps: ({ search: { regId2 } }) => ({ regId2 }),
+  loader: async ({ params: { deviceId }, deps: { regId2 } }) => {
+    queryClient.ensureQueryData(contactsQueryOptions(deviceId, regId2))
+  },
+  validateSearch: zodValidator(searchSchema),
 })
 
 function RouteComponent() {
   const { deviceId } = Route.useParams()
-  const { data: devices } = useDevices()
-  const regId2 = devices?.records.find((device) => device.deviceId === deviceId)?.regId2
+  const { regId2 } = Route.useSearch()
 
   const { data: contacts, isPending, isError, error } = useContacts(deviceId, regId2)
 

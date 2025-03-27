@@ -1,4 +1,4 @@
-import { QueryClient, useMutation, useQuery } from '@tanstack/react-query'
+import { QueryClient, queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { useState, useEffect, createContext, useContext } from 'react'
 
 export const queryClient = new QueryClient()
@@ -150,20 +150,22 @@ export function useMediaAction(deviceId: string, regId2: string) {
   })
 }
 
+export const devicesQueryOptions = queryOptions<Data<DeviceInfo>>({
+  queryKey: ['devices'],
+  queryFn: async () => {
+    const joinUrl = 'https://joinjoaomgcd.appspot.com/_ah/api'
+    const token = await window.api.getAccessToken()
+    const res = await fetch(`${joinUrl}/registration/v1/listDevices`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    return await res.json()
+  },
+})
+
 export function useDevices() {
-  return useQuery<Data<DeviceInfo>>({
-    queryKey: ['devices'],
-    queryFn: async () => {
-      const joinUrl = 'https://joinjoaomgcd.appspot.com/_ah/api'
-      const token = await window.api.getAccessToken()
-      const res = await fetch(`${joinUrl}/registration/v1/listDevices`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      return await res.json()
-    },
-  })
+  return useQuery(devicesQueryOptions)
 }
 
 export function formatBytes(bytes: number, decimals = 2) {
@@ -184,20 +186,22 @@ export type ContactInfo = {
   photo: string
 }
 
-export function useContacts(deviceId: string, regId2: string | undefined) {
-  return useQuery<ContactInfo[], Error, ContactInfo[], readonly string[]>({
+export function contactsQueryOptions(deviceId: string, regId2: string) {
+  return queryOptions<ContactInfo[], Error, ContactInfo[], readonly string[]>({
     staleTime: 60 * 1000,
     // TODO: allow retrying all queries
     // TODO: when using loaders, maybe make them less eager if not in local network(?
     // TODO: check staleTime, retry, etc for all queries and maybe take into account if in local network or not
     retry: false,
     queryKey: ['contacts', deviceId, regId2 as string],
-    enabled: !!regId2,
     queryFn: async ({ queryKey }) => {
       const [_, deviceId, regId2] = queryKey
       return await window.api.contacts(deviceId, regId2)
     },
   })
+}
+export function useContacts(deviceId: string, regId2: string) {
+  return useQuery(contactsQueryOptions(deviceId, regId2))
 }
 
 export type SmsInfo = {
@@ -209,15 +213,17 @@ export type SmsInfo = {
   id: string // it's a number on a string
 }
 
-export function useSms(deviceId: string, regId2: string | undefined) {
-  return useQuery<SmsInfo[], Error, SmsInfo[], readonly string[]>({
+export function smsQueryOptions(deviceId: string, regId2: string) {
+  return queryOptions<SmsInfo[], Error, SmsInfo[], readonly string[]>({
     staleTime: 60 * 1000,
     retry: false,
     queryKey: ['sms', deviceId, regId2 as string],
-    enabled: !!regId2,
     queryFn: async ({ queryKey }) => {
       const [_, deviceId, regId2] = queryKey
       return await window.api.sms(deviceId, regId2)
     },
   })
+}
+export function useSms(deviceId: string, regId2: string) {
+  return useQuery(smsQueryOptions(deviceId, regId2))
 }

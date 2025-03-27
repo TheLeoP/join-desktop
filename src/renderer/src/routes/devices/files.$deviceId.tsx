@@ -1,11 +1,13 @@
 import { Folder } from '@renderer/svgs'
-import { formatBytes, useDevices, useOnLocalNetwork } from '@renderer/util'
-import { useQuery } from '@tanstack/react-query'
+import { formatBytes, queryClient, useOnLocalNetwork } from '@renderer/util'
+import { queryOptions, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useEffect, useState, useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useDebounce } from 'use-debounce'
+import { zodValidator } from '@tanstack/zod-adapter'
+import { z } from 'zod'
 
 type File = {
   date: number
@@ -19,21 +21,32 @@ type FolderInfo = {
   pathSegments: string[]
 }
 
-export const Route = createFileRoute('/devices/files/$deviceId')({
-  component: RouteComponent,
+const searchSchema = z.object({
+  regId2: z.string(),
 })
 
-function useRemotePath(deviceId: string, regId2: string | undefined, path: string | undefined) {
-  return useQuery<FolderInfo, Error, FolderInfo, readonly string[]>({
+export const Route = createFileRoute('/devices/files/$deviceId')({
+  component: RouteComponent,
+  loaderDeps: ({ search: { regId2 } }) => ({ regId2 }),
+  loader: async ({ params: { deviceId }, deps: { regId2 } }) => {
+    queryClient.ensureQueryData(remotePathQueryOptions(deviceId, regId2, '/'))
+  },
+  validateSearch: zodValidator(searchSchema),
+})
+
+function remotePathQueryOptions(deviceId: string, regId2: string, path: string) {
+  return queryOptions<FolderInfo, Error, FolderInfo, readonly string[]>({
     staleTime: 60 * 1000,
     retry: false,
-    queryKey: ['folders', deviceId, regId2 as string, path as string],
-    enabled: !!regId2 && !!path,
+    queryKey: ['folders', deviceId, regId2, path],
     queryFn: async ({ queryKey }) => {
       const [_, deviceId, regId2, path] = queryKey
       return await window.api.folders(deviceId, regId2, path)
     },
   })
+}
+function useRemotePath(deviceId: string, regId2: string, path: string) {
+  return useQuery(remotePathQueryOptions(deviceId, regId2, path))
 }
 
 function Directory({
@@ -44,8 +57,8 @@ function Directory({
   i,
 }: {
   deviceId: string
-  regId2: string | undefined
-  path: string | undefined
+  regId2: string
+  path: string
   active: boolean
   i: number
 }) {
@@ -192,8 +205,7 @@ const currentFileAtom = atom<null | string>(null)
 
 function RouteComponent() {
   const { deviceId } = Route.useParams()
-  const { data: devices } = useDevices()
-  const regId2 = devices?.records.find((device) => device.deviceId === deviceId)?.regId2
+  const { regId2 } = Route.useSearch()
 
   const [paths, setPaths] = useAtom(pathsAtom)
   const [debouncedPaths] = useDebounce(paths, 250)

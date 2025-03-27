@@ -1,6 +1,7 @@
 import * as svg from '@renderer/svgs'
 import {
   DeviceInfo,
+  devicesQueryOptions,
   DeviceType,
   MediaAction,
   MediaInfo,
@@ -11,7 +12,7 @@ import {
   useMediaAction,
   useOnLocalNetwork,
 } from '@renderer/util'
-import { UseMutateFunction, useQuery } from '@tanstack/react-query'
+import { queryOptions, UseMutateFunction, useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import debounce from 'lodash.debounce'
 import { useEffect, useRef, useState } from 'react'
@@ -65,14 +66,8 @@ function Volume({
   )
 }
 
-function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
-  const {
-    data: mediaInfo,
-    error,
-    isPending,
-    isError,
-    refetch,
-  } = useQuery<MediaInfo>({
+function mediaQueryOptions(deviceId: string, regId2: string) {
+  return queryOptions<MediaInfo>({
     staleTime: 60 * 1000,
     retry: false,
     queryKey: ['mediaInfo', deviceId, regId2],
@@ -80,6 +75,16 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
       return await window.api.media(deviceId, regId2)
     },
   })
+}
+
+function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
+  const {
+    data: mediaInfo,
+    error,
+    isPending,
+    isError,
+    refetch,
+  } = useQuery(mediaQueryOptions(deviceId, regId2))
   const onLocalNetwork = useOnLocalNetwork(deviceId)
   useEffect(
     () => void queryClient.invalidateQueries({ queryKey: ['mediaInfo', deviceId, regId2] }),
@@ -207,11 +212,12 @@ function Device({
           </div>
         )}
       </div>
-      {(deviceType == DeviceType.android_phone || deviceType === DeviceType.android_tablet) && (
+      {(deviceType === DeviceType.android_phone || deviceType === DeviceType.android_tablet) && (
         <div className="flex w-full flex-col space-y-1">
           <Link
             to="/devices/files/$deviceId"
             params={{ deviceId }}
+            search={{ regId2 }}
             from="/devices"
             className="w-full bg-orange-100 text-center text-xl"
           >
@@ -220,6 +226,7 @@ function Device({
           <Link
             to="/devices/contacts/$deviceId"
             params={{ deviceId }}
+            search={{ regId2 }}
             from="/devices"
             className="w-full bg-orange-100 text-center text-xl"
           >
@@ -228,6 +235,7 @@ function Device({
           <Link
             to="/devices/sms/$deviceId"
             params={{ deviceId }}
+            search={{ regId2 }}
             from="/devices"
             className="w-full bg-orange-100 text-center text-xl"
           >
@@ -266,4 +274,15 @@ function Devices() {
 
 export const Route = createFileRoute('/devices/')({
   component: Devices,
+  loader: async () => {
+    const devices = await queryClient.ensureQueryData(devicesQueryOptions)
+    Promise.all(
+      devices.records.map(async (device) => {
+        const deviceType = device.deviceType
+        if (deviceType !== DeviceType.android_phone && deviceType !== DeviceType.android_tablet)
+          return
+        await queryClient.ensureQueryData(mediaQueryOptions(device.deviceId, device.regId2))
+      }),
+    )
+  },
 })

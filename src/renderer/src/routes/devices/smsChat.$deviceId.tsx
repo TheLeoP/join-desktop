@@ -1,5 +1,5 @@
-import { queryClient, SmsInfo, useContacts, useDevices } from '@renderer/util'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { contactsQueryOptions, queryClient, SmsInfo, useContacts, useDevices } from '@renderer/util'
+import { queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { zodValidator } from '@tanstack/zod-adapter'
@@ -7,19 +7,26 @@ import { PhotoOrChar } from '@renderer/components'
 import { useEffect, useRef, useState } from 'react'
 import * as svg from '@renderer/svgs'
 
-const searchSchema = z.object({ address: z.string(), name: z.string() })
+const searchSchema = z.object({
+  address: z.string(),
+  regId2: z.string(),
+})
 
 export const Route = createFileRoute('/devices/smsChat/$deviceId')({
   component: RouteComponent,
+  loaderDeps: ({ search: { address, regId2 } }) => ({ address, regId2 }),
+  loader: async ({ params: { deviceId }, deps: { address, regId2 } }) => {
+    queryClient.ensureQueryData(smsChatOptions(deviceId, regId2, address))
+    await queryClient.ensureQueryData(contactsQueryOptions(deviceId, regId2))
+  },
   validateSearch: zodValidator(searchSchema),
 })
 
-function useSmsChat(deviceId: string, regId2: string | undefined, address: string) {
-  return useQuery<SmsInfo[], Error, SmsInfo[], readonly string[]>({
+function smsChatOptions(deviceId: string, regId2: string, address: string) {
+  return queryOptions<SmsInfo[], Error, SmsInfo[], readonly string[]>({
     staleTime: 60 * 1000,
     retry: false,
     queryKey: ['smsChat', deviceId, regId2 as string, address],
-    enabled: !!regId2,
     queryFn: async ({ queryKey }) => {
       const [_, deviceId, regId2] = queryKey
       return await window.api.smsChat(deviceId, regId2, address)
@@ -27,7 +34,11 @@ function useSmsChat(deviceId: string, regId2: string | undefined, address: strin
   })
 }
 
-function useSendSms(deviceId: string, regId2: string | undefined, address: string) {
+function useSmsChat(deviceId: string, regId2: string, address: string) {
+  return useQuery(smsChatOptions(deviceId, regId2, address))
+}
+
+function useSendSms(deviceId: string, regId2: string, address: string) {
   return useMutation<
     unknown,
     Error,
@@ -62,10 +73,8 @@ function useSendSms(deviceId: string, regId2: string | undefined, address: strin
 }
 
 function RouteComponent() {
-  const { address } = Route.useSearch()
+  const { address, regId2 } = Route.useSearch()
   const { deviceId } = Route.useParams()
-  const { data: devices } = useDevices()
-  const regId2 = devices?.records.find((device) => device.deviceId === deviceId)?.regId2
 
   const { data: smsChat, isPending, isError, error } = useSmsChat(deviceId, regId2, address)
   const {
@@ -85,11 +94,38 @@ function RouteComponent() {
   const { mutate: sendSms } = useSendSms(deviceId, regId2, address)
   const form = useRef<HTMLFormElement | null>(null)
 
-  if (isPending) {
-    return <div>Loading...</div>
-  } else if (isError) {
-    return <div>Error: {error.message}</div>
-  }
+  const messages = isPending ? (
+    <div>Loading...</div>
+  ) : isError ? (
+    <div>Error: {error.message}</div>
+  ) : (
+    <>
+      {smsChat
+        .sort((a, b) => a.date - b.date)
+        .map((message) => {
+          return (
+            <div
+              key={message.id}
+              className="flex w-full justify-end text-right data-received:justify-start data-received:text-left"
+              data-received={message.received ? true : undefined}
+            >
+              <div className="max-w-5/7">
+                <div
+                  data-received={message.received ? true : undefined}
+                  className="rounded-md bg-orange-100 p-2 text-xl break-words whitespace-pre-line data-received:bg-orange-200"
+                >
+                  {message.text}
+                </div>
+                {/* TODO: better date format */}
+                <div className="mt-2 text-xs text-gray-400">
+                  {new Date(message.date).toString()}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+    </>
+  )
 
   const header = isPendingContacts ? (
     <div>Loading...</div>
@@ -108,30 +144,7 @@ function RouteComponent() {
         {header}
       </div>
       <div className="absolute top-22 bottom-20 mx-1 flex w-[calc(100%-4px)] flex-col space-y-4 overflow-auto">
-        {smsChat
-          .sort((a, b) => a.date - b.date)
-          .map((message) => {
-            return (
-              <div
-                key={message.id}
-                className="flex w-full justify-end text-right data-received:justify-start data-received:text-left"
-                data-received={message.received ? true : undefined}
-              >
-                <div className="max-w-5/7">
-                  <div
-                    data-received={message.received ? true : undefined}
-                    className="rounded-md bg-orange-100 p-2 text-xl break-words whitespace-pre-line data-received:bg-orange-200"
-                  >
-                    {message.text}
-                  </div>
-                  {/* TODO: better date format */}
-                  <div className="mt-2 text-xs text-gray-400">
-                    {new Date(message.date).toString()}
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+        {messages}
         <div ref={endOfList}></div>
       </div>
 

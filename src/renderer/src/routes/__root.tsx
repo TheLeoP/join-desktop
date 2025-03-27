@@ -29,6 +29,7 @@ function Root() {
   return (
     <>
       <div className="flex gap-2 p-2">
+        {/* TODO: show all buttons and a selector for avilable devices */}
         <Link to="/devices" className="text-xl [&.active]:font-bold">
           Devices
         </Link>

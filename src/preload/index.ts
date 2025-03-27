@@ -36,8 +36,6 @@ export const api = {
     r.invoke('sms-send', deviceId, regId, smsnumber, smstext),
   call: (callnumber: string, regId2: string) => r.send('call', callnumber, regId2),
 
-  // TODO: add refactoring scope for this
-
   onLocalNetwork: (cb: (deviceId: string, onLocalNetwork: boolean) => void) => {
     const f = (_, deviceId: string, onLocalNetwork: boolean) => {
       cb(deviceId, onLocalNetwork)
