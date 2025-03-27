@@ -10,7 +10,7 @@ function LogIn() {
   const [deviceName, setDeviceName] = useState<string>('')
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-[calc(100vh-45px)] flex-col">
       <h1 className="pt-10 text-center text-9xl">Join Desktop</h1>
       {!isLoggedIn && (
         <div className="flex grow flex-col items-center justify-center">
