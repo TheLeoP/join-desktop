@@ -1,5 +1,5 @@
-import { SmsInfo, useContacts, useDevices } from '@renderer/util'
-import { useQuery } from '@tanstack/react-query'
+import { queryClient, SmsInfo, useContacts, useDevices } from '@renderer/util'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { zodValidator } from '@tanstack/zod-adapter'
@@ -27,6 +27,40 @@ function useSmsChat(deviceId: string, regId2: string | undefined, address: strin
   })
 }
 
+function useSendSms(deviceId: string, regId2: string | undefined, address: string) {
+  return useMutation<
+    unknown,
+    Error,
+    {
+      smsmessage: string
+    }
+  >({
+    mutationFn: async ({ smsmessage }) => {
+      if (!regId2) return
+
+      await window.api.smsSend(deviceId, regId2, address, smsmessage)
+    },
+    onMutate: async ({ smsmessage }) => {
+      await queryClient.cancelQueries({
+        queryKey: ['smsChat', deviceId, regId2, address],
+      })
+
+      queryClient.setQueryData(['smsChat', deviceId, regId2, address], (old: SmsInfo[]) => {
+        const newValue = [...old]
+        newValue.push({
+          address: address,
+          date: Date.now(),
+          id: (old[old.length - 1].id + 1).toString(),
+          isMMS: false,
+          received: false,
+          text: smsmessage,
+        })
+        return newValue
+      })
+    },
+  })
+}
+
 function RouteComponent() {
   const { address } = Route.useSearch()
   const { deviceId } = Route.useParams()
@@ -48,6 +82,7 @@ function RouteComponent() {
   }, [smsChat])
 
   const [message, setMessage] = useState<string>('')
+  const { mutate: sendSms } = useSendSms(deviceId, regId2, address)
 
   if (isPending) {
     return <div>Loading...</div>
@@ -101,6 +136,7 @@ function RouteComponent() {
       </div>
       <div className="absolute fixed bottom-0 flex h-20 w-full items-center justify-center space-x-2 border-t bg-orange-200">
         {/* TODO: put this on a form and make ENTER send the message */}
+        {/* TODO: focus onMount */}
         <textarea
           className="text-md h-5/7 w-6/7 resize-none appearance-none rounded-md border bg-white px-3 py-3 leading-tight shadow focus:outline-none"
           onChange={(e) => setMessage(e.target.value)}
@@ -112,7 +148,8 @@ function RouteComponent() {
             if (message === '' || !regId2) return
 
             console.log(message)
-            window.api.smsSend(deviceId, regId2, address, message)
+            // TODO:  refetch in success? too expensive? only local network?
+            sendSms({ smsmessage: message })
             setMessage('')
           }}
         >

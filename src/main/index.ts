@@ -409,6 +409,11 @@ type SmsResponse = {
   payload: SmsInfo[]
 } & GenericResponse
 
+const responseType = {
+  push: 0,
+  file: 1,
+}
+
 async function setClipboard(regId2: string) {
   // TODO: handle local network by sending push to `${url}gcm`
   await fcm.projects.messages.send({
@@ -464,9 +469,37 @@ async function call(callnumber: string, regId2: string) {
     },
   })
 }
-async function smsSend(callnumber: string, regId2: string, text: string) {
-  // TODO: remote (loop chrome extension and function above)
-  // TODO: local network
+
+async function smsSend(deviceId: string, regId2: string, smsnumber: string, smstext: string) {
+  // TODO: handle local network by sending push to `${url}gcm`
+  await fcm.projects.messages.send({
+    auth: jwtClient,
+    parent: 'projects/join-external-gcm',
+    requestBody: {
+      message: {
+        token: regId2,
+        android: {
+          priority: 'high',
+        },
+        data: {
+          type: 'GCMPush',
+          json: JSON.stringify({
+            type: 'GCMPush',
+            push: {
+              // TODO: do I need to send the empty mms fields?
+              responseType: responseType.push,
+              smsnumber,
+              smstext,
+              requestId: 'SMS',
+              id: uuidv4(),
+              senderId: thisDeviceId,
+            },
+            senderId: thisDeviceId,
+          }),
+        },
+      },
+    },
+  })
 }
 
 async function testLocalAddress(id: string, url: string, win: BrowserWindow) {
@@ -1030,7 +1063,6 @@ function createWindow(tray: Tray) {
     logInWithGoogle(win)
   })
   m.on('call', (_, callnumber, regId2) => call(callnumber, regId2))
-  m.on('sms-send', (_, callnumber, regId2, text) => smsSend(callnumber, regId2, text))
   m.on(
     'open-remote-file',
     async (_, deviceId: string, regId: string, path: string, fileName: string) => {
@@ -1084,6 +1116,11 @@ function createWindow(tray: Tray) {
       return null
     }
   })
+  m.handle(
+    'sms-send',
+    async (_, deviceId, smsnumber, regId2, smstext) =>
+      await smsSend(deviceId, smsnumber, regId2, smstext),
+  )
 
   const showMenu = Menu.buildFromTemplate([
     {

@@ -32,8 +32,8 @@ export const api = {
   sms: (deviceId: string, regId: string) => r.invoke('sms', deviceId, regId),
   smsChat: (deviceId: string, regId: string, address: string) =>
     r.invoke('sms-chat', deviceId, regId, address),
-  smsSend: (deviceId: string, regId: string, address: string, text: string) =>
-    r.send('sms-send', deviceId, regId, address, text),
+  smsSend: (deviceId: string, regId: string, smsnumber: string, smstext: string) =>
+    r.invoke('sms-send', deviceId, regId, smsnumber, smstext),
   call: (callnumber: string, regId2: string) => r.send('call', callnumber, regId2),
 
   // TODO: add refactoring scope for this

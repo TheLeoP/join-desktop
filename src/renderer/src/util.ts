@@ -189,6 +189,7 @@ export function useContacts(deviceId: string, regId2: string | undefined) {
     staleTime: 60 * 1000,
     // TODO: allow retrying all queries
     // TODO: when using loaders, maybe make them less eager if not in local network(?
+    // TODO: check staleTime, retry, etc for all queries and maybe take into account if in local network or not
     retry: false,
     queryKey: ['contacts', deviceId, regId2 as string],
     enabled: !!regId2,
