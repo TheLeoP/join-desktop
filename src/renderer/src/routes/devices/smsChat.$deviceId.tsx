@@ -101,7 +101,6 @@ function RouteComponent() {
     </>
   )
 
-  // TODO: scroll to end of messages on open
   return (
     <div className="relative flex h-[calc(100vh-45px)] flex-col">
       <div className="mx-auto my-1 flex h-20 w-fit items-center justify-center space-x-1 rounded-md bg-orange-100 p-2">
@@ -136,8 +135,8 @@ function RouteComponent() {
       </div>
       <div className="absolute fixed bottom-0 flex h-20 w-full items-center justify-center space-x-2 border-t bg-orange-200">
         {/* TODO: put this on a form and make ENTER send the message */}
-        {/* TODO: focus onMount */}
         <textarea
+          autoFocus
           className="text-md h-5/7 w-6/7 resize-none appearance-none rounded-md border bg-white px-3 py-3 leading-tight shadow focus:outline-none"
           onChange={(e) => setMessage(e.target.value)}
           value={message}
