@@ -83,6 +83,7 @@ function RouteComponent() {
 
   const [message, setMessage] = useState<string>('')
   const { mutate: sendSms } = useSendSms(deviceId, regId2, address)
+  const form = useRef<HTMLFormElement | null>(null)
 
   if (isPending) {
     return <div>Loading...</div>
@@ -119,7 +120,7 @@ function RouteComponent() {
                 <div className="max-w-5/7">
                   <div
                     data-received={message.received ? true : undefined}
-                    className="rounded-md bg-orange-100 p-2 text-xl break-words data-received:bg-orange-200"
+                    className="rounded-md bg-orange-100 p-2 text-xl break-words whitespace-pre-line data-received:bg-orange-200"
                   >
                     {message.text}
                   </div>
@@ -133,28 +134,37 @@ function RouteComponent() {
           })}
         <div ref={endOfList}></div>
       </div>
-      <div className="absolute fixed bottom-0 flex h-20 w-full items-center justify-center space-x-2 border-t bg-orange-200">
-        {/* TODO: put this on a form and make ENTER send the message */}
+
+      <form
+        ref={form}
+        className="absolute fixed bottom-0 flex h-20 w-full items-center justify-center space-x-2 border-t bg-orange-200"
+        onSubmit={async (e) => {
+          e.preventDefault()
+          if (message === '' || !regId2) return
+
+          console.log(message)
+          // TODO:  refetch in success? too expensive? only local network?
+          sendSms({ smsmessage: message })
+          setMessage('')
+        }}
+      >
         <textarea
           autoFocus
           className="text-md h-5/7 w-6/7 resize-none appearance-none rounded-md border bg-white px-3 py-3 leading-tight shadow focus:outline-none"
           onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={(e) => {
+            if (!form.current) return
+            if (e.code !== 'Enter') return
+            if (e.ctrlKey) return setMessage((message) => message + '\n')
+            e.preventDefault()
+            form.current.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
+          }}
           value={message}
         />
-        <button
-          className="cursor-pointer rounded-full bg-white p-4 hover:fill-gray-500 active:fill-gray-700"
-          onClick={async () => {
-            if (message === '' || !regId2) return
-
-            console.log(message)
-            // TODO:  refetch in success? too expensive? only local network?
-            sendSms({ smsmessage: message })
-            setMessage('')
-          }}
-        >
+        <button className="cursor-pointer rounded-full bg-white p-4 hover:fill-gray-500 active:fill-gray-700">
           <svg.Send />
         </button>
-      </div>
+      </form>
     </div>
   )
 }
