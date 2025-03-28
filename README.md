@@ -1,6 +1,6 @@
 # join-desktop
 
-A modern Desktop Join application that works on Linux, MacOS and Linux. It doesn't requires Google Chrome to work (It only needs any browser to be installed so you can login into your Google account the first time you open the app).
+A modern Desktop [Join](https://joaoapps.com/join/) application that works on Linux, MacOS and Linux. It doesn't requires Google Chrome to work (It only needs any browser to be installed so you can login into your Google account the first time you open the app).
 
 ## Why?
 
@@ -8,11 +8,11 @@ I use Linux and recently stopped using Chrome. There was no Join extension for F
 
 ## Common Join errors fixed by this app
 
-- SMS, contacts and everything that uses a file on Google drive to send information while the remote device is not in the Local network only gets updated the first time the Join website/official Join Desktop is used. This app asks the remote device to always update those files before loading their content. This ensures that contacts/sms will always be up to date in join-desktop.
+- SMS, contacts and everything that uses a file on Google drive to send information while the remote device is not in the Local network only gets updated the first time the [Join website](https://joinjoaomgcd.appspot.com/)/official [Join Desktop](https://github.com/joaomgcd/JoinDesktop) is used. This app asks the remote device to always update those files before loading their content. This ensures that contacts/sms will always be up to date in join-desktop.
 
 ## Does it support all of Join features?
 
-No, the app is supported in an best effort basis. Most of the features have been reversed engineered from the Join website, the Join Chrome extension and the official Join Desktop app.
+No, the app is supported in an best effort basis. Most of the features have been reversed engineered from the [Join website](https://joinjoaomgcd.appspot.com/), the [Join Chrome](https://github.com/joaomgcd/JoinChrome) extension and the official [Join Desktop](https://github.com/joaomgcd/JoinDesktop) app.
 
 If there's a Join feature that the app doesn't support and you would like to use, please open an Issue with a Feature Request describing it.
 
