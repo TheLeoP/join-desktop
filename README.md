@@ -1,34 +1,40 @@
 # join-desktop
 
-An Electron application with React and TypeScript
+A modern Desktop Join application that works on Linux, MacOS and Linux. It doesn't requires Google Chrome to work (It only needs any browser to be installed so you can login into your Google account the first time you open the app).
 
-## Recommended IDE Setup
+## Why?
 
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+I use Linux and recently stopped using Chrome. There was no Join extension for Firefox and the Desktop application required Chrome to work anyway. So, I wrote my own Desktop application.
 
-## Project Setup
+## Common Join errors fixed by this app
 
-### Install
+- SMS, contacts and everything that uses a file on Google drive to send information while the remote device is not in the Local network only gets updated the first time the Join website/official Join Desktop is used. This app asks the remote device to always update those files before loading their content. This ensures that contacts/sms will always be up to date in join-desktop.
 
-```bash
-$ npm install
-```
+## Does it support all of Join features?
 
-### Development
+No, the app is supported in an best effort basis. Most of the features have been reversed engineered from the Join website, the Join Chrome extension and the official Join Desktop app.
 
-```bash
-$ npm run dev
-```
+If there's a Join feature that the app doesn't support and you would like to use, please open an Issue with a Feature Request describing it.
 
-### Build
+## Current features
 
-```bash
-# For windows
-$ npm run build:win
+- Listening on the background for Pushes from other devices:
+  - Speak (only shows a notification, it doesn't actually speak, it requires a Google API_KEY)
+  - Send and receive clipboard
+  - Open URLs (links)
+  - Location (doesn't respond to the request, it requires a Google API_KEY)
+  - Receive and clean Notifications
+  - Connect to other Join devices via Local network
+  - Status notifications from Android devices (battery low, charging, charged)
+- Media/contacts/calls/SMS/file access on remote Android devices.
 
-# For macOS
-$ npm run build:mac
+## Non implemented features
 
-# For Linux
-$ npm run build:linux
-```
+- Background clipboard sync
+- Speak and Location pushes are received but don't work as expected because of Electron limitations.
+- MMS support for messages.
+- Custom commands
+- Using remote Join settings shared by all of the other apps
+- EventGhost or Node-RED integration
+- Menu with notifications from other devices
+- Push history
