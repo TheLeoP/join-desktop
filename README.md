@@ -38,3 +38,7 @@ If there's a Join feature that the app doesn't support and you would like to use
 - EventGhost or Node-RED integration
 - Menu with notifications from other devices
 - Push history
+
+## Special thanks
+
+- [eneris/push-receiver](https://github.com/eneris/push-receiver) for creating/maintaining a library for subscribing to FCM notifications in Node.
