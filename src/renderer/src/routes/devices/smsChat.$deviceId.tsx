@@ -1,4 +1,4 @@
-import { contactsQueryOptions, queryClient, SmsInfo, useContacts, useDevices } from '@renderer/util'
+import { contactsQueryOptions, queryClient, useContacts } from '@renderer/util'
 import { queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
@@ -6,6 +6,7 @@ import { zodValidator } from '@tanstack/zod-adapter'
 import { PhotoOrChar } from '@renderer/components'
 import { useEffect, useRef, useState } from 'react'
 import * as svg from '@renderer/svgs'
+import { SmsInfo } from 'src/preload/types'
 
 const searchSchema = z.object({
   address: z.string(),

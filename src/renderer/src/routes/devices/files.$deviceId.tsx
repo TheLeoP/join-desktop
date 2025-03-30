@@ -8,18 +8,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { useDebounce } from 'use-debounce'
 import { zodValidator } from '@tanstack/zod-adapter'
 import { z } from 'zod'
-
-type File = {
-  date: number
-  isFolder: boolean
-  name: string
-  size: number //bytes
-}
-
-type FolderInfo = {
-  files: File[]
-  pathSegments: string[]
-}
+import { FolderInfo } from 'src/preload/types'
 
 const searchSchema = z.object({
   regId2: z.string(),

@@ -1,14 +1,6 @@
 import { contextBridge, ipcRenderer as r } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-
-type MediaAction = {
-  play?: boolean
-  pause?: boolean
-  back?: boolean
-  next?: boolean
-  mediaAppPackage?: string
-  mediaVolume?: string
-}
+import { DeviceInfo, MediaAction } from './types'
 
 // Custom APIs for renderer
 export const api = {
@@ -68,6 +60,16 @@ export const api = {
       r.off('on-speak', f)
     }
   },
+
+  onPopUpDevices: (cb: (devices: DeviceInfo[]) => void) => {
+    const f = (_, devices: DeviceInfo[]) => cb(devices)
+    r.on('on-pop-up-devices', f)
+    return () => {
+      r.off('on-pop-up-devices', f)
+    }
+  },
+  popUpSelected: (device: DeviceInfo) => r.send('pop-up-selected', device),
+  popUpClose: () => r.send('pop-up-close'),
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

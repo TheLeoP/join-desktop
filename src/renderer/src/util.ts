@@ -1,5 +1,6 @@
 import { QueryClient, queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { useState, useEffect, createContext, useContext } from 'react'
+import { MediaAction, MediaInfo, DeviceInfo, ContactInfo, SmsInfo, Data } from 'src/preload/types'
 
 export const queryClient = new QueryClient()
 
@@ -20,9 +21,6 @@ export const DeviceType = {
   mqtt: 14,
 } as const
 
-export type DeviceTypeKey = keyof typeof DeviceType
-export type DeviceTypeValue = (typeof DeviceType)[DeviceTypeKey]
-
 export const ReverseDeviceType = {
   1: 'android_phone',
   2: 'android_tablet',
@@ -39,52 +37,6 @@ export const ReverseDeviceType = {
   13: 'ip',
   14: 'mqtt',
 } as const
-
-export type Data<T> = {
-  success: boolean
-  userAuthError: boolean
-  records: T[]
-}
-
-export type DeviceInfo = {
-  id: string
-  regId: string
-  regId2: string
-  userAccount: string
-  deviceId: string
-  deviceName: string
-  deviceType: DeviceTypeValue
-  apiLevel: number // TODO: enum?
-  hasTasker: boolean
-}
-
-export type MediaAction = {
-  play?: boolean
-  pause?: boolean
-  back?: boolean
-  next?: boolean
-  mediaAppPackage?: string
-  mediaVolume?: string
-}
-
-export type MediaInfo = {
-  extraInfo: {
-    maxMediaVolume: number
-    mediaVolume: number
-  }
-  mediaInfosForClients: {
-    appIcon: string
-    appName: string
-    artist: string
-    date: number
-    packageName: string
-    playing: boolean
-    track: string
-
-    art?: string
-    album?: string
-  }[]
-}
 
 export function useIsLoggedIn() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -180,12 +132,6 @@ export function formatBytes(bytes: number, decimals = 2) {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 }
 
-export type ContactInfo = {
-  name: string
-  number: string
-  photo: string
-}
-
 export function contactsQueryOptions(deviceId: string, regId2: string) {
   return queryOptions<ContactInfo[], Error, ContactInfo[], readonly string[]>({
     staleTime: 60 * 1000,
@@ -202,15 +148,6 @@ export function contactsQueryOptions(deviceId: string, regId2: string) {
 }
 export function useContacts(deviceId: string, regId2: string) {
   return useQuery(contactsQueryOptions(deviceId, regId2))
-}
-
-export type SmsInfo = {
-  address: string
-  date: number
-  isMMS: boolean
-  received: boolean
-  text: string
-  id: string // it's a number on a string
 }
 
 export function smsQueryOptions(deviceId: string, regId2: string) {

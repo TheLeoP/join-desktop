@@ -6,6 +6,7 @@ import {
   clipboard,
   Notification,
   nativeImage,
+  globalShortcut,
   Tray,
   Menu,
 } from 'electron'
@@ -22,6 +23,25 @@ import { google } from 'googleapis'
 import * as https from 'node:https'
 import { v4 as uuidv4 } from 'uuid'
 import AutoLaunch from 'auto-launch'
+import {
+  Data,
+  MediaInfo,
+  FolderInfo,
+  FileInfo,
+  ContactInfo,
+  SmsInfo,
+  JoinData,
+  Push,
+  NotificationClear,
+  LocalNetworkRequest,
+  DeviceNotOnLocalNetworkRequest,
+  Status,
+  RespondFile,
+  DeviceInfo,
+  GenericResponse,
+  FoldersResponse,
+  SmsResponse,
+} from '../preload/types'
 
 const joinUrl = 'https://joinjoaomgcd.appspot.com/_ah/api'
 
@@ -90,7 +110,6 @@ const devicesTypes = {
   ip: 13,
   mqtt: 14,
 } as const
-type DeviceType = typeof devicesTypes
 
 const joinAppId = '596310809542-giumrib7hohfiftljqmj7eaio3kl21ek.apps.googleusercontent.com'
 const joinAppSecret = 'NTA9UbFpNhaIP74B_lpxGgvR'
@@ -211,90 +230,6 @@ async function registerDevice(name: string) {
 
 let credentials: Credentials | undefined
 
-type JoinData = {
-  json: string
-  type:
-    | 'GCMPush'
-    | 'GCMNotificationClear'
-    | 'GCMLocalNetworkRequest'
-    | 'GCMLocalNetworkTestRequest' // TODO: do I need to handle this?
-    | 'GCMDeviceNotOnLocalNetwork'
-    | 'GCMStatus'
-    | 'GCMRespondFile'
-    | 'GCMFolder'
-    | 'GCMFile'
-    | ''
-}
-
-type Push = {
-  push: {
-    language?: string
-    say?: string
-    title?: string
-    url?: string
-    areLocalFiles: boolean
-    back: boolean
-    clipboard?: string
-    clipboardget?: boolean
-    commandLine: boolean
-    date: number
-    deviceId: string
-    files?: string[]
-    find: boolean
-    fromTasker: boolean
-    id?: string
-    localFilesChecked: boolean
-    location: boolean
-    next: boolean
-    pause: boolean
-    play: boolean
-    playpause: boolean
-    senderId: string
-    text: string
-    toTasker: boolean
-  }
-}
-
-type NotificationClear = {
-  requestNotification: {
-    deviceIds: string[]
-    requestId: string[]
-    senderId: string[]
-    notificationId: string | undefined
-  }
-}
-
-type LocalNetworkRequest = {
-  secureServerAddress: string | undefined // https Includes trailling `/`
-  senderId: string
-  serverAddress: string | undefined // http Includes trailling `/`
-  webSocketServerAddress: string | undefined // Includes trailling `/`
-}
-
-type DeviceNotOnLocalNetworkRequest = {
-  senderId: string
-}
-
-type DeviceStatus = {
-  alarmVolume: number
-  batteryPercentage: number
-  canChangeInterruptionFilter: boolean
-  charging: boolean
-  internalStorageAvailable: number
-  internalStorageTotal: number
-  interruptionFilter: number
-  maxAlarmVolume: number
-  maxMediaVolume: number
-  maxRingVolume: number
-  mediaVolume: number
-  ringVolume: number
-}
-type Status = {
-  deviceId: string
-  request: boolean
-  status: DeviceStatus
-}
-
 const respondFileTypes = {
   screenshot: 1,
   video: 2,
@@ -304,115 +239,10 @@ const respondFileTypes = {
   // NOTE: there doesn't seem to be a type for 6 (?
   media_infos: 7,
 } as const
-type RespondFileTypes = typeof respondFileTypes
-
-type RespondFile = {
-  responseFile: {
-    description: string
-    downloadUrl: string
-    fileId: string
-    request: {
-      deviceIds: string[]
-      requestType: RespondFileTypes[keyof RespondFileTypes]
-      senderId: string
-      requestId: string
-      payload?: string
-    }
-    senderId: string
-    viewUrl: string
-    success: boolean
-    userAuthError: boolean
-  }
-}
-
-export type MediaInfo = {
-  extraInfo: {
-    maxMediaVolume: number
-    mediaVolume: number
-  }
-  mediaInfosForClients: {
-    appIcon: string
-    appName: string
-    artist: string
-    date: number
-    packageName: string
-    playing: boolean
-    track: string
-
-    art?: string
-    album?: string
-  }[]
-}
-
-type GenericResponse = {
-  success: boolean
-  userAuthError: boolean
-  errorMessage?: string
-  payload?: unknown
-}
-
-type FolderInfo = {
-  files: File[]
-  pathSegments: string[]
-}
-type FoldersResponse = {
-  payload: FolderInfo
-} & GenericResponse
-
-type File = {
-  date: number
-  isFolder: boolean
-  name: string
-  size: number // bytes
-}
-
-type FileInfo = {
-  fileName: string
-  url: string
-}
-
-type Data<T> = {
-  success: boolean
-  userAuthError: boolean
-  errorMessage?: string
-  records: T[]
-}
-
-type DeviceInfo = {
-  id: string
-  regId: string
-  regId2: string
-  userAccount: string
-  deviceId: string
-  deviceName: string
-  deviceType: DeviceType[keyof DeviceType]
-  apiLevel: number // TODO: enum?
-  hasTasker: boolean
-}
-
-type ContactInfo = {
-  name: string
-  number: string
-  photo: string
-}
-
-type SmsInfo = {
-  address: string
-  date: number
-  isMMS: boolean
-  received: boolean
-  text: string
-  id: string // it's a number on a string
-}
-
-type SmsResponse = {
-  payload: SmsInfo[]
-} & GenericResponse
-
 const responseType = {
   push: 0,
   file: 1,
-}
+} as const
 
 async function setClipboard(regId2: string) {
   // TODO: handle local network by sending push to `${url}gcm`
@@ -951,6 +781,8 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
   await instance.connect()
 }
 
+// TODO: try to use something else?
+let cachedDevicesInfo: DeviceInfo[]
 async function getDevicesInfo() {
   const token = await oauth2Client.getAccessToken()
   const res = await fetch(
@@ -967,12 +799,14 @@ async function getDevicesInfo() {
   if (!parsedRes.success) return
 
   const devicesInfo = parsedRes.records
+  cachedDevicesInfo = devicesInfo
   return devicesInfo
 }
 
 function createWindow(tray: Tray) {
   // Create the browser window.
   const win = new BrowserWindow({
+    // TODO: how does this look in windows? Start maximized instead?
     width: 900,
     height: 670,
     show: false,
@@ -1185,6 +1019,67 @@ function createWindow(tray: Tray) {
   }
 }
 
+function createPopup() {
+  // TODO: change size of screen based on number of devices?
+  const win = new BrowserWindow({
+    width: 900,
+    height: 300,
+    show: false,
+    autoHideMenuBar: true,
+    ...(process.platform === 'linux' ? { icon } : {}),
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false,
+    },
+    ...(process.platform === 'linux'
+      ? { type: 'toolbar' }
+      : process.platform === 'darwin'
+        ? { type: 'panel' }
+        : {}),
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    closable: false,
+    alwaysOnTop: true,
+    fullscreenable: false,
+    frame: false,
+    titleBarStyle: 'hidden',
+  })
+
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/popup.html`)
+  } else {
+    win.loadFile(join(__dirname, '../renderer/popup.html'))
+  }
+
+  return win
+}
+
+async function selectDevice(win: BrowserWindow) {
+  if (!cachedDevicesInfo) await getDevicesInfo()
+  win.show()
+  return new Promise<DeviceInfo>((res) => {
+    const onSelected = (_: Electron.IpcMainEvent, device: DeviceInfo) => {
+      res(device)
+      win.hide()
+      m.off('pop-up-selected', onSelected)
+      m.off('pop-up-selected', onClose)
+    }
+    m.on('pop-up-selected', onSelected)
+    const onClose = (_: Electron.IpcMainEvent) => {
+      win.hide()
+      m.off('pop-up-selected', onSelected)
+      m.off('pop-up-selected', onClose)
+    }
+    m.on('pop-up-close', onClose)
+    win.webContents.send(
+      'on-pop-up-devices',
+      cachedDevicesInfo.filter((device) => device.deviceId !== thisDeviceId),
+    )
+  })
+}
+
 async function requestContactsAndLastSmSCreation(deviceId: string, regId: string) {
   await fcm.projects.messages.send({
     auth: jwtClient,
@@ -1240,6 +1135,7 @@ async function requestSmsChatCreationOrUpdate(deviceId: string, regId: string, a
   })
 }
 
+Menu.setApplicationMenu(null)
 app.whenReady().then(() => {
   const tray = new Tray('src/renderer/src/assets/join.png')
   tray.setToolTip('Join desktop app')
@@ -1647,6 +1543,11 @@ app.whenReady().then(() => {
   })
 
   createWindow(tray)
+  const popupWin = createPopup()
+  globalShortcut.register('Super+I', async () => {
+    const device = await selectDevice(popupWin)
+    smsSend(device.deviceId, device.regId2, '+593960425713', 'hey')
+  })
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

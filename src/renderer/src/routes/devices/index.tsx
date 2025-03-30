@@ -1,10 +1,7 @@
 import * as svg from '@renderer/svgs'
 import {
-  DeviceInfo,
   devicesQueryOptions,
   DeviceType,
-  MediaAction,
-  MediaInfo,
   queryClient,
   ReverseDeviceType,
   useDeviceId,
@@ -16,6 +13,7 @@ import { queryOptions, UseMutateFunction, useQuery } from '@tanstack/react-query
 import { createFileRoute, Link } from '@tanstack/react-router'
 import debounce from 'lodash.debounce'
 import { useEffect, useRef, useState } from 'react'
+import { MediaAction, MediaInfo, DeviceInfo } from 'src/preload/types'
 
 function Volume({
   max,
