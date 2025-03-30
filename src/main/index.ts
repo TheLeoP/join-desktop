@@ -13,6 +13,10 @@ import {
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import joinIcon from '../../resources/join.png?asset'
+import batteryOkIcon from '../../resources/battery_ok.png?asset'
+import batteryChargingIcon from '../../resources/battery_charging.png?asset'
+import batteryLowIcon from '../../resources/battery_low.png?asset'
 import * as fs from 'node:fs'
 import { promises as afs } from 'node:fs'
 import * as http from 'node:http'
@@ -51,18 +55,10 @@ const persistentIdsFile = `${dataDir}/persistentIds.json`
 const tokenFile = `${dataDir}/token.json`
 const devicesFile = `${dataDir}/devices.json`
 const deviceIdFile = `${dataDir}/deviceId`
-const notificationIcon = nativeImage
-  .createFromPath('src/renderer/src/assets/join.png')
-  .resize({ width: 50 })
-const batteryOkIcon = nativeImage
-  .createFromPath('src/renderer/src/assets/battery_ok.png')
-  .resize({ width: 50 })
-const batteryChargingIcon = nativeImage
-  .createFromPath('src/renderer/src/assets/battery_charging.png')
-  .resize({ width: 50 })
-const batteryLowIcon = nativeImage
-  .createFromPath('src/renderer/src/assets/battery_low.png')
-  .resize({ width: 50 })
+const notificationImage = nativeImage.createFromPath(joinIcon).resize({ width: 50 })
+const batteryOkImage = nativeImage.createFromPath(batteryOkIcon).resize({ width: 50 })
+const batteryChargingImage = nativeImage.createFromPath(batteryChargingIcon).resize({ width: 50 })
+const batteryLowImage = nativeImage.createFromPath(batteryLowIcon).resize({ width: 50 })
 
 const notifications = new Map<string, Notification>()
 let devices: Map<string, { secureServerAddress?: string }>
@@ -541,13 +537,13 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
             clipboard.writeText(push.clipboard)
             n = new Notification({
               title: 'Clipboard set',
-              icon: notificationIcon,
+              icon: notificationImage,
             })
           } else if (push.clipboardget) {
             n = new Notification({
               title: 'Clipboard requested',
               body: push.url,
-              icon: notificationIcon,
+              icon: notificationImage,
             })
 
             const devicesInfo = await getDevicesInfo()
@@ -562,14 +558,14 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
             n = new Notification({
               title: 'Openning url',
               body: push.url,
-              icon: notificationIcon,
+              icon: notificationImage,
             })
           } else if (push.files && push.files.length > 0) {
             // TODO: maybe handle base64 images?
             n = new Notification({
               title: 'Received files',
               body: 'Openning now...',
-              icon: notificationIcon,
+              icon: notificationImage,
             })
             push.files
               .filter((file) => file.startsWith('https://'))
@@ -581,28 +577,28 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
             // see https://github.com/electron/electron/pull/22034
             n = new Notification({
               title: 'Location Requested not supported',
-              icon: notificationIcon,
+              icon: notificationImage,
             })
           } else if (push.say) {
             win.webContents.send('on-speak', push.say, push.language)
             n = new Notification({
               title: `Saying Out Loud${push.language ? ` with language ${push.language}` : ''}`,
               body: push.say,
-              icon: notificationIcon,
+              icon: notificationImage,
             })
           } else if (push.title) {
             // TODO: handle custom commands. They will be on `text` and there won't be any title
             n = new Notification({
               title: push.title,
               body: push.text,
-              icon: notificationIcon,
+              icon: notificationImage,
             })
           } else {
             // TODO: do something else?
             n = new Notification({
               title: 'Join',
               body: 'Receive push',
-              icon: notificationIcon,
+              icon: notificationImage,
             })
           }
 
@@ -664,20 +660,20 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
             n = new Notification({
               title: 'Battery charged',
               body: 'Battery at 100%',
-              icon: batteryOkIcon,
+              icon: batteryOkImage,
             })
           } else if (status.charging) {
             // TODO: only show first charging notification, ignore the next ones until the state is no longer charging
             n = new Notification({
               title: 'Battery charging',
               body: `Battery at ${status.batteryPercentage}%`,
-              icon: batteryChargingIcon,
+              icon: batteryChargingImage,
             })
           } else if (status.batteryPercentage <= 30 && !status.charging) {
             n = new Notification({
               title: 'Battery low',
               body: `Battery at ${status.batteryPercentage}%`,
-              icon: batteryLowIcon,
+              icon: batteryLowImage,
             })
           }
 
@@ -1137,7 +1133,7 @@ async function requestSmsChatCreationOrUpdate(deviceId: string, regId: string, a
 
 Menu.setApplicationMenu(null)
 app.whenReady().then(() => {
-  const tray = new Tray('src/renderer/src/assets/join.png')
+  const tray = new Tray(joinIcon)
   tray.setToolTip('Join desktop app')
 
   // Set app user model id for windows
@@ -1155,6 +1151,7 @@ app.whenReady().then(() => {
   })
   // TODO: does this throw sometimes? Before login in?
   m.handle('get-access-token', async () => (await oauth2Client.getAccessToken()).token)
+  // TODO: handle local connection failling and removing secureServerAddress if it fails
   m.handle('media', async (_, deviceId, regId) => {
     const device = devices.get(deviceId)
     if (device && device.secureServerAddress) {
