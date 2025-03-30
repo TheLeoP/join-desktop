@@ -96,7 +96,7 @@ export function PopUp() {
           key={device.id}
         >
           <img
-            src={`src/assets/${ReverseDeviceType[device.deviceType]}.png`}
+            src={`./${ReverseDeviceType[device.deviceType]}.png`}
             className="h-1/3 rounded-full bg-orange-300 p-2"
           />
           <div className="flex h-1/3 items-center space-x-1">

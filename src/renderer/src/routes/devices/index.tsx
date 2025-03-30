@@ -45,7 +45,7 @@ function Volume({
 
   return (
     <div className="flex space-x-1">
-      <img className="float-left w-5" src={`src/assets/${type}.svg`} />
+      <img className="float-left w-5" src={`./${type}.svg`} />
       <input
         className="w-2/3"
         type="range"
@@ -197,7 +197,7 @@ function Device({
   return (
     <div className="flex w-60 flex-col items-center space-y-1">
       <img
-        src={`src/assets/${ReverseDeviceType[deviceType]}.png`}
+        src={`./${ReverseDeviceType[deviceType]}.png`}
         className="max-w-40 rounded-full bg-orange-300 p-2"
       />
       <div className="flex items-center space-x-1">
