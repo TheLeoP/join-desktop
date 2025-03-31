@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { devicesOnLocalNetworkContext, ReverseDeviceType } from './util'
+import { devicesOnLocalNetworkContext, isLoggedInContext, ReverseDeviceType } from './util'
 import { type DeviceInfo } from 'src/preload/types'
 
-export function DevicesOnLocalNetworkProvider({ children }: { children: ReactNode }) {
+export function JoinProvider({ children }: { children: ReactNode }) {
   const [devicesOnLocalNetwork, setDevicesOnLocalNetwork] = useState<Record<string, boolean>>({})
   useEffect(() => {
     const removeListener = window.api.onLocalNetwork((deviceId, onLocalNetwork) => {
@@ -15,9 +15,18 @@ export function DevicesOnLocalNetworkProvider({ children }: { children: ReactNod
     return () => removeListener()
   }, [])
 
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  useEffect(() => {
+    const removeListener = window.api.onLogIn(async () => {
+      setIsLoggedIn(true)
+      await window.api.startPushReceiver()
+    })
+    return () => removeListener()
+  }, [])
+
   return (
     <devicesOnLocalNetworkContext.Provider value={devicesOnLocalNetwork}>
-      {children}
+      <isLoggedInContext.Provider value={isLoggedIn}>{children}</isLoggedInContext.Provider>
     </devicesOnLocalNetworkContext.Provider>
   )
 }

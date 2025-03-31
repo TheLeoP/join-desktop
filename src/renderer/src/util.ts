@@ -38,15 +38,9 @@ export const ReverseDeviceType = {
   14: 'mqtt',
 } as const
 
+export const isLoggedInContext = createContext<boolean>(false)
 export function useIsLoggedIn() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  useEffect(() => {
-    const removeListener = window.api.onLogIn(async () => {
-      setIsLoggedIn(true)
-      await window.api.startPushReceiver()
-    })
-    return () => removeListener()
-  }, [])
+  const isLoggedIn = useContext(isLoggedInContext)
   return isLoggedIn
 }
 
