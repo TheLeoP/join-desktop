@@ -22,11 +22,12 @@ export const api = {
     r.invoke('folders', deviceId, regId, path),
   contacts: (deviceId: string, regId: string) => r.invoke('contacts', deviceId, regId),
   sms: (deviceId: string, regId: string) => r.invoke('sms', deviceId, regId),
-  smsChat: (deviceId: string, regId: string, address: string) =>
-    r.invoke('sms-chat', deviceId, regId, address),
+  smsChat: (deviceId: string, regId2: string, address: string) =>
+    r.invoke('sms-chat', deviceId, regId2, address),
   smsSend: (deviceId: string, regId: string, smsnumber: string, smstext: string) =>
     r.invoke('sms-send', deviceId, regId, smsnumber, smstext),
-  call: (callnumber: string, regId2: string) => r.send('call', callnumber, regId2),
+  call: (callnumber: string, deviceId: string, regId2: string) =>
+    r.send('call', callnumber, deviceId, regId2),
 
   onLocalNetwork: (cb: (deviceId: string, onLocalNetwork: boolean) => void) => {
     const f = (_, deviceId: string, onLocalNetwork: boolean) => {

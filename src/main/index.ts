@@ -240,91 +240,105 @@ const responseType = {
   file: 1,
 } as const
 
-async function setClipboard(regId2: string) {
-  // TODO: handle local network by sending push to `${url}gcm`
-  await fcm.projects.messages.send({
-    auth: jwtClient,
-    parent: 'projects/join-external-gcm',
-    requestBody: {
-      message: {
-        token: regId2,
-        android: {
-          priority: 'high',
-        },
-        data: {
-          type: 'GCMPush',
-          json: JSON.stringify({
-            type: 'GCMPush',
-            push: {
-              clipboard: clipboard.readText(),
-              id: uuidv4(),
-              senderId: thisDeviceId,
-            },
-            senderId: thisDeviceId,
-          }),
+async function push(deviceId: string, regId2: string, data: Record<string, string>) {
+  const device = devices.get(deviceId)
+  if (device && device.secureServerAddress) {
+    const url = device.secureServerAddress
+    const token = await oauth2Client.getAccessToken()
+    const body = JSON.stringify(data)
+
+    const req = https.request(`${url}gcm?token=${token.token}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': body.length,
+      },
+      rejectUnauthorized: false,
+      insecureHTTPParser: true,
+    })
+    req.write(body)
+    req.end()
+    req.on('response', async (resp) => {
+      resp.setEncoding('utf8')
+      const body: string[] = []
+      resp.on('data', (data) => {
+        body.push(data)
+      })
+      resp.on('end', () => {
+        const data = body.join('')
+        const parsedData = JSON.parse(data) as GenericResponse
+        // TODO: show some kind of error?
+        if (!parsedData.success) return
+      })
+    })
+    req.on('error', async (err: NodeJS.ErrnoException) => {
+      if (err.code !== 'ECONNRESET' && err.code !== 'ECONNREFUSED') return
+      delete device.secureServerAddress
+      push(deviceId, regId2, data)
+    })
+  } else {
+    await fcm.projects.messages.send({
+      auth: jwtClient,
+      parent: 'projects/join-external-gcm',
+      requestBody: {
+        message: {
+          token: regId2,
+          android: {
+            priority: 'high',
+          },
+          data: data,
         },
       },
-    },
+    })
+  }
+}
+
+async function setClipboard(deviceId: string, regId2: string, text: string) {
+  push(deviceId, regId2, {
+    type: 'GCMPush',
+    json: JSON.stringify({
+      type: 'GCMPush',
+      push: {
+        clipboard: text,
+        id: uuidv4(),
+        senderId: thisDeviceId,
+      },
+      senderId: thisDeviceId,
+    }),
   })
 }
 
-async function call(callnumber: string, regId2: string) {
-  // TODO: handle local network by sending push to `${url}gcm`
-  await fcm.projects.messages.send({
-    auth: jwtClient,
-    parent: 'projects/join-external-gcm',
-    requestBody: {
-      message: {
-        token: regId2,
-        android: {
-          priority: 'high',
-        },
-        data: {
-          type: 'GCMPush',
-          json: JSON.stringify({
-            type: 'GCMPush',
-            push: {
-              callnumber: callnumber,
-              id: uuidv4(),
-              senderId: thisDeviceId,
-            },
-            senderId: thisDeviceId,
-          }),
-        },
+async function call(callnumber: string, deviceId: string, regId2: string) {
+  push(deviceId, regId2, {
+    type: 'GCMPush',
+    json: JSON.stringify({
+      type: 'GCMPush',
+      push: {
+        callnumber: callnumber,
+        id: uuidv4(),
+        senderId: thisDeviceId,
       },
-    },
+      senderId: thisDeviceId,
+    }),
   })
 }
 
 async function smsSend(deviceId: string, regId2: string, smsnumber: string, smstext: string) {
-  // TODO: handle local network by sending push to `${url}gcm`
-  await fcm.projects.messages.send({
-    auth: jwtClient,
-    parent: 'projects/join-external-gcm',
-    requestBody: {
-      message: {
-        token: regId2,
-        android: {
-          priority: 'high',
-        },
-        data: {
-          type: 'GCMPush',
-          json: JSON.stringify({
-            type: 'GCMPush',
-            push: {
-              // TODO: do I need to send the empty mms fields?
-              responseType: responseType.push,
-              smsnumber,
-              smstext,
-              requestId: 'SMS',
-              id: uuidv4(),
-              senderId: thisDeviceId,
-            },
-            senderId: thisDeviceId,
-          }),
-        },
+  push(deviceId, regId2, {
+    type: 'GCMPush',
+    json: JSON.stringify({
+      type: 'GCMPush',
+      push: {
+        // TODO: do I need to send the empty mms fields?
+        responseType: responseType.push,
+        smsnumber,
+        smstext,
+        requestId: 'SMS',
+        id: uuidv4(),
+        senderId: thisDeviceId,
       },
-    },
+      senderId: thisDeviceId,
+    }),
   })
 }
 
@@ -552,7 +566,7 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
             const receiver = devicesInfo.find((device) => device.deviceId === push.senderId)
             if (!receiver) return
 
-            setClipboard(receiver.regId2)
+            setClipboard(receiver.deviceId, receiver.regId2, clipboard.readText())
           } else if (push.url) {
             shell.openExternal(push.url)
             n = new Notification({
@@ -892,7 +906,7 @@ function createWindow(tray: Tray) {
   m.on('log-in-with-google', () => {
     logInWithGoogle(win)
   })
-  m.on('call', (_, callnumber, regId2) => call(callnumber, regId2))
+  m.on('call', (_, callnumber, deviceId, regId2) => call(callnumber, deviceId, regId2))
   m.on(
     'open-remote-file',
     async (_, deviceId: string, regId: string, path: string, fileName: string) => {
@@ -1077,12 +1091,43 @@ async function selectDevice(win: BrowserWindow) {
 }
 
 async function requestContactsAndLastSmSCreation(deviceId: string, regId: string) {
+  push(deviceId, regId, {
+    type: 'GCMRequestFile',
+    json: JSON.stringify({
+      type: 'GCMRequestFile',
+      requestFile: {
+        requestType: respondFileTypes.sms_threads,
+        senderId: thisDeviceId,
+        deviceIds: [deviceId],
+      },
+      senderId: thisDeviceId,
+    }),
+  })
+}
+
+async function requestSmsChatCreationOrUpdate(deviceId: string, regId2: string, address: string) {
+  push(deviceId, regId2, {
+    type: 'GCMRequestFile',
+    json: JSON.stringify({
+      type: 'GCMRequestFile',
+      requestFile: {
+        requestType: respondFileTypes.sms_conversation,
+        payload: address,
+        senderId: thisDeviceId,
+        deviceIds: [deviceId],
+      },
+      senderId: thisDeviceId,
+    }),
+  })
+}
+
+async function getMediaInfoNonLocal(deviceId: string, regId2: string) {
   await fcm.projects.messages.send({
     auth: jwtClient,
     parent: 'projects/join-external-gcm',
     requestBody: {
       message: {
-        token: regId,
+        token: regId2,
         android: {
           priority: 'high',
         },
@@ -1091,7 +1136,7 @@ async function requestContactsAndLastSmSCreation(deviceId: string, regId: string
           json: JSON.stringify({
             type: 'GCMRequestFile',
             requestFile: {
-              requestType: respondFileTypes.sms_threads,
+              requestType: respondFileTypes.media_infos,
               senderId: thisDeviceId,
               deviceIds: [deviceId],
             },
@@ -1101,31 +1146,32 @@ async function requestContactsAndLastSmSCreation(deviceId: string, regId: string
       },
     },
   })
+
+  return await new Promise((res, rej) => {
+    const mediaRequest = mediaRequests.get(deviceId)
+    if (mediaRequest) mediaRequest(null)
+
+    mediaRequests.set(deviceId, (mediaInfo) => {
+      res(mediaInfo)
+    })
+    setTimeout(() => {
+      mediaRequests.delete(deviceId)
+      rej(new Error('Media request timed out'))
+    }, 30 * 1000)
+  })
 }
 
-async function requestSmsChatCreationOrUpdate(deviceId: string, regId: string, address: string) {
+async function mediaActionNonLocal(regId2: string, data: Record<string, string>) {
   await fcm.projects.messages.send({
     auth: jwtClient,
     parent: 'projects/join-external-gcm',
     requestBody: {
       message: {
-        token: regId,
+        token: regId2,
         android: {
           priority: 'high',
         },
-        data: {
-          type: 'GCMRequestFile',
-          json: JSON.stringify({
-            type: 'GCMRequestFile',
-            requestFile: {
-              requestType: respondFileTypes.sms_conversation,
-              payload: address,
-              senderId: thisDeviceId,
-              deviceIds: [deviceId],
-            },
-            senderId: thisDeviceId,
-          }),
-        },
+        data: data,
       },
     },
   })
@@ -1150,9 +1196,10 @@ app.whenReady().then(() => {
     return registerDevice(name)
   })
   // TODO: does this throw sometimes? Before login in?
+
   m.handle('get-access-token', async () => (await oauth2Client.getAccessToken()).token)
   // TODO: handle local connection failling and removing secureServerAddress if it fails
-  m.handle('media', async (_, deviceId, regId) => {
+  m.handle('media', async (_, deviceId, regId2) => {
     const device = devices.get(deviceId)
     if (device && device.secureServerAddress) {
       const url = device.secureServerAddress
@@ -1177,48 +1224,15 @@ app.whenReady().then(() => {
             res(mediaInfo)
           })
         })
-        req.on('error', (err) => {
-          rej(err)
+        req.on('error', async (err: NodeJS.ErrnoException) => {
+          if (err.code !== 'ECONNRESET' && err.code !== 'ECONNREFUSED') return rej(err)
+          delete device.secureServerAddress
+          const mediaInfo = await getMediaInfoNonLocal(deviceId, regId2)
+          res(mediaInfo)
         })
       })
     } else {
-      await fcm.projects.messages.send({
-        auth: jwtClient,
-        parent: 'projects/join-external-gcm',
-        requestBody: {
-          message: {
-            token: regId,
-            android: {
-              priority: 'high',
-            },
-            data: {
-              type: 'GCMRequestFile',
-              json: JSON.stringify({
-                type: 'GCMRequestFile',
-                requestFile: {
-                  requestType: respondFileTypes.media_infos,
-                  senderId: thisDeviceId,
-                  deviceIds: [deviceId],
-                },
-                senderId: thisDeviceId,
-              }),
-            },
-          },
-        },
-      })
-
-      return await new Promise((res, rej) => {
-        const mediaRequest = mediaRequests.get(deviceId)
-        if (mediaRequest) mediaRequest(null)
-
-        mediaRequests.set(deviceId, (mediaInfo) => {
-          res(mediaInfo)
-        })
-        setTimeout(() => {
-          mediaRequests.delete(deviceId)
-          rej(new Error('Media request timed out'))
-        }, 30 * 1000)
-      })
+      return await getMediaInfoNonLocal(deviceId, regId2)
     }
   })
   m.handle('folders', async (_, deviceId, regId, path) => {
@@ -1251,7 +1265,13 @@ app.whenReady().then(() => {
             res(foldersInfo)
           })
         })
-        req.on('error', (err) => {
+        req.on('error', (err: NodeJS.ErrnoException) => {
+          if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED')
+            delete device.secureServerAddress
+          // NOTE: don't request folders remotely if local fails because it may
+          // return so many items that the service will only be receiving
+          // folder related pushes for a while
+          // TODO: disable remote folders on frontend unless on local network? give some kind of warning?
           rej(err)
         })
       })
@@ -1294,7 +1314,7 @@ app.whenReady().then(() => {
       })
     }
   })
-  m.handle('media-action', async (_, deviceId, regId, action) => {
+  m.handle('media-action', async (_, deviceId, regId2, action) => {
     const device = devices.get(deviceId)
     const data = {
       type: 'GCMPush',
@@ -1332,30 +1352,20 @@ app.whenReady().then(() => {
           })
           resp.on('end', () => {
             const data = body.join('')
-            const mediaInfo = JSON.parse(data) as GenericResponse
-            if (!mediaInfo.success) return rej(mediaInfo.errorMessage)
+            const parsedData = JSON.parse(data) as GenericResponse
+            if (!parsedData.success) return rej(parsedData.errorMessage)
 
             res()
           })
         })
-        req.on('error', (err) => {
-          rej(err)
+        req.on('error', (err: NodeJS.ErrnoException) => {
+          if (err.code !== 'ECONNRESET' && err.code !== 'ECONNREFUSED') return rej(err)
+          delete device.secureServerAddress
+          mediaActionNonLocal(regId2, data)
         })
       })
     } else {
-      await fcm.projects.messages.send({
-        auth: jwtClient,
-        parent: 'projects/join-external-gcm',
-        requestBody: {
-          message: {
-            token: regId,
-            android: {
-              priority: 'high',
-            },
-            data: data,
-          },
-        },
-      })
+      mediaActionNonLocal(regId2, data)
     }
   })
   m.handle('contacts', async (_, deviceId, regId) => {
@@ -1480,7 +1490,7 @@ app.whenReady().then(() => {
       }
     }
   })
-  m.handle('sms-chat', async (_, deviceId: string, regId: string, address: string) => {
+  m.handle('sms-chat', async (_, deviceId: string, regId2: string, address: string) => {
     const device = devices.get(deviceId)
     if (device && device.secureServerAddress) {
       const url = device.secureServerAddress
@@ -1519,7 +1529,7 @@ app.whenReady().then(() => {
       // Drive is updated or not and the Join app doesn't seem to update it
       // unless it's request to do so. So, we always ask it to update the file
       // before using it
-      await requestSmsChatCreationOrUpdate(deviceId, regId, address)
+      await requestSmsChatCreationOrUpdate(deviceId, regId2, address)
 
       return await new Promise((res, rej) => {
         const request = smsChatRequests.get(deviceId)
@@ -1543,7 +1553,7 @@ app.whenReady().then(() => {
   const popupWin = createPopup()
   globalShortcut.register('Super+I', async () => {
     const device = await selectDevice(popupWin)
-    smsSend(device.deviceId, device.regId2, '+593960425713', 'hey')
+    setClipboard(device.deviceId, device.regId2, 'hey')
   })
 
   app.on('activate', function () {
