@@ -16,7 +16,9 @@ function LogIn() {
         <div className="flex grow flex-col items-center justify-center">
           <button
             className="flex cursor-pointer items-center justify-center space-x-2 rounded-md bg-orange-200 p-4 hover:bg-orange-300 active:bg-orange-400"
-            onClick={window.api.logInWithGoogle}
+            onClick={() => {
+              window.api.logInWithGoogle()
+            }}
           >
             <Google className="w-10" />
             <p className="text-4xl">Log in with Google</p>
