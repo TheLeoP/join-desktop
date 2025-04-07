@@ -1,9 +1,9 @@
-import { Folder } from '@renderer/svgs'
+import * as svg from '@renderer/svgs'
 import { formatBytes, queryClient, useOnLocalNetwork } from '@renderer/util'
 import { queryOptions, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, CSSProperties, useLayoutEffect } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useDebounce } from 'use-debounce'
 import { zodValidator } from '@tanstack/zod-adapter'
@@ -44,12 +44,14 @@ function Directory({
   path,
   active,
   i,
+  style,
 }: {
   deviceId: string
   regId2: string
   path: string
   active: boolean
   i: number
+  style: CSSProperties
 }) {
   const setPaths = useSetAtom(pathsAtom)
   const setCurrentFile = useSetAtom(currentFileAtom)
@@ -133,11 +135,10 @@ function Directory({
     }
   }, [active, current, deviceId, foldersInfo, onLocalNetwork, path, regId2, setCurrent])
 
-  const parentRef = useRef(null)
+  const scrollElement = useRef<HTMLDivElement | null>(null)
   const rowVirtualizer = useVirtualizer({
     count: foldersInfo?.files.length ?? 0,
-    getScrollElement: () => parentRef.current,
-    // TODO: make items bigger when they have long text
+    getScrollElement: () => scrollElement.current,
     estimateSize: () => 55,
   })
   const items = rowVirtualizer.getVirtualItems()
@@ -148,16 +149,17 @@ function Directory({
   if (!path) {
     return <></>
   } else if (isPending) {
-    return <div>Loading...</div>
+    return <div style={style}>Loading...</div>
   } else if (isError) {
-    return <div>Error: {error.message}</div>
+    return <div style={style}>Error: {error.message}</div>
   }
 
   return (
     <div
       data-active={active ? 'active' : undefined}
-      className="w-1/4 overflow-y-auto data-active:bg-yellow-200 data-active:p-1"
-      ref={parentRef}
+      className="overflow-y-auto data-active:bg-yellow-200 data-active:p-1"
+      ref={scrollElement}
+      style={style}
     >
       <div style={{ position: 'relative', height: rowVirtualizer.getTotalSize() }}>
         {items.map((virtualItem) => {
@@ -177,7 +179,8 @@ function Directory({
               }}
             >
               <div className="flex items-center text-xl">
-                {item.isFolder && <Folder />}
+                {/* TODO: fixed size for icon */}
+                {item.isFolder && <svg.Folder />}
                 {item.name}
               </div>
               {!item.isFolder && formatBytes(item.size)}
@@ -262,24 +265,61 @@ function RouteComponent() {
     }
   }, [paths, setPaths])
 
-  // TODO: use Virtualizer to vertically virtuallize up to 3 directories
-  return (
-    <div className="flex h-[calc(100vh-45px)]">
-      {debouncedPaths.map((_, i, paths) => {
-        let path = `${paths.slice(0, i + 1).join('/')}`
-        if (path === '') path = '/'
+  const [dirsWidth, setDirsWidth] = useState(0)
+  const scrollElement = useRef<HTMLDivElement | null>(null)
+  const dirVirtualizer = useVirtualizer({
+    count: debouncedPaths.length,
+    getScrollElement: () => scrollElement.current,
+    estimateSize: () => dirsWidth / 3,
+    horizontal: true,
+  })
+  const virtualCols = dirVirtualizer.getVirtualItems()
+  useEffect(() => {
+    dirVirtualizer.scrollToIndex(currentDir, { align: 'center' })
+  }, [currentDir, dirVirtualizer, debouncedPaths])
+  useLayoutEffect(() => {
+    if (!scrollElement.current) return
 
-        return (
-          <Directory
-            key={i}
-            deviceId={deviceId}
-            regId2={regId2}
-            path={path}
-            active={currentDir === i}
-            i={i}
-          />
-        )
-      })}
+    const { width } = scrollElement.current.getBoundingClientRect()
+    setDirsWidth(width)
+  }, [])
+
+  return (
+    <div className="flex h-[calc(100vh-45px)] w-full">
+      <div className="h-full w-3/4 overflow-x-auto" ref={scrollElement}>
+        <div
+          style={{
+            height: '100%',
+            width: dirVirtualizer.getTotalSize(),
+            position: 'relative',
+          }}
+        >
+          {virtualCols.map((virtualCol) => {
+            const i = virtualCol.index
+            let path = `${debouncedPaths.slice(0, i + 1).join('/')}`
+            if (path === '') path = '/'
+
+            return (
+              <Directory
+                key={i}
+                deviceId={deviceId}
+                regId2={regId2}
+                path={path}
+                active={currentDir === i}
+                i={i}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  height: '100%',
+                  width: `${virtualCol.size}px`,
+                  transform: `translateX(${virtualCol.start}px)`,
+                }}
+              />
+            )
+          })}
+        </div>
+      </div>
       {/* TODO: support more kind of previews? */}
       {/* TODO: there are some bugs with previews not being removed when changing from image to previous directory */}
       <div className="w-1/4">{debouncedPreview && <img src={debouncedPreview} />}</div>
