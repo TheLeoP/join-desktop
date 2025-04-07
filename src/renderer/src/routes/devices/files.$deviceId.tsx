@@ -277,10 +277,16 @@ function RouteComponent() {
     dirVirtualizer.scrollToIndex(currentDir, { align: 'center' })
   }, [currentDir, dirVirtualizer, debouncedPaths])
   useLayoutEffect(() => {
-    if (!scrollElement.current) return
+    const f = () => {
+      if (!scrollElement.current) return
 
-    const { width } = scrollElement.current.getBoundingClientRect()
-    setDirsWidth(width)
+      const { width } = scrollElement.current.getBoundingClientRect()
+      setDirsWidth(width)
+      dirVirtualizer.measure()
+    }
+    f()
+    window.addEventListener('resize', f)
+    return () => window.removeEventListener('resize', f)
   }, [])
 
   return (
