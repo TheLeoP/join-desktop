@@ -11,12 +11,13 @@ import { z } from 'zod'
 
 const searchSchema = z.object({
   regId2: z.string(),
+  deviceId: z.string(),
 })
 
-export const Route = createFileRoute('/devices/sms/$deviceId')({
+export const Route = createFileRoute('/devices/sms')({
   component: RouteComponent,
-  loaderDeps: ({ search: { regId2 } }) => ({ regId2 }),
-  loader: async ({ params: { deviceId }, deps: { regId2 } }) => {
+  loaderDeps: ({ search: { regId2, deviceId } }) => ({ regId2, deviceId }),
+  loader: async ({ deps: { regId2, deviceId } }) => {
     queryClient.ensureQueryData(contactsQueryOptions(deviceId, regId2))
     queryClient.ensureQueryData(smsQueryOptions(deviceId, regId2))
   },
@@ -24,8 +25,7 @@ export const Route = createFileRoute('/devices/sms/$deviceId')({
 })
 
 function RouteComponent() {
-  const { deviceId } = Route.useParams()
-  const { regId2 } = Route.useSearch()
+  const { regId2, deviceId } = Route.useSearch()
 
   const { data: sms, isPending, isError, error } = useSms(deviceId, regId2)
   const {
@@ -52,11 +52,10 @@ function RouteComponent() {
           const contact = contacts.find((contact) => contact.number === sms.address)
 
           return (
-            // TODO: use more search params instead of path params? pass regId2 as a search param
             <Link
-              to="/devices/smsChat/$deviceId"
-              from="/devices/sms/$deviceId"
-              search={{ address: sms.address, regId2 }}
+              to="/devices/smsChat"
+              from="/devices/sms"
+              search={{ address: sms.address, regId2, deviceId }}
               key={sms.id}
               className="h-20 w-[calc(20%-4px)] items-center space-x-1 truncate bg-orange-100"
             >

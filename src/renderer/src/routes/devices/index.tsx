@@ -231,9 +231,8 @@ function Device({
             Contacts
           </Link>
           <Link
-            to="/devices/sms/$deviceId"
-            params={{ deviceId }}
-            search={{ regId2 }}
+            to="/devices/sms"
+            search={{ regId2, deviceId }}
             from="/devices"
             className="w-full bg-orange-100 text-center text-xl"
           >

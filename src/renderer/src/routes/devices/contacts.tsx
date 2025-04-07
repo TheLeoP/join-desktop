@@ -7,20 +7,20 @@ import { z } from 'zod'
 
 const searchSchema = z.object({
   regId2: z.string(),
+  deviceId: z.string(),
 })
 
-export const Route = createFileRoute('/devices/contacts/$deviceId')({
+export const Route = createFileRoute('/devices/contacts')({
   component: RouteComponent,
-  loaderDeps: ({ search: { regId2 } }) => ({ regId2 }),
-  loader: async ({ params: { deviceId }, deps: { regId2 } }) => {
+  loaderDeps: ({ search: { regId2, deviceId } }) => ({ regId2, deviceId }),
+  loader: async ({ deps: { regId2, deviceId } }) => {
     queryClient.ensureQueryData(contactsQueryOptions(deviceId, regId2))
   },
   validateSearch: zodValidator(searchSchema),
 })
 
 function RouteComponent() {
-  const { deviceId } = Route.useParams()
-  const { regId2 } = Route.useSearch()
+  const { regId2, deviceId } = Route.useSearch()
 
   const { data: contacts, isPending, isError, error } = useContacts(deviceId, regId2)
 

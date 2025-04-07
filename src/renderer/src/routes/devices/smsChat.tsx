@@ -11,12 +11,13 @@ import { SmsInfo } from 'src/preload/types'
 const searchSchema = z.object({
   address: z.string(),
   regId2: z.string(),
+  deviceId: z.string(),
 })
 
-export const Route = createFileRoute('/devices/smsChat/$deviceId')({
+export const Route = createFileRoute('/devices/smsChat')({
   component: RouteComponent,
-  loaderDeps: ({ search: { address, regId2 } }) => ({ address, regId2 }),
-  loader: async ({ params: { deviceId }, deps: { address, regId2 } }) => {
+  loaderDeps: ({ search: { address, regId2, deviceId } }) => ({ address, regId2, deviceId }),
+  loader: async ({ deps: { address, regId2, deviceId } }) => {
     queryClient.ensureQueryData(smsChatOptions(deviceId, regId2, address))
     await queryClient.ensureQueryData(contactsQueryOptions(deviceId, regId2))
   },
@@ -74,8 +75,7 @@ function useSendSms(deviceId: string, regId2: string, address: string) {
 }
 
 function RouteComponent() {
-  const { address, regId2 } = Route.useSearch()
-  const { deviceId } = Route.useParams()
+  const { address, regId2, deviceId } = Route.useSearch()
 
   const { data: smsChat, isPending, isError, error } = useSmsChat(deviceId, regId2, address)
   const {

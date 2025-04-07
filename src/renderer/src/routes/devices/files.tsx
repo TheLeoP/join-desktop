@@ -12,12 +12,13 @@ import { FolderInfo } from 'src/preload/types'
 
 const searchSchema = z.object({
   regId2: z.string(),
+  deviceId: z.string(),
 })
 
-export const Route = createFileRoute('/devices/files/$deviceId')({
+export const Route = createFileRoute('/devices/files')({
   component: RouteComponent,
-  loaderDeps: ({ search: { regId2 } }) => ({ regId2 }),
-  loader: async ({ params: { deviceId }, deps: { regId2 } }) => {
+  loaderDeps: ({ search: { regId2, deviceId } }) => ({ regId2, deviceId }),
+  loader: async ({ deps: { regId2, deviceId } }) => {
     queryClient.ensureQueryData(remotePathQueryOptions(deviceId, regId2, '/'))
   },
   validateSearch: zodValidator(searchSchema),
@@ -195,8 +196,7 @@ const pathsAtom = atom([''])
 const currentFileAtom = atom<null | string>(null)
 
 function RouteComponent() {
-  const { deviceId } = Route.useParams()
-  const { regId2 } = Route.useSearch()
+  const { regId2, deviceId } = Route.useSearch()
 
   const [paths, setPaths] = useAtom(pathsAtom)
   const [debouncedPaths] = useDebounce(paths, 250)
