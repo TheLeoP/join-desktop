@@ -307,6 +307,20 @@ async function setClipboard(deviceId: string, regId2: string, text: string) {
     }),
   })
 }
+async function getClipboard(deviceId: string, regId2: string) {
+  push(deviceId, regId2, {
+    type: 'GCMPush',
+    json: JSON.stringify({
+      type: 'GCMPush',
+      push: {
+        clipboardget: true,
+        id: uuidv4(),
+        senderId: thisDeviceId,
+      },
+      senderId: thisDeviceId,
+    }),
+  })
+}
 
 async function call(callnumber: string, deviceId: string, regId2: string) {
   push(deviceId, regId2, {
@@ -1177,6 +1191,17 @@ async function mediaActionNonLocal(regId2: string, data: Record<string, string>)
   })
 }
 
+const actions: Record<string, (popupWin: BrowserWindow) => Promise<void>> = {
+  copy: async (popupWin: BrowserWindow) => {
+    const device = await selectDevice(popupWin)
+    getClipboard(device.deviceId, device.regId2)
+  },
+  paste: async (popupWin: BrowserWindow) => {
+    const device = await selectDevice(popupWin)
+    setClipboard(device.deviceId, device.regId2, clipboard.readText())
+  },
+}
+
 Menu.setApplicationMenu(null)
 app.whenReady().then(() => {
   const tray = new Tray(joinIcon)
@@ -1551,9 +1576,11 @@ app.whenReady().then(() => {
 
   createWindow(tray)
   const popupWin = createPopup()
-  globalShortcut.register('Super+I', async () => {
-    const device = await selectDevice(popupWin)
-    setClipboard(device.deviceId, device.regId2, 'hey')
+  globalShortcut.register('Super+CommandOrControl+C', async () => {
+    await actions.copy(popupWin)
+  })
+  globalShortcut.register('Super+CommandOrControl+V', async () => {
+    await actions.paste(popupWin)
   })
 
   app.on('activate', function () {
