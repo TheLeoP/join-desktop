@@ -168,7 +168,7 @@ function Directory({
             <div
               key={virtualItem.key}
               data-active={virtualItem.index === current ? 'active' : undefined}
-              className="truncate border-b bg-orange-300 data-active:bg-orange-400"
+              className="border-b bg-orange-300 data-active:bg-orange-400"
               style={{
                 position: 'absolute',
                 top: 0,
@@ -179,9 +179,8 @@ function Directory({
               }}
             >
               <div className="flex items-center text-xl">
-                {/* TODO: fixed size for icon */}
                 {item.isFolder && <svg.Folder />}
-                {item.name}
+                <span className="truncate">{item.name}</span>
               </div>
               {!item.isFolder && formatBytes(item.size)}
             </div>
