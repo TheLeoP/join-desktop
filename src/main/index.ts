@@ -358,6 +358,21 @@ async function smsSend(deviceId: string, regId2: string, smsnumber: string, smst
   })
 }
 
+async function openUrl(deviceId: string, regId2: string, url: string) {
+  push(deviceId, regId2, {
+    type: 'GCMPush',
+    json: JSON.stringify({
+      type: 'GCMPush',
+      push: {
+        url,
+        id: uuidv4(),
+        senderId: thisDeviceId,
+      },
+      senderId: thisDeviceId,
+    }),
+  })
+}
+
 async function testLocalAddress(id: string, url: string, win: BrowserWindow) {
   const body = JSON.stringify({
     type: 'GCMLocalNetworkTest',
@@ -1224,6 +1239,10 @@ const actions: Record<string, (popupWin: BrowserWindow) => Promise<void>> = {
   paste: async (popupWin: BrowserWindow) => {
     const device = await selectDevice(popupWin)
     setClipboard(device.deviceId, device.regId2, clipboard.readText())
+  },
+  openUrl: async (popupWin: BrowserWindow) => {
+    const device = await selectDevice(popupWin)
+    openUrl(device.deviceId, device.regId2, clipboard.readText())
   },
   call: async (popupWin: BrowserWindow) => {
     const device = await selectDevice(
