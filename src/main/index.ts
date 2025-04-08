@@ -561,10 +561,16 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
       switch (data.type) {
         case 'GCMPush': {
           const push = (content as Push).push
-          if (push.clipboard) {
+          if (push.clipboard && push.clipboard !== 'Clipboard not set') {
             clipboard.writeText(push.clipboard)
             n = new Notification({
               title: 'Clipboard set',
+              icon: notificationImage,
+            })
+          } else if (push.clipboard && push.clipboard === 'Clipboard not set') {
+            n = new Notification({
+              title: "Device's clipboard is empty",
+              body: `From ${cachedDevicesInfo.find((device) => device.deviceId === push.senderId)?.deviceName}`,
               icon: notificationImage,
             })
           } else if (push.clipboardget) {
