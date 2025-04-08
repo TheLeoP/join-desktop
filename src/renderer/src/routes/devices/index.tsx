@@ -213,18 +213,16 @@ function Device({
       {(deviceType === DeviceType.android_phone || deviceType === DeviceType.android_tablet) && (
         <div className="flex w-full flex-col space-y-1">
           <Link
-            to="/devices/files/$deviceId"
-            params={{ deviceId }}
-            search={{ regId2 }}
+            to="/devices/files"
+            search={{ regId2, deviceId }}
             from="/devices"
             className="w-full bg-orange-100 text-center text-xl"
           >
             Files
           </Link>
           <Link
-            to="/devices/contacts/$deviceId"
-            params={{ deviceId }}
-            search={{ regId2 }}
+            to="/devices/contacts"
+            search={{ regId2, deviceId }}
             from="/devices"
             className="w-full bg-orange-100 text-center text-xl"
           >
