@@ -47,7 +47,7 @@ function RouteComponent() {
             onClick={() => {
               if (!regId2) return
 
-              window.api.call(contact.number, deviceId, regId2)
+              window.api.call(deviceId, regId2, contact.number)
             }}
           >
             <svg.Phone className="h-15 w-15" />

@@ -26,8 +26,8 @@ export const api = {
     r.invoke('sms-chat', deviceId, regId2, address),
   smsSend: (deviceId: string, regId: string, smsnumber: string, smstext: string) =>
     r.invoke('sms-send', deviceId, regId, smsnumber, smstext),
-  call: (callnumber: string, deviceId: string, regId2: string) =>
-    r.send('call', callnumber, deviceId, regId2),
+  call: (deviceId: string, regId2: string, callnumber: string) =>
+    r.send('call', deviceId, regId2, callnumber),
   actions: () => r.invoke('actions') as Promise<string[]>,
   shortcutsSave: (shortcuts: Map<string, string>) => r.invoke('shortcuts-save', shortcuts),
 

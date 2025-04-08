@@ -1,7 +1,6 @@
 import { useShortcuts } from '@renderer/util'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
 
 export const Route = createFileRoute('/shortcuts')({
   component: RouteComponent,

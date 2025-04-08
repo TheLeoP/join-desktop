@@ -324,7 +324,7 @@ async function getClipboard(deviceId: string, regId2: string) {
   })
 }
 
-async function call(callnumber: string, deviceId: string, regId2: string) {
+async function call(deviceId: string, regId2: string, callnumber: string) {
   push(deviceId, regId2, {
     type: 'GCMPush',
     json: JSON.stringify({
@@ -928,7 +928,7 @@ function createWindow(tray: Tray) {
   m.on('log-in-with-google', () => {
     logInWithGoogle(win)
   })
-  m.on('call', (_, callnumber, deviceId, regId2) => call(callnumber, deviceId, regId2))
+  m.on('call', (_, callnumber, deviceId, regId2) => call(deviceId, regId2, callnumber))
   m.on(
     'open-remote-file',
     async (_, deviceId: string, regId: string, path: string, fileName: string) => {
@@ -1101,7 +1101,10 @@ function createPopup() {
   return win
 }
 
-async function selectDevice(win: BrowserWindow) {
+async function selectDevice(
+  win: BrowserWindow,
+  predicate?: (device: DeviceInfo, index: number, array: DeviceInfo[]) => boolean,
+) {
   if (!cachedDevicesInfo) await getDevicesInfo()
   win.show()
   return new Promise<DeviceInfo>((res) => {
@@ -1118,10 +1121,10 @@ async function selectDevice(win: BrowserWindow) {
       m.off('pop-up-selected', onClose)
     }
     m.on('pop-up-close', onClose)
-    win.webContents.send(
-      'on-pop-up-devices',
-      cachedDevicesInfo.filter((device) => device.deviceId !== thisDeviceId),
-    )
+
+    let filteredDevices = cachedDevicesInfo.filter((device) => device.deviceId !== thisDeviceId)
+    if (predicate) filteredDevices = filteredDevices.filter(predicate)
+    win.webContents.send('on-pop-up-devices', filteredDevices)
   })
 }
 
@@ -1221,6 +1224,15 @@ const actions: Record<string, (popupWin: BrowserWindow) => Promise<void>> = {
   paste: async (popupWin: BrowserWindow) => {
     const device = await selectDevice(popupWin)
     setClipboard(device.deviceId, device.regId2, clipboard.readText())
+  },
+  call: async (popupWin: BrowserWindow) => {
+    const device = await selectDevice(
+      popupWin,
+      (device) =>
+        device.deviceType === devicesTypes.android_phone ||
+        device.deviceType === devicesTypes.android_tablet,
+    )
+    call(device.deviceId, device.regId2, clipboard.readText())
   },
 } as const
 type Actions = typeof actions
