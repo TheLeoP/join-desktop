@@ -44,6 +44,17 @@ export function useIsLoggedIn() {
   return isLoggedIn
 }
 
+export const shortcutsContext = createContext<
+  [Map<string, string>, React.Dispatch<React.SetStateAction<Map<string, string>>>] | null
+>(null)
+export function useShortcuts() {
+  const shortcuts = useContext(shortcutsContext)
+  if (shortcuts === null) {
+    throw new Error('shortcuts context is null')
+  }
+  return shortcuts
+}
+
 export function useDeviceId() {
   const [deviceId, setDeviceId] = useState<string | null>(null)
   useEffect(() => {

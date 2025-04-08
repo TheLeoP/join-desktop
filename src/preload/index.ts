@@ -28,6 +28,8 @@ export const api = {
     r.invoke('sms-send', deviceId, regId, smsnumber, smstext),
   call: (callnumber: string, deviceId: string, regId2: string) =>
     r.send('call', callnumber, deviceId, regId2),
+  actions: () => r.invoke('actions') as Promise<string[]>,
+  shortcutsSave: (shortcuts: Map<string, string>) => r.invoke('shortcuts-save', shortcuts),
 
   onLocalNetwork: (cb: (deviceId: string, onLocalNetwork: boolean) => void) => {
     const f = (_, deviceId: string, onLocalNetwork: boolean) => {
@@ -59,6 +61,13 @@ export const api = {
     r.on('on-speak', f)
     return () => {
       r.off('on-speak', f)
+    }
+  },
+  onShortcuts: (cb: (shortcuts: Map<string, string>) => void) => {
+    const f = (_, shortcuts: Map<string, string>) => cb(shortcuts)
+    r.on('on-shortcuts', f)
+    return () => {
+      r.off('on-shortcuts', f)
     }
   },
 

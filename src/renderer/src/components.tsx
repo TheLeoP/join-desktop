@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { devicesOnLocalNetworkContext, isLoggedInContext, ReverseDeviceType } from './util'
+import {
+  devicesOnLocalNetworkContext,
+  isLoggedInContext,
+  ReverseDeviceType,
+  shortcutsContext,
+} from './util'
 import { type DeviceInfo } from 'src/preload/types'
 
 export function JoinProvider({ children }: { children: ReactNode }) {
@@ -24,9 +29,22 @@ export function JoinProvider({ children }: { children: ReactNode }) {
     return () => removeListener()
   }, [])
 
+  const [shortcuts, setShortcuts] = useState<Map<string, string>>(new Map())
+  useEffect(() => {
+    const removeListener = window.api.onShortcuts(async (newShortcuts) => {
+      setShortcuts(newShortcuts)
+      await window.api.startPushReceiver()
+    })
+    return () => removeListener()
+  }, [])
+
   return (
     <devicesOnLocalNetworkContext.Provider value={devicesOnLocalNetwork}>
-      <isLoggedInContext.Provider value={isLoggedIn}>{children}</isLoggedInContext.Provider>
+      <isLoggedInContext.Provider value={isLoggedIn}>
+        <shortcutsContext.Provider value={[shortcuts, setShortcuts]}>
+          {children}
+        </shortcutsContext.Provider>
+      </isLoggedInContext.Provider>
     </devicesOnLocalNetworkContext.Provider>
   )
 }

@@ -11,6 +11,7 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as ShortcutsImport } from './routes/shortcuts'
 import { Route as LoginImport } from './routes/login'
 import { Route as IndexImport } from './routes/index'
 import { Route as DevicesIndexImport } from './routes/devices/index'
@@ -20,6 +21,12 @@ import { Route as DevicesFilesImport } from './routes/devices/files'
 import { Route as DevicesContactsImport } from './routes/devices/contacts'
 
 // Create/Update Routes
+
+const ShortcutsRoute = ShortcutsImport.update({
+  id: '/shortcuts',
+  path: '/shortcuts',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const LoginRoute = LoginImport.update({
   id: '/login',
@@ -81,6 +88,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginImport
       parentRoute: typeof rootRoute
     }
+    '/shortcuts': {
+      id: '/shortcuts'
+      path: '/shortcuts'
+      fullPath: '/shortcuts'
+      preLoaderRoute: typeof ShortcutsImport
+      parentRoute: typeof rootRoute
+    }
     '/devices/contacts': {
       id: '/devices/contacts'
       path: '/devices/contacts'
@@ -124,6 +138,7 @@ declare module '@tanstack/react-router' {
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/shortcuts': typeof ShortcutsRoute
   '/devices/contacts': typeof DevicesContactsRoute
   '/devices/files': typeof DevicesFilesRoute
   '/devices/sms': typeof DevicesSmsRoute
@@ -134,6 +149,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/shortcuts': typeof ShortcutsRoute
   '/devices/contacts': typeof DevicesContactsRoute
   '/devices/files': typeof DevicesFilesRoute
   '/devices/sms': typeof DevicesSmsRoute
@@ -145,6 +161,7 @@ export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/shortcuts': typeof ShortcutsRoute
   '/devices/contacts': typeof DevicesContactsRoute
   '/devices/files': typeof DevicesFilesRoute
   '/devices/sms': typeof DevicesSmsRoute
@@ -157,6 +174,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/shortcuts'
     | '/devices/contacts'
     | '/devices/files'
     | '/devices/sms'
@@ -166,6 +184,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/shortcuts'
     | '/devices/contacts'
     | '/devices/files'
     | '/devices/sms'
@@ -175,6 +194,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/login'
+    | '/shortcuts'
     | '/devices/contacts'
     | '/devices/files'
     | '/devices/sms'
@@ -186,6 +206,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  ShortcutsRoute: typeof ShortcutsRoute
   DevicesContactsRoute: typeof DevicesContactsRoute
   DevicesFilesRoute: typeof DevicesFilesRoute
   DevicesSmsRoute: typeof DevicesSmsRoute
@@ -196,6 +217,7 @@ export interface RootRouteChildren {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  ShortcutsRoute: ShortcutsRoute,
   DevicesContactsRoute: DevicesContactsRoute,
   DevicesFilesRoute: DevicesFilesRoute,
   DevicesSmsRoute: DevicesSmsRoute,
@@ -215,6 +237,7 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/login",
+        "/shortcuts",
         "/devices/contacts",
         "/devices/files",
         "/devices/sms",
@@ -227,6 +250,9 @@ export const routeTree = rootRoute
     },
     "/login": {
       "filePath": "login.tsx"
+    },
+    "/shortcuts": {
+      "filePath": "shortcuts.tsx"
     },
     "/devices/contacts": {
       "filePath": "devices/contacts.tsx"

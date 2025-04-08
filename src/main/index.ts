@@ -55,6 +55,7 @@ const persistentIdsFile = `${dataDir}/persistentIds.json`
 const tokenFile = `${dataDir}/token.json`
 const devicesFile = `${dataDir}/devices.json`
 const deviceIdFile = `${dataDir}/deviceId`
+const shortcutsFile = `${dataDir}/shortcuts.json`
 const notificationImage = nativeImage.createFromPath(joinIcon).resize({ width: 50 })
 const batteryOkImage = nativeImage.createFromPath(batteryOkIcon).resize({ width: 50 })
 const batteryChargingImage = nativeImage.createFromPath(batteryChargingIcon).resize({ width: 50 })
@@ -62,6 +63,7 @@ const batteryLowImage = nativeImage.createFromPath(batteryLowIcon).resize({ widt
 
 const notifications = new Map<string, Notification>()
 let devices: Map<string, { secureServerAddress?: string }>
+let shortcuts: Map<string, keyof Actions>
 
 const mediaRequests = new Map<string, (mediaInfo: MediaInfo | null) => void>()
 const folderRequests = new Map<string, (folderInfo: FolderInfo | null) => void>()
@@ -1033,6 +1035,19 @@ function createWindow(tray: Tray) {
     } catch {
       devices = new Map()
     }
+    popupWin = createPopup()
+    try {
+      const content = await afs.readFile(shortcutsFile, 'utf-8')
+      shortcuts = JSON.parse(content, mapReviver)
+      shortcuts.forEach((action, accelerator) => {
+        globalShortcut.register(accelerator, async () => {
+          await actions[action](popupWin)
+        })
+      })
+    } catch {
+      shortcuts = new Map()
+    }
+    win.webContents.send('on-shortcuts', shortcuts)
   })
 
   win.webContents.setWindowOpenHandler((details) => {
@@ -1197,6 +1212,7 @@ async function mediaActionNonLocal(regId2: string, data: Record<string, string>)
   })
 }
 
+let popupWin: BrowserWindow
 const actions: Record<string, (popupWin: BrowserWindow) => Promise<void>> = {
   copy: async (popupWin: BrowserWindow) => {
     const device = await selectDevice(popupWin)
@@ -1206,7 +1222,8 @@ const actions: Record<string, (popupWin: BrowserWindow) => Promise<void>> = {
     const device = await selectDevice(popupWin)
     setClipboard(device.deviceId, device.regId2, clipboard.readText())
   },
-}
+} as const
+type Actions = typeof actions
 
 Menu.setApplicationMenu(null)
 app.whenReady().then(() => {
@@ -1579,15 +1596,21 @@ app.whenReady().then(() => {
       })
     }
   })
+  m.handle('actions', () => {
+    return Object.keys(actions)
+  })
+  m.handle('shortcuts-save', async (_, newShortcuts: Map<string, keyof Actions>) => {
+    shortcuts = newShortcuts
+    await afs.writeFile(shortcutsFile, JSON.stringify(shortcuts, mapReplacer), 'utf-8')
+    globalShortcut.unregisterAll()
+    shortcuts.forEach((action, accelerator) => {
+      globalShortcut.register(accelerator, async () => {
+        await actions[action](popupWin)
+      })
+    })
+  })
 
   createWindow(tray)
-  const popupWin = createPopup()
-  globalShortcut.register('Super+CommandOrControl+C', async () => {
-    await actions.copy(popupWin)
-  })
-  globalShortcut.register('Super+CommandOrControl+V', async () => {
-    await actions.paste(popupWin)
-  })
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

@@ -28,10 +28,17 @@ function Root() {
 
   return (
     <>
+      {/* TODO: do not show this page before login */}
       <div className="flex gap-2 p-2">
-        {/* TODO: show all buttons and a selector for avilable devices */}
+        {/* TODO: maybe show all buttons and a selector for avilable devices */}
+        {/* TODO: or maybe move subroutes of devices out of it to avoid bolding it */}
+
+        {/* TODO: some kind of back button (? */}
         <Link to="/devices" className="text-xl [&.active]:font-bold">
           Devices
+        </Link>
+        <Link to="/shortcuts" className="text-xl [&.active]:font-bold">
+          Shortcuts
         </Link>
       </div>
       <hr />
