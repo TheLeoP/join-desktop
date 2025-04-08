@@ -272,14 +272,13 @@ function Devices() {
 export const Route = createFileRoute('/devices/')({
   component: Devices,
   loader: async () => {
-    const devices = await queryClient.ensureQueryData(devicesQueryOptions)
-    Promise.all(
-      devices.records.map(async (device) => {
+    queryClient.ensureQueryData(devicesQueryOptions).then((devices) => {
+      devices.records.forEach(async (device) => {
         const deviceType = device.deviceType
         if (deviceType !== DeviceType.android_phone && deviceType !== DeviceType.android_tablet)
           return
         await queryClient.ensureQueryData(mediaQueryOptions(device.deviceId, device.regId2))
-      }),
-    )
+      })
+    })
   },
 })
