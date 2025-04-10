@@ -68,7 +68,7 @@ function Directory({
       setPaths((oldPath) => {
         const newPaths = [...oldPath]
         if (newPaths.length > i + 1) {
-          newPaths.pop()
+          newPaths.splice(i + 1, 1)
         }
         return newPaths
       })
@@ -81,6 +81,7 @@ function Directory({
       newPaths[i + 1] = item.name
       return newPaths
     })
+    setCurrentFile(null)
   }, [current, foldersInfo, i, active, setPaths, setCurrentFile])
 
   const onLocalNetwork = useOnLocalNetwork(deviceId)
@@ -88,10 +89,10 @@ function Directory({
   useEffect(() => {
     const f = async (e: KeyboardEvent) => {
       if (!active) return
+      e.preventDefault()
 
       const code = e.code
       if (code !== 'ArrowUp' && code !== 'ArrowDown' && code !== 'Enter') return
-      e.preventDefault()
       switch (code) {
         case 'ArrowUp': {
           setCurrent((current) => {
@@ -200,8 +201,9 @@ function RouteComponent() {
 
   const [paths, setPaths] = useAtom(pathsAtom)
   const [debouncedPaths] = useDebounce(paths, 250)
-  const currentFile = useAtomValue(currentFileAtom)
-  const previewPath = currentFile ? `/${paths.join('/')}/${currentFile}` : undefined
+  const [currentFile, setCurrentFile] = useAtom(currentFileAtom)
+  let previewPath = currentFile ? `${paths.join('/')}/${currentFile}` : undefined
+  if (previewPath === '') previewPath = '/'
   const [preview, setPreview] = useState<string | null>(null)
   const [debouncedPreview] = useDebounce(preview, 250)
 
@@ -225,9 +227,11 @@ function RouteComponent() {
   const [currentDir, setCurrentDir] = useState(0)
   useEffect(() => {
     const f = (e: KeyboardEvent) => {
+      e.preventDefault()
+
       const code = e.code
       if (code !== 'ArrowLeft' && code !== 'ArrowRight') return
-      e.preventDefault()
+      setCurrentFile(null)
       switch (code) {
         case 'ArrowLeft': {
           setCurrentDir((current) => {
@@ -326,7 +330,6 @@ function RouteComponent() {
         </div>
       </div>
       {/* TODO: support more kind of previews? */}
-      {/* TODO: there are some bugs with previews not being removed when changing from image to previous directory */}
       <div className="w-1/4">{debouncedPreview && <img src={debouncedPreview} />}</div>
     </div>
   )
