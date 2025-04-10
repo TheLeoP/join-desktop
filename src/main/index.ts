@@ -444,6 +444,36 @@ async function sendFile(deviceId: string, regId2: string, path: string) {
   })
 }
 
+async function ring(deviceId: string, regId2: string) {
+  push(deviceId, regId2, {
+    type: 'GCMPush',
+    json: JSON.stringify({
+      type: 'GCMPush',
+      push: {
+        find: true,
+        id: uuidv4(),
+        senderId: thisDeviceId,
+      },
+      senderId: thisDeviceId,
+    }),
+  })
+}
+
+async function locate(deviceId: string, regId2: string) {
+  push(deviceId, regId2, {
+    type: 'GCMPush',
+    json: JSON.stringify({
+      type: 'GCMPush',
+      push: {
+        location: true,
+        id: uuidv4(),
+        senderId: thisDeviceId,
+      },
+      senderId: thisDeviceId,
+    }),
+  })
+}
+
 async function testLocalAddress(id: string, url: string, win: BrowserWindow) {
   const body = JSON.stringify({
     type: 'GCMLocalNetworkTest',
@@ -1388,6 +1418,14 @@ const actions: Record<string, (popupWin: BrowserWindow) => Promise<void>> = {
     if (selected.canceled) return
 
     selected.filePaths.forEach((path) => sendFile(device.deviceId, device.regId2, path))
+  },
+  ring: async (popupWin: BrowserWindow) => {
+    const device = await selectDevice(popupWin)
+    ring(device.deviceId, device.regId2)
+  },
+  locate: async (popupWin: BrowserWindow) => {
+    const device = await selectDevice(popupWin)
+    locate(device.deviceId, device.regId2)
   },
 } as const
 type Actions = typeof actions
