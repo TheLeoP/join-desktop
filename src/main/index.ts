@@ -845,12 +845,9 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
               icon: batteryOkImage,
             })
           } else if (status.charging) {
-            // TODO: only show first charging notification, ignore the next ones until the state is no longer charging
-            n = new Notification({
-              title: 'Battery charging',
-              body: `Battery at ${status.batteryPercentage}%`,
-              icon: batteryChargingImage,
-            })
+            // do nothing on purpose, there's no need to notify a user that
+            // starting charging their device, that their device is being
+            // charged
           } else if (status.batteryPercentage <= 30 && !status.charging) {
             n = new Notification({
               title: 'Battery low',
