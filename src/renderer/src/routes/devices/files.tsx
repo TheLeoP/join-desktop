@@ -197,6 +197,7 @@ const pathsAtom = atom([''])
 const currentFileAtom = atom<null | string>(null)
 
 function RouteComponent() {
+  // TODO: sometimes, when changing window (and query data is stale?) only the first directoy column in render and it's not the selected one
   const { regId2, deviceId } = Route.useSearch()
 
   const [paths, setPaths] = useAtom(pathsAtom)

@@ -272,9 +272,13 @@ async function push(deviceId: string, regId2: string, data: Record<string, strin
       })
       resp.on('end', () => {
         const data = body.join('')
-        const parsedData = JSON.parse(data) as GenericResponse
-        // TODO: show some kind of error?
-        if (!parsedData.success) return
+        try {
+          const parsedData = JSON.parse(data) as GenericResponse
+          // TODO: show some kind of error?
+          if (!parsedData.success) return
+        } catch (e) {
+          // TODO: show some kind of error? x2
+        }
       })
     })
     req.on('error', async (err: NodeJS.ErrnoException) => {
@@ -409,11 +413,15 @@ async function sendFile(deviceId: string, regId2: string, path: string) {
         })
         resp.on('end', () => {
           const data = body.join('')
-          const parsedData = JSON.parse(data) as GenericResponse
-          if (!parsedData.success) return rej(parsedData.errorMessage)
-          const info = parsedData.payload as { path: string }[]
-          const file = info[0]
-          res(file.path)
+          try {
+            const parsedData = JSON.parse(data) as GenericResponse
+            if (!parsedData.success) return rej(parsedData.errorMessage)
+            const info = parsedData.payload as { path: string }[]
+            const file = info[0]
+            res(file.path)
+          } catch (e) {
+            rej(e)
+          }
         })
       })
       req.on('error', (err) => {
@@ -523,6 +531,7 @@ async function testLocalAddress(id: string, url: string, win: BrowserWindow) {
   })
 }
 
+// TODO: I should  handle the errors from this functions outside of them?
 async function getContactsNonLocal(deviceId: string) {
   const contactsFileName = `contacts=:=${deviceId}`
   const response = await drive.files.list({
@@ -668,7 +677,14 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
     fs.readFile(persistentIdsFile, 'utf-8', (err, content) => {
       if (err && err.code == 'ENOENT') return res([])
       else if (err) rej(err)
-      else res(JSON.parse(content))
+      else {
+        try {
+          res(JSON.parse(content))
+        } catch (e) {
+          // TODO: some kind of error message
+          res([])
+        }
+      }
     })
   })
 
@@ -730,7 +746,14 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
       })
     } else if (rawData && rawData.json && typeof rawData.json === 'string') {
       const data = rawData as JoinData
-      const content = JSON.parse(data.json)
+
+      let content: unknown
+      try {
+        content = JSON.parse(data.json)
+      } catch (e) {
+        // TODO: some kind of error message
+        return
+      }
 
       // TODO: support reading settings and modyfing behaviour accordingly?
       let n: Notification | undefined
@@ -911,7 +934,13 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
 
               // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
               const text = await file.text()
-              const mediaInfo = JSON.parse(text) as MediaInfo
+              let mediaInfo: MediaInfo
+              try {
+                mediaInfo = JSON.parse(text) as MediaInfo
+              } catch (e) {
+                // TODO: some kind of error message
+                return
+              }
               response.request.deviceIds.forEach((deviceId) => {
                 const mediaRequest = mediaRequests.get(deviceId)
                 if (!mediaRequest) return
@@ -1196,10 +1225,9 @@ function createWindow(tray: Tray) {
   win.on('show', () => tray.setContextMenu(hideMenu))
 
   win.on('ready-to-show', async () => {
-    // TODO: hide by default
+    // TODO: hide by default and make it configurable
     win.show()
 
-    // TODO: can there be a race condition in here? Should I wait for an event after the website is shown?
     try {
       const content = await afs.readFile(credentialsFile, 'utf-8')
       credentials = JSON.parse(content)
@@ -1485,7 +1513,12 @@ app.whenReady().then(() => {
           })
           resp.on('end', () => {
             const data = body.join('')
-            const parsedData = JSON.parse(data) as GenericResponse
+            let parsedData: GenericResponse
+            try {
+              parsedData = JSON.parse(data) as GenericResponse
+            } catch (e) {
+              return rej(e)
+            }
             if (!parsedData.success) return rej(parsedData.errorMessage)
             const mediaInfo = parsedData.payload as MediaInfo
             res(mediaInfo)
@@ -1525,7 +1558,12 @@ app.whenReady().then(() => {
           })
           resp.on('end', () => {
             const data = body.join('')
-            const parsedData = JSON.parse(data) as FoldersResponse
+            let parsedData: FoldersResponse
+            try {
+              parsedData = JSON.parse(data) as FoldersResponse
+            } catch (e) {
+              return rej(e)
+            }
             if (!parsedData.success) return rej(parsedData.errorMessage)
 
             const foldersInfo = parsedData.payload
@@ -1619,7 +1657,12 @@ app.whenReady().then(() => {
           })
           resp.on('end', () => {
             const data = body.join('')
-            const parsedData = JSON.parse(data) as GenericResponse
+            let parsedData: GenericResponse
+            try {
+              parsedData = JSON.parse(data) as GenericResponse
+            } catch (e) {
+              return rej(e)
+            }
             if (!parsedData.success) return rej(parsedData.errorMessage)
 
             res()
@@ -1658,7 +1701,12 @@ app.whenReady().then(() => {
           })
           resp.on('end', () => {
             const data = body.join('')
-            const parsedData = JSON.parse(data) as GenericResponse
+            let parsedData: GenericResponse
+            try {
+              parsedData = JSON.parse(data) as GenericResponse
+            } catch (e) {
+              return rej(e)
+            }
             if (!parsedData.success) return rej(parsedData.errorMessage)
 
             const contactsInfo = parsedData.payload as ContactInfo[]
@@ -1719,7 +1767,12 @@ app.whenReady().then(() => {
           })
           resp.on('end', () => {
             const data = body.join('')
-            const parsedData = JSON.parse(data) as SmsResponse
+            let parsedData: SmsResponse
+            try {
+              parsedData = JSON.parse(data) as SmsResponse
+            } catch (e) {
+              return rej(e)
+            }
             if (!parsedData.success) return rej(parsedData.errorMessage)
 
             const smsInfo = parsedData.payload
@@ -1780,7 +1833,12 @@ app.whenReady().then(() => {
           })
           resp.on('end', () => {
             const data = body.join('')
-            const parsedData = JSON.parse(data) as SmsResponse
+            let parsedData: SmsResponse
+            try {
+              parsedData = JSON.parse(data) as SmsResponse
+            } catch (e) {
+              return rej(e)
+            }
             if (!parsedData.success) return rej(parsedData.errorMessage)
 
             const smsInfo = parsedData.payload
