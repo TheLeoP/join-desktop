@@ -94,11 +94,11 @@ export function PopUp() {
   useEffect(() => {
     const f = (e: KeyboardEvent) => {
       const code = e.code
+      if (code === 'KeyQ' || code === 'Escape') return window.api.popUpClose()
+
       const matches = code.match(/^Key(.*)$/)
       if (!matches) return
       const key = matches[1].toLowerCase()
-
-      if (key === 'q') return window.api.popUpClose()
 
       const i = safeKeys.indexOf(key)
       if (i === -1) return
