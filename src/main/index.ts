@@ -9,7 +9,9 @@ import {
   globalShortcut,
   Tray,
   Menu,
+  dialog,
 } from 'electron'
+import mime from 'mime'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -46,6 +48,7 @@ import {
   FoldersResponse,
   SmsResponse,
 } from '../preload/types'
+import { basename } from 'node:path'
 
 const joinUrl = 'https://joinjoaomgcd.appspot.com/_ah/api'
 
@@ -163,7 +166,7 @@ async function logInWithGoogle(win: BrowserWindow) {
     'openid',
     'https://www.googleapis.com/auth/userinfo.email',
     'https://www.googleapis.com/auth/userinfo.profile',
-    'https://www.googleapis.com/auth/drive.readonly',
+    'https://www.googleapis.com/auth/drive.file',
   ]
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
@@ -373,6 +376,74 @@ async function openUrl(deviceId: string, regId2: string, url: string) {
   })
 }
 
+async function sendFile(deviceId: string, regId2: string, path: string) {
+  const filename = basename(path)
+  const mimeType = mime.getType(path) ?? 'application/octet-stream'
+
+  let fileUri: string
+  const device = devices.get(deviceId)
+  if (device && device.secureServerAddress) {
+    const url = device.secureServerAddress
+    const token = await oauth2Client.getAccessToken()
+    const content = await afs.readFile(path)
+    const req = https.request(`${url}files`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': mimeType,
+        'Content-Length': content.length,
+        'Content-Disposition': `filename*=UTF-8''${encodeURIComponent(filename)}`,
+        Authorization: `Bearer ${token.token}`,
+      },
+      rejectUnauthorized: false,
+      insecureHTTPParser: true,
+    })
+    req.write(content)
+    req.end()
+    fileUri = await new Promise<string>((res, rej) => {
+      req.on('response', (resp) => {
+        resp.setEncoding('utf8')
+        const body: string[] = []
+        resp.on('data', (data) => {
+          body.push(data)
+        })
+        resp.on('end', () => {
+          const data = body.join('')
+          const parsedData = JSON.parse(data) as GenericResponse
+          if (!parsedData.success) return rej(parsedData.errorMessage)
+          const info = parsedData.payload as { path: string }[]
+          const file = info[0]
+          res(file.path)
+        })
+      })
+      req.on('error', (err) => {
+        rej(err)
+      })
+    })
+  } else {
+    const body = fs.createReadStream(path)
+    fileUri = await UploadFileNonLocal(filename, mimeType, body)
+  }
+
+  new Notification({
+    title: `File ${filename} uploaded`,
+    body: `Available at ${fileUri}`,
+    // TODO: use a file-esque icon(?
+    icon: notificationImage,
+  }).show()
+  push(deviceId, regId2, {
+    type: 'GCMPush',
+    json: JSON.stringify({
+      type: 'GCMPush',
+      push: {
+        files: [fileUri],
+        id: uuidv4(),
+        senderId: thisDeviceId,
+      },
+      senderId: thisDeviceId,
+    }),
+  })
+}
+
 async function testLocalAddress(id: string, url: string, win: BrowserWindow) {
   const body = JSON.stringify({
     type: 'GCMLocalNetworkTest',
@@ -429,7 +500,6 @@ async function getContactsNonLocal(deviceId: string) {
   const files = response.data.files
   if (!files) throw new Error(`No files with the name ${contactsFileName}`)
 
-  // TODO: is this correct? This is what the join app does
   const fileInfo = files[0]
   if (!fileInfo) throw new Error(`No files with the name ${contactsFileName}`)
   if (!fileInfo.id)
@@ -456,7 +526,6 @@ async function getSmsThreadsNonLocal(deviceId: string) {
   const files = response.data.files
   if (!files) throw new Error(`No files with the name ${smssFileName}`)
 
-  // TODO: is this correct? This is what the join app does
   const fileInfo = files[0]
   if (!fileInfo) throw new Error(`No files with the name ${smssFileName}`)
   if (!fileInfo.id)
@@ -483,7 +552,6 @@ async function getSmsChatsNonLocal(deviceId: string, address: string) {
   const files = response.data.files
   if (!files) throw new Error(`No files with the name ${smssFileName}`)
 
-  // TODO: is this correct? This is what the join app does
   const fileInfo = files[0]
   if (!fileInfo) throw new Error(`No files with the name ${smssFileName}`)
   if (!fileInfo.id)
@@ -500,6 +568,66 @@ async function getSmsChatsNonLocal(deviceId: string, address: string) {
   const text = await file.text()
   const smssChatInfo = JSON.parse(text) as { number: string; smses: SmsInfo[] }
   return smssChatInfo.smses
+}
+
+const dirMime = 'application/vnd.google-apps.folder'
+async function UploadFileNonLocal(filename: string, mimeType: string, body: fs.ReadStream) {
+  const joinDirName = 'Join files'
+  const joinDir = await drive.files.list({
+    q: `name = '${joinDirName}' and trashed = false and mimeType = '${dirMime}'`,
+  })
+  const joinDirFiles = joinDir.data.files
+  // TODO: create directory if it doesn't already exist
+  if (!joinDirFiles) throw new Error(`No directories with the name ${joinDirName}`)
+
+  const joinDirInfo = joinDirFiles[0]
+  if (!joinDirInfo) throw new Error(`No directories with the name ${joinDirName}`)
+  if (!joinDirInfo.id)
+    throw new Error(`${joinDirName} directory does not have an id on Google Drive`)
+
+  if (!cachedDevicesInfo) await getDevicesInfo()
+
+  const thisDeviceName = cachedDevicesInfo.find(
+    (device) => device.deviceId === thisDeviceId,
+  )?.deviceName
+  if (!thisDeviceName) throw new Error(`There is no device with id ${thisDeviceId} in cache`)
+  const deviceDirName = `from ${thisDeviceName}`
+  const deviceDir = await drive.files.list({
+    q: `name = '${deviceDirName}' and trashed = false and mimeType = '${dirMime}' and '${joinDirInfo.id}' in parents`,
+  })
+
+  const deviceDirFiles = deviceDir.data.files
+  if (!deviceDirFiles) throw new Error(`No directories with the name ${deviceDirName}`)
+
+  let deviceDirInfo = deviceDirFiles[0]
+  if (!deviceDirInfo) {
+    const deviceDirCreate = await drive.files.create({
+      requestBody: {
+        name: deviceDirName,
+        parents: [joinDirInfo.id],
+        mimeType: dirMime,
+      },
+      fields: 'id',
+    })
+    deviceDirInfo = deviceDirCreate.data
+  }
+  if (!deviceDirInfo.id)
+    throw new Error(`${deviceDirName} directory does not have an id on Google Drive`)
+
+  // TODO: check if file exists first?
+  const file = await drive.files.create({
+    requestBody: {
+      name: filename,
+      parents: [deviceDirInfo.id],
+    },
+    media: {
+      mimeType,
+      body,
+    },
+    fields: 'id',
+  })
+
+  return `https://www.googleapis.com/drive/v3/files/${file.data.id}/download`
 }
 
 const multiNotifications = new Map<string, string[]>()
@@ -578,6 +706,7 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
       switch (data.type) {
         case 'GCMPush': {
           const push = (content as Push).push
+          // TODO: handle commands (they have text and some other field (command/args/arguments/options or something similar))
           if (push.clipboard && push.clipboard !== 'Clipboard not set') {
             clipboard.writeText(push.clipboard)
             n = new Notification({
@@ -585,9 +714,11 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
               icon: notificationImage,
             })
           } else if (push.clipboard && push.clipboard === 'Clipboard not set') {
+            const deviceName = cachedDevicesInfo.find(
+              (device) => device.deviceId === push.senderId,
+            )?.deviceName
             n = new Notification({
-              title: "Device's clipboard is empty",
-              body: `From ${cachedDevicesInfo.find((device) => device.deviceId === push.senderId)?.deviceName}`,
+              title: `${deviceName}'s clipboard is empty`,
               icon: notificationImage,
             })
           } else if (push.clipboardget) {
@@ -890,7 +1021,6 @@ function createWindow(tray: Tray) {
             const files = response.data.files
             if (!files) return
 
-            // TODO: is this correct? This is what the join app does
             const fileInfo = files[0]
             if (!fileInfo || !fileInfo.id) return
 
@@ -946,7 +1076,7 @@ function createWindow(tray: Tray) {
   m.on('call', (_, callnumber, deviceId, regId2) => call(deviceId, regId2, callnumber))
   m.on(
     'open-remote-file',
-    async (_, deviceId: string, regId: string, path: string, fileName: string) => {
+    async (_, deviceId: string, regId2: string, path: string, fileName: string) => {
       const device = devices.get(deviceId)
       if (device && device.secureServerAddress) {
         const url = device.secureServerAddress
@@ -958,7 +1088,7 @@ function createWindow(tray: Tray) {
           parent: 'projects/join-external-gcm',
           requestBody: {
             message: {
-              token: regId,
+              token: regId2,
               android: {
                 priority: 'high',
               },
@@ -1143,8 +1273,8 @@ async function selectDevice(
   })
 }
 
-async function requestContactsAndLastSmSCreation(deviceId: string, regId: string) {
-  push(deviceId, regId, {
+async function requestContactsAndLastSmSCreation(deviceId: string, regId2: string) {
+  push(deviceId, regId2, {
     type: 'GCMRequestFile',
     json: JSON.stringify({
       type: 'GCMRequestFile',
@@ -1253,6 +1383,15 @@ const actions: Record<string, (popupWin: BrowserWindow) => Promise<void>> = {
     )
     call(device.deviceId, device.regId2, clipboard.readText())
   },
+  sendFile: async (popupWin: BrowserWindow) => {
+    const device = await selectDevice(popupWin)
+    const selected = await dialog.showOpenDialog(popupWin, {
+      properties: ['openFile', 'multiSelections', 'showHiddenFiles', 'dontAddToRecent'],
+    })
+    if (selected.canceled) return
+
+    selected.filePaths.forEach((path) => sendFile(device.deviceId, device.regId2, path))
+  },
 } as const
 type Actions = typeof actions
 
@@ -1314,7 +1453,7 @@ app.whenReady().then(() => {
       return await getMediaInfoNonLocal(deviceId, regId2)
     }
   })
-  m.handle('folders', async (_, deviceId, regId, path) => {
+  m.handle('folders', async (_, deviceId, regId2, path) => {
     const device = devices.get(deviceId)
     if (device && device.secureServerAddress) {
       const url = device.secureServerAddress
@@ -1360,7 +1499,7 @@ app.whenReady().then(() => {
         parent: 'projects/join-external-gcm',
         requestBody: {
           message: {
-            token: regId,
+            token: regId2,
             android: {
               priority: 'high',
             },
@@ -1447,7 +1586,7 @@ app.whenReady().then(() => {
       mediaActionNonLocal(regId2, data)
     }
   })
-  m.handle('contacts', async (_, deviceId, regId) => {
+  m.handle('contacts', async (_, deviceId, regId2) => {
     const device = devices.get(deviceId)
     if (device && device.secureServerAddress) {
       const url = device.secureServerAddress
@@ -1488,7 +1627,7 @@ app.whenReady().then(() => {
         const contactsInfo = await getContactsNonLocal(deviceId)
         return contactsInfo
       } catch (e) {
-        await requestContactsAndLastSmSCreation(deviceId, regId)
+        await requestContactsAndLastSmSCreation(deviceId, regId2)
 
         return await new Promise((res, rej) => {
           const request = contactRequests.get(deviceId)
@@ -1508,7 +1647,7 @@ app.whenReady().then(() => {
       }
     }
   })
-  m.handle('sms', async (_, deviceId, regId) => {
+  m.handle('sms', async (_, deviceId, regId2) => {
     const device = devices.get(deviceId)
     if (device && device.secureServerAddress) {
       const url = device.secureServerAddress
@@ -1549,7 +1688,7 @@ app.whenReady().then(() => {
         const smsThreadsInfo = await getSmsThreadsNonLocal(deviceId)
         return smsThreadsInfo
       } catch (e) {
-        await requestContactsAndLastSmSCreation(deviceId, regId)
+        await requestContactsAndLastSmSCreation(deviceId, regId2)
 
         return await new Promise((res, rej) => {
           const request = smsThreadRequests.get(deviceId)

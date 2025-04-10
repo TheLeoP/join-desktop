@@ -7,6 +7,13 @@ import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
+    build: {
+      rollupOptions: {
+        output: {
+          format: 'es',
+        },
+      },
+    },
   },
   preload: {
     plugins: [externalizeDepsPlugin()],

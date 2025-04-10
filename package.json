@@ -2,7 +2,7 @@
   "name": "join-desktop",
   "version": "1.0.0",
   "description": "An Electron application with React and TypeScript",
-  "main": "./out/main/index.js",
+  "main": "./out/main/index.mjs",
   "author": "example.com",
   "homepage": "https://electron-vite.org",
   "scripts": {
@@ -34,6 +34,7 @@
     "googleapis": "^146.0.0",
     "jotai": "^2.12.2",
     "lodash.debounce": "^4.0.8",
+    "mime": "^4.0.7",
     "tailwindcss": "^4.0.14",
     "use-debounce": "^10.0.4",
     "uuid": "^11.1.0",
