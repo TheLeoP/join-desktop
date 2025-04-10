@@ -110,7 +110,7 @@ export type JoinData = {
     | 'GCMRespondFile'
     | 'GCMFolder'
     | 'GCMFile'
-    | ''
+    | 'GCMLocation'
 }
 
 type Push = {
@@ -276,3 +276,10 @@ export type SmsInfo = {
 export type SmsResponse = {
   payload: SmsInfo[]
 } & GenericResponse
+
+export type LocationInfo = {
+  accuracy: number
+  forTasker: boolean
+  latitude: number
+  longitude: number
+}

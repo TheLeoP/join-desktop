@@ -105,6 +105,7 @@ function RouteComponent() {
           className="cursor-pointer rounded-md bg-orange-200 p-4 text-2xl hover:bg-orange-300 active:bg-orange-400"
           onClick={(e) => {
             e.preventDefault()
+            // TODO: this only allows me to add one new shortcut at a time
             setShortcuts((shortcuts) => new Map(shortcuts.set('', '')))
           }}
         >

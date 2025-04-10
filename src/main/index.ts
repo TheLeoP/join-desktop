@@ -47,6 +47,7 @@ import {
   GenericResponse,
   FoldersResponse,
   SmsResponse,
+  LocationInfo,
 } from '../preload/types'
 import { basename } from 'node:path'
 
@@ -976,6 +977,18 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
           fileRequests.delete(response.fileName)
           break
         }
+        case 'GCMLocation': {
+          const response = content as LocationInfo
+
+          new Notification({
+            title: `Devices's location received`,
+            body: 'Showing location in Google maps',
+          }).show()
+          const location = `${response.latitude},${response.longitude}`
+          shell.openExternal(`https://www.google.com/maps?q=${location}&ll=${location}&z=17`)
+
+          break
+        }
       }
     }
 
@@ -1028,6 +1041,7 @@ function createWindow(tray: Tray) {
       const devicesInfo = await getDevicesInfo()
       if (!devicesInfo) return
 
+      // TODO: check how this is working and if it always is failing and then requesting an address
       const resultsLocal = await Promise.all(
         devicesInfo.map(async (info) => {
           const localInfo = devices.get(info.deviceId)
