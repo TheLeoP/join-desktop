@@ -33,7 +33,6 @@ export function JoinProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const removeListener = window.api.onShortcuts(async (newShortcuts) => {
       setShortcuts(newShortcuts)
-      await window.api.startPushReceiver()
     })
     return () => removeListener()
   }, [])
