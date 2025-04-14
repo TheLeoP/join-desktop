@@ -682,7 +682,6 @@ async function UploadFileNonLocal(filename: string, mimeType: string, body: fs.R
   return `https://www.googleapis.com/drive/v3/files/${file.data.id}/download`
 }
 
-// TODO: use this
 async function getPushHistoryNonLocal(deviceId: string) {
   const pushesFileName = `pushes=:=${deviceId}`
   const pushesFiles = await drive.files.list({
@@ -703,9 +702,9 @@ async function getPushHistoryNonLocal(deviceId: string) {
     })
   ).data
 
+  // TODO: why is this a string? And the other uses of `drive.files.get` isn't?
   // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-  const text = await pushesFileContent.text()
-  const pushHistory = JSON.parse(text) as {
+  const pushHistory = JSON.parse(pushesFileContent) as {
     apiLevel: number
     deviceId: string
     deviceType: number
@@ -1919,6 +1918,9 @@ app.whenReady().then(() => {
   })
   m.handle('actions', () => {
     return Object.keys(actions)
+  })
+  m.handle('push-history', async (_, deviceId: string) => {
+    return await getPushHistoryNonLocal(deviceId)
   })
   m.handle('shortcuts-save', async (_, newShortcuts: Map<string, keyof Actions>) => {
     shortcuts = newShortcuts

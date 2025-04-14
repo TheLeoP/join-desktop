@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer as r } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import { DeviceInfo, MediaAction } from './types'
+import type { DeviceInfo, MediaAction, Push } from './types'
 
 // Custom APIs for renderer
 export const api = {
@@ -29,6 +29,7 @@ export const api = {
   call: (deviceId: string, regId2: string, callnumber: string) =>
     r.send('call', deviceId, regId2, callnumber),
   actions: () => r.invoke('actions') as Promise<string[]>,
+  pushHistory: (deviceId: string) => r.invoke('push-history', deviceId) as Promise<Push[]>,
   shortcutsSave: (shortcuts: Map<string, string>) => r.invoke('shortcuts-save', shortcuts),
 
   onLocalNetwork: (cb: (deviceId: string, onLocalNetwork: boolean) => void) => {

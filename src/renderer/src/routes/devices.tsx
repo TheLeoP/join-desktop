@@ -210,38 +210,48 @@ function Device({
           </div>
         )}
       </div>
-      {(deviceType === DeviceType.android_phone || deviceType === DeviceType.android_tablet) && (
-        <div className="flex w-full flex-col space-y-1">
-          <Link
-            to="/files"
-            search={{ regId2, deviceId }}
-            from="/devices"
-            className="w-full bg-orange-100 text-center text-xl"
-          >
-            Files
-          </Link>
-          <Link
-            to="/contacts"
-            search={{ regId2, deviceId }}
-            from="/devices"
-            className="w-full bg-orange-100 text-center text-xl"
-          >
-            Contacts
-          </Link>
-          <Link
-            to="/sms"
-            search={{ regId2, deviceId }}
-            from="/devices"
-            className="w-full bg-orange-100 text-center text-xl"
-          >
-            SMS
-          </Link>
+      <div className="flex w-full flex-col space-y-1">
+        <Link
+          to="/history"
+          search={{ deviceId }}
+          from="/devices"
+          className="w-full bg-orange-100 text-center text-xl"
+        >
+          History
+        </Link>
+        {(deviceType === DeviceType.android_phone || deviceType === DeviceType.android_tablet) && (
+          <>
+            <Link
+              to="/files"
+              search={{ regId2, deviceId }}
+              from="/devices"
+              className="w-full bg-orange-100 text-center text-xl"
+            >
+              Files
+            </Link>
+            <Link
+              to="/contacts"
+              search={{ regId2, deviceId }}
+              from="/devices"
+              className="w-full bg-orange-100 text-center text-xl"
+            >
+              Contacts
+            </Link>
+            <Link
+              to="/sms"
+              search={{ regId2, deviceId }}
+              from="/devices"
+              className="w-full bg-orange-100 text-center text-xl"
+            >
+              SMS
+            </Link>
 
-          <hr />
+            <hr />
 
-          <Media deviceId={deviceId} regId2={regId2} />
-        </div>
-      )}
+            <Media deviceId={deviceId} regId2={regId2} />
+          </>
+        )}
+      </div>
     </div>
   )
 }
