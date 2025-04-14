@@ -50,6 +50,7 @@ import {
   SmsResponse,
   LocationInfo,
   PushType,
+  DeviceTypes,
 } from '../preload/types'
 import { basename } from 'node:path'
 
@@ -329,11 +330,28 @@ async function push(deviceId: string, regId2: string, data: Push) {
   const files = pushesFiles.data.files
   if (!files) throw new Error(`No files with the name ${pushesFileName}`)
 
-  const pushesFile = files[0]
-  if (!pushesFile) throw new Error(`No files with the name ${pushesFileName}`)
-  // TODO: create file if it doesn't exist
+  let pushesFile = files[0]
+
+  if (!pushesFile) {
+    const joinDirId = await joinDirNonLocal()
+    const deviceDirId = await deviceDirNonLocal(deviceId, joinDirId)
+    const historyDirId = await dirNonLocal('Push History Files', [deviceDirId])
+    pushesFile = (
+      await drive.files.create({
+        requestBody: {
+          name: pushesFileName,
+          parents: [historyDirId],
+        },
+        media: {
+          mimeType: 'application/json',
+          body: '',
+        },
+        fields: 'id',
+      })
+    ).data
+  }
   if (!pushesFile.id)
-    throw new Error(`Smss file for deviceId ${deviceId} has no defined id on Google Drive`)
+    throw new Error(`Push history file for deviceId ${deviceId} has no defined id on Google Drive`)
 
   const pushesFileContent = (
     await drive.files.get({
@@ -344,11 +362,26 @@ async function push(deviceId: string, regId2: string, data: Push) {
 
   // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
   const text = await pushesFileContent.text()
-  const pushHistory = JSON.parse(text) as {
+  let pushHistory: {
     apiLevel: number
     deviceId: string
-    deviceType: number
+    deviceType: DeviceTypes[keyof DeviceTypes]
     pushes: Push[]
+  }
+  try {
+    pushHistory = JSON.parse(text)
+  } catch (e) {
+    if (!cachedDevicesInfo) await getDevicesInfo()
+
+    const deviceType = cachedDevicesInfo.find((device) => device.deviceId === deviceId)?.deviceType
+    if (!deviceType) throw new Error(`Device with id ${deviceId} is not in cache`)
+
+    pushHistory = {
+      apiLevel: 0,
+      deviceId: deviceId,
+      deviceType,
+      pushes: [],
+    }
   }
   pushHistory.pushes.push(data)
   await drive.files.update({ fileId: pushesFile.id, media: { body: JSON.stringify(pushHistory) } })
@@ -589,55 +622,55 @@ async function getSmsChatsNonLocal(deviceId: string, address: string) {
   return smssChats.smses
 }
 
-const dirMime = 'application/vnd.google-apps.folder'
-async function UploadFileNonLocal(filename: string, mimeType: string, body: fs.ReadStream) {
-  const joinDirName = 'Join files'
-  const joinDir = await drive.files.list({
-    q: `name = '${joinDirName}' and trashed = false and mimeType = '${dirMime}'`,
+async function dirNonLocal(name: string, parents?: string[]) {
+  const query = `name = '${name}' and trashed = false and mimeType = '${dirMime}'${parents ? ` ${parents.map((parent) => `and '${parent}' in parents`).join(' ')}` : ''}`
+  const dir = await drive.files.list({
+    q: query,
   })
-  const joinDirFiles = joinDir.data.files
-  // TODO: create directory if it doesn't already exist
-  if (!joinDirFiles) throw new Error(`No directories with the name ${joinDirName}`)
+  const dirFiles = dir.data.files
+  if (!dirFiles) throw new Error(`No directories with the name ${name}`)
 
-  const joinDirInfo = joinDirFiles[0]
-  if (!joinDirInfo) throw new Error(`No directories with the name ${joinDirName}`)
-  if (!joinDirInfo.id)
-    throw new Error(`${joinDirName} directory does not have an id on Google Drive`)
-
-  if (!cachedDevicesInfo) await getDevicesInfo()
-
-  const thisDeviceName = cachedDevicesInfo.find(
-    (device) => device.deviceId === thisDeviceId,
-  )?.deviceName
-  if (!thisDeviceName) throw new Error(`There is no device with id ${thisDeviceId} in cache`)
-  const deviceDirName = `from ${thisDeviceName}`
-  const deviceDir = await drive.files.list({
-    q: `name = '${deviceDirName}' and trashed = false and mimeType = '${dirMime}' and '${joinDirInfo.id}' in parents`,
-  })
-
-  const deviceDirFiles = deviceDir.data.files
-  if (!deviceDirFiles) throw new Error(`No directories with the name ${deviceDirName}`)
-
-  let deviceDirInfo = deviceDirFiles[0]
-  if (!deviceDirInfo) {
+  let dirInfo = dirFiles[0]
+  if (!dirInfo) {
     const deviceDirCreate = await drive.files.create({
       requestBody: {
-        name: deviceDirName,
-        parents: [joinDirInfo.id],
+        name,
         mimeType: dirMime,
+        ...(parents ? { parents } : {}),
       },
       fields: 'id',
     })
-    deviceDirInfo = deviceDirCreate.data
+    dirInfo = deviceDirCreate.data
   }
-  if (!deviceDirInfo.id)
-    throw new Error(`${deviceDirName} directory does not have an id on Google Drive`)
+
+  if (!dirInfo) throw new Error(`No directories with the name ${name}`)
+  if (!dirInfo.id) throw new Error(`${name} directory does not have an id on Google Drive`)
+  return dirInfo.id
+}
+
+async function joinDirNonLocal() {
+  return await dirNonLocal('Join files')
+}
+
+async function deviceDirNonLocal(deviceId: string, joinDirId: string) {
+  if (!cachedDevicesInfo) await getDevicesInfo()
+
+  const deviceName = cachedDevicesInfo.find((device) => device.deviceId === deviceId)?.deviceName
+  if (!deviceName) throw new Error(`There is no device with id ${deviceId} in cache`)
+
+  return await dirNonLocal(`from ${deviceName}`, [joinDirId])
+}
+
+const dirMime = 'application/vnd.google-apps.folder'
+async function UploadFileNonLocal(filename: string, mimeType: string, body: fs.ReadStream) {
+  const joinDirId = await joinDirNonLocal()
+  const deviceDirId = await deviceDirNonLocal(thisDeviceId, joinDirId)
 
   // TODO: check if file exists first?
   const file = await drive.files.create({
     requestBody: {
       name: filename,
-      parents: [deviceDirInfo.id],
+      parents: [deviceDirId],
     },
     media: {
       mimeType,
