@@ -38,6 +38,7 @@ import {
   SmsInfo,
   JoinData,
   Push,
+  PushWrapper,
   NotificationClear,
   LocalNetworkRequest,
   DeviceNotOnLocalNetworkRequest,
@@ -48,6 +49,7 @@ import {
   FoldersResponse,
   SmsResponse,
   LocationInfo,
+  PushType,
 } from '../preload/types'
 import { basename } from 'node:path'
 
@@ -201,7 +203,7 @@ async function logInWithGoogle(win: BrowserWindow) {
   win.webContents.send('on-log-in')
 }
 
-let thisDeviceId: string | undefined
+let thisDeviceId: string
 
 async function registerDevice(name: string) {
   const token = await oauth2Client.getAccessToken()
@@ -232,7 +234,7 @@ async function registerDevice(name: string) {
 
 let credentials: Credentials | undefined
 
-const respondFileTypes = {
+const responseFileTypes = {
   screenshot: 1,
   video: 2,
   sms_threads: 3,
@@ -246,45 +248,48 @@ const responseType = {
   file: 1,
 } as const
 
-async function push(deviceId: string, regId2: string, data: Record<string, string>) {
+async function fcmPush(deviceId: string, regId2: string, data: Record<string, string>) {
   const device = devices.get(deviceId)
   if (device && device.secureServerAddress) {
     const url = device.secureServerAddress
     const token = await oauth2Client.getAccessToken()
     const body = JSON.stringify(data)
 
-    const req = https.request(`${url}gcm?token=${token.token}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': body.length,
-      },
-      rejectUnauthorized: false,
-      insecureHTTPParser: true,
-    })
-    req.write(body)
-    req.end()
-    req.on('response', async (resp) => {
-      resp.setEncoding('utf8')
-      const body: string[] = []
-      resp.on('data', (data) => {
-        body.push(data)
+    await new Promise<void>((res, rej) => {
+      const req = https.request(`${url}gcm?token=${token.token}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': body.length,
+        },
+        rejectUnauthorized: false,
+        insecureHTTPParser: true,
       })
-      resp.on('end', () => {
-        const data = body.join('')
-        try {
-          const parsedData = JSON.parse(data) as GenericResponse
-          // TODO: show some kind of error?
-          if (!parsedData.success) return
-        } catch (e) {
-          // TODO: show some kind of error? x2
-        }
+      req.write(body)
+      req.end()
+      req.on('response', async (resp) => {
+        resp.setEncoding('utf8')
+        const body: string[] = []
+        resp.on('data', (data) => {
+          body.push(data)
+        })
+        resp.on('end', () => {
+          const data = body.join('')
+          try {
+            const parsedData = JSON.parse(data) as GenericResponse
+            // TODO: show some kind of error?
+            if (!parsedData.success) return rej(new Error(parsedData.errorMessage))
+            res()
+          } catch (e) {
+            // TODO: show some kind of error? x2
+          }
+        })
       })
-    })
-    req.on('error', async (err: NodeJS.ErrnoException) => {
-      if (err.code !== 'ECONNRESET' && err.code !== 'ECONNREFUSED') return
-      delete device.secureServerAddress
-      push(deviceId, regId2, data)
+      req.on('error', async (err: NodeJS.ErrnoException) => {
+        if (err.code !== 'ECONNRESET' && err.code !== 'ECONNREFUSED') return rej(err)
+        delete device.secureServerAddress
+        fcmPush(deviceId, regId2, data)
+      })
     })
   } else {
     await fcm.projects.messages.send({
@@ -303,81 +308,82 @@ async function push(deviceId: string, regId2: string, data: Record<string, strin
   }
 }
 
-async function setClipboard(deviceId: string, regId2: string, text: string) {
-  push(deviceId, regId2, {
+async function push(deviceId: string, regId2: string, data: Push) {
+  await fcmPush(deviceId, regId2, {
     type: 'GCMPush',
     json: JSON.stringify({
       type: 'GCMPush',
       push: {
-        clipboard: text,
         id: uuidv4(),
         senderId: thisDeviceId,
+        ...data,
       },
       senderId: thisDeviceId,
     }),
   })
+
+  const pushesFileName = `pushes=:=${deviceId}`
+  const pushesFiles = await drive.files.list({
+    q: `name = '${pushesFileName}' and trashed = false`,
+  })
+  const files = pushesFiles.data.files
+  if (!files) throw new Error(`No files with the name ${pushesFileName}`)
+
+  const pushesFile = files[0]
+  if (!pushesFile) throw new Error(`No files with the name ${pushesFileName}`)
+  // TODO: create file if it doesn't exist
+  if (!pushesFile.id)
+    throw new Error(`Smss file for deviceId ${deviceId} has no defined id on Google Drive`)
+
+  const pushesFileContent = (
+    await drive.files.get({
+      alt: 'media',
+      fileId: pushesFile.id,
+    })
+  ).data
+
+  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
+  const text = await pushesFileContent.text()
+  const pushHistory = JSON.parse(text) as {
+    apiLevel: number
+    deviceId: string
+    deviceType: number
+    pushes: Push[]
+  }
+  pushHistory.pushes.push(data)
+  await drive.files.update({ fileId: pushesFile.id, media: { body: JSON.stringify(pushHistory) } })
+}
+
+async function setClipboard(deviceId: string, regId2: string, text: string) {
+  push(deviceId, regId2, {
+    clipboard: text,
+  })
 }
 async function getClipboard(deviceId: string, regId2: string) {
   push(deviceId, regId2, {
-    type: 'GCMPush',
-    json: JSON.stringify({
-      type: 'GCMPush',
-      push: {
-        clipboardget: true,
-        id: uuidv4(),
-        senderId: thisDeviceId,
-      },
-      senderId: thisDeviceId,
-    }),
+    clipboardget: true,
   })
 }
 
 async function call(deviceId: string, regId2: string, callnumber: string) {
   push(deviceId, regId2, {
-    type: 'GCMPush',
-    json: JSON.stringify({
-      type: 'GCMPush',
-      push: {
-        callnumber: callnumber,
-        id: uuidv4(),
-        senderId: thisDeviceId,
-      },
-      senderId: thisDeviceId,
-    }),
+    callnumber: callnumber,
   })
 }
 
 async function smsSend(deviceId: string, regId2: string, smsnumber: string, smstext: string) {
   push(deviceId, regId2, {
-    type: 'GCMPush',
-    json: JSON.stringify({
-      type: 'GCMPush',
-      push: {
-        // TODO: do I need to send the empty mms fields?
-        responseType: responseType.push,
-        smsnumber,
-        smstext,
-        requestId: 'SMS',
-        id: uuidv4(),
-        senderId: thisDeviceId,
-      },
-      senderId: thisDeviceId,
-    }),
+    // TODO: do I need to send the empty mms fields?
+    responseType: responseType.push,
+    smsnumber,
+    smstext,
+    requestId: 'SMS',
   })
 }
 
 async function openUrl(deviceId: string, regId2: string, url: string) {
   push(deviceId, regId2, {
-    type: 'GCMPush',
-    json: JSON.stringify({
-      type: 'GCMPush',
-      push: {
-        url,
-        id: uuidv4(),
-        senderId: thisDeviceId,
-      },
-      senderId: thisDeviceId,
-    }),
+    url,
   })
 }
 
@@ -440,46 +446,19 @@ async function sendFile(deviceId: string, regId2: string, path: string) {
     icon: notificationImage,
   }).show()
   push(deviceId, regId2, {
-    type: 'GCMPush',
-    json: JSON.stringify({
-      type: 'GCMPush',
-      push: {
-        files: [fileUri],
-        id: uuidv4(),
-        senderId: thisDeviceId,
-      },
-      senderId: thisDeviceId,
-    }),
+    files: [fileUri],
   })
 }
 
 async function ring(deviceId: string, regId2: string) {
   push(deviceId, regId2, {
-    type: 'GCMPush',
-    json: JSON.stringify({
-      type: 'GCMPush',
-      push: {
-        find: true,
-        id: uuidv4(),
-        senderId: thisDeviceId,
-      },
-      senderId: thisDeviceId,
-    }),
+    find: true,
   })
 }
 
 async function locate(deviceId: string, regId2: string) {
   push(deviceId, regId2, {
-    type: 'GCMPush',
-    json: JSON.stringify({
-      type: 'GCMPush',
-      push: {
-        location: true,
-        id: uuidv4(),
-        senderId: thisDeviceId,
-      },
-      senderId: thisDeviceId,
-    }),
+    location: true,
   })
 }
 
@@ -585,29 +564,29 @@ async function getSmsThreadsNonLocal(deviceId: string) {
 }
 
 async function getSmsChatsNonLocal(deviceId: string, address: string) {
-  const smssFileName = `sms=:=${deviceId}=:=${address}`
-  const response = await drive.files.list({
-    q: `name = '${smssFileName}' and trashed = false`,
+  const smsFileName = `sms=:=${deviceId}=:=${address}`
+  const smsFiles = await drive.files.list({
+    q: `name = '${smsFileName}' and trashed = false`,
   })
-  const files = response.data.files
-  if (!files) throw new Error(`No files with the name ${smssFileName}`)
+  const files = smsFiles.data.files
+  if (!files) throw new Error(`No files with the name ${smsFileName}`)
 
-  const fileInfo = files[0]
-  if (!fileInfo) throw new Error(`No files with the name ${smssFileName}`)
-  if (!fileInfo.id)
+  const smsFile = files[0]
+  if (!smsFile) throw new Error(`No files with the name ${smsFileName}`)
+  if (!smsFile.id)
     throw new Error(`Smss file for deviceId ${deviceId} has no defined id on Google Drive`)
 
-  const file = (
+  const smsFileContent = (
     await drive.files.get({
       alt: 'media',
-      fileId: fileInfo.id,
+      fileId: smsFile.id,
     })
   ).data
 
   // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-  const text = await file.text()
-  const smssChatInfo = JSON.parse(text) as { number: string; smses: SmsInfo[] }
-  return smssChatInfo.smses
+  const text = await smsFileContent.text()
+  const smssChats = JSON.parse(text) as { number: string; smses: SmsInfo[] }
+  return smssChats.smses
 }
 
 const dirMime = 'application/vnd.google-apps.folder'
@@ -668,6 +647,38 @@ async function UploadFileNonLocal(filename: string, mimeType: string, body: fs.R
   })
 
   return `https://www.googleapis.com/drive/v3/files/${file.data.id}/download`
+}
+
+// TODO: use this
+async function getPushHistoryNonLocal(deviceId: string) {
+  const pushesFileName = `pushes=:=${deviceId}`
+  const pushesFiles = await drive.files.list({
+    q: `name = '${pushesFileName}' and trashed = false`,
+  })
+  const files = pushesFiles.data.files
+  if (!files) throw new Error(`No files with the name ${pushesFileName}`)
+
+  const pushesFile = files[0]
+  if (!pushesFile) throw new Error(`No files with the name ${pushesFileName}`)
+  if (!pushesFile.id)
+    throw new Error(`Smss file for deviceId ${deviceId} has no defined id on Google Drive`)
+
+  const pushesFileContent = (
+    await drive.files.get({
+      alt: 'media',
+      fileId: pushesFile.id,
+    })
+  ).data
+
+  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
+  const text = await pushesFileContent.text()
+  const pushHistory = JSON.parse(text) as {
+    apiLevel: number
+    deviceId: string
+    deviceType: number
+    pushes: Push[]
+  }
+  return pushHistory.pushes
 }
 
 const multiNotifications = new Map<string, string[]>()
@@ -759,7 +770,7 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
       let n: Notification | undefined
       switch (data.type) {
         case 'GCMPush': {
-          const push = (content as Push).push
+          const push = (content as PushWrapper).push
           // TODO: handle commands (they have text and some other field (command/args/arguments/options or something similar))
           if (push.clipboard && push.clipboard !== 'Clipboard not set') {
             clipboard.writeText(push.clipboard)
@@ -921,7 +932,7 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
         case 'GCMRespondFile': {
           const response = (content as RespondFile).responseFile
           switch (response.request.requestType) {
-            case respondFileTypes.media_infos: {
+            case responseFileTypes.media_infos: {
               const fileId = new URL(response.downloadUrl).searchParams.get('id')
               if (!fileId) break
 
@@ -950,7 +961,7 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
 
               break
             }
-            case respondFileTypes.sms_threads: {
+            case responseFileTypes.sms_threads: {
               await Promise.all(
                 response.request.deviceIds.map(async (deviceId) => {
                   const contactRequest = contactRequests.get(deviceId)
@@ -968,7 +979,7 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
 
               break
             }
-            case respondFileTypes.sms_conversation: {
+            case responseFileTypes.sms_conversation: {
               const address = response.request.payload
               if (!address) return
 
@@ -1343,12 +1354,12 @@ async function selectDevice(
 }
 
 async function requestContactsAndLastSmSCreation(deviceId: string, regId2: string) {
-  push(deviceId, regId2, {
+  fcmPush(deviceId, regId2, {
     type: 'GCMRequestFile',
     json: JSON.stringify({
       type: 'GCMRequestFile',
       requestFile: {
-        requestType: respondFileTypes.sms_threads,
+        requestType: responseFileTypes.sms_threads,
         senderId: thisDeviceId,
         deviceIds: [deviceId],
       },
@@ -1358,12 +1369,12 @@ async function requestContactsAndLastSmSCreation(deviceId: string, regId2: strin
 }
 
 async function requestSmsChatCreationOrUpdate(deviceId: string, regId2: string, address: string) {
-  push(deviceId, regId2, {
+  fcmPush(deviceId, regId2, {
     type: 'GCMRequestFile',
     json: JSON.stringify({
       type: 'GCMRequestFile',
       requestFile: {
-        requestType: respondFileTypes.sms_conversation,
+        requestType: responseFileTypes.sms_conversation,
         payload: address,
         senderId: thisDeviceId,
         deviceIds: [deviceId],
@@ -1388,7 +1399,7 @@ async function getMediaInfoNonLocal(deviceId: string, regId2: string) {
           json: JSON.stringify({
             type: 'GCMRequestFile',
             requestFile: {
-              requestType: respondFileTypes.media_infos,
+              requestType: responseFileTypes.media_infos,
               senderId: thisDeviceId,
               deviceIds: [deviceId],
             },

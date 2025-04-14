@@ -98,49 +98,75 @@ export type FolderInfo = {
   pathSegments: string[]
 }
 
+export type PushType =
+  | 'GCMPush'
+  | 'GCMNotificationClear'
+  | 'GCMLocalNetworkRequest'
+  | 'GCMLocalNetworkTestRequest' // TODO: do I need to handle this?
+  | 'GCMDeviceNotOnLocalNetwork'
+  | 'GCMStatus'
+  | 'GCMRespondFile'
+  | 'GCMFolder'
+  | 'GCMFile'
+  | 'GCMLocation'
+  | 'GCMRequestFile' // TODO: do I need to handle this?
+
 export type JoinData = {
   json: string
-  type:
-    | 'GCMPush'
-    | 'GCMNotificationClear'
-    | 'GCMLocalNetworkRequest'
-    | 'GCMLocalNetworkTestRequest' // TODO: do I need to handle this?
-    | 'GCMDeviceNotOnLocalNetwork'
-    | 'GCMStatus'
-    | 'GCMRespondFile'
-    | 'GCMFolder'
-    | 'GCMFile'
-    | 'GCMLocation'
+  type: PushType
 }
 
 type Push = {
-  push: {
-    language?: string
-    say?: string
-    title?: string
-    url?: string
-    areLocalFiles: boolean
-    back: boolean
-    clipboard?: string
-    clipboardget?: boolean
-    commandLine: boolean
-    date: number
-    deviceId: string
-    files?: string[]
-    find: boolean
-    fromTasker: boolean
-    id?: string
-    localFilesChecked: boolean
-    location: boolean
-    next: boolean
-    pause: boolean
-    play: boolean
-    playpause: boolean
-    senderId: string
-    text: string
-    toTasker: boolean
-  }
+  language?: string
+  say?: string
+  title?: string
+  url?: string
+  areLocalFiles?: boolean
+  back?: boolean
+  clipboard?: string
+  clipboardget?: boolean
+  commandLine?: boolean
+  date?: number
+  deviceId?: string
+  files?: string[]
+  find?: boolean
+  fromTasker?: boolean
+  id?: string
+  localFilesChecked?: boolean
+  location?: boolean
+  next?: boolean
+  pause?: boolean
+  play?: boolean
+  playpause?: boolean
+  senderId?: string
+  text?: string
+  toTasker?: boolean
+  callnumber?: string
+  responseType?: ResponseType[keyof ResponseType]
+  smsnumber?: string
+  smstext?: string
+  requestId?: 'SMS' | '' // TODO: what other cases are there?
 }
+type PushWrapper = {
+  push: Push
+}
+
+const respondFileType = {
+  screenshot: 1,
+  video: 2,
+  sms_threads: 3,
+  sms_conversation: 4,
+  notifications: 5,
+  // NOTE: there doesn't seem to be a type for 6 (?
+  media_infos: 7,
+} as const
+const responseType = {
+  push: 0,
+  file: 1,
+} as const
+
+export type ResponseFileType = typeof respondFileType
+export type ResponseType = typeof responseType
 
 export type NotificationClear = {
   requestNotification: {
@@ -191,7 +217,7 @@ const respondFileTypes = {
   // NOTE: there doesn't seem to be a type for 6 (?
   media_infos: 7,
 } as const
-export type RespondFileTypes = typeof respondFileTypes
+export type RespondFileTypes = typeof respondFileType
 
 export type RespondFile = {
   responseFile: {
@@ -200,7 +226,7 @@ export type RespondFile = {
     fileId: string
     request: {
       deviceIds: string[]
-      requestType: RespondFileTypes[keyof RespondFileTypes]
+      requestType: ResponseFileType[keyof ResponseFileType]
       senderId: string
       requestId: string
       payload?: string
