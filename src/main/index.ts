@@ -14,7 +14,6 @@ import {
 import mime from 'mime'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
 import joinIcon from '../../resources/join.png?asset'
 import batteryOkIcon from '../../resources/battery_ok.png?asset'
 import batteryChargingIcon from '../../resources/battery_charging.png?asset'
@@ -1101,7 +1100,7 @@ function createWindow(tray: Tray) {
     height: 670,
     show: false,
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    ...(process.platform === 'linux' ? { icon: joinIcon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -1328,7 +1327,7 @@ function createPopup() {
     height: 300,
     show: false,
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    ...(process.platform === 'linux' ? { icon: joinIcon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
