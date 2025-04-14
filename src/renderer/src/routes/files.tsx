@@ -15,7 +15,7 @@ const searchSchema = z.object({
   deviceId: z.string(),
 })
 
-export const Route = createFileRoute('/devices/files')({
+export const Route = createFileRoute('/files')({
   component: RouteComponent,
   loaderDeps: ({ search: { regId2, deviceId } }) => ({ regId2, deviceId }),
   loader: async ({ deps: { regId2, deviceId } }) => {

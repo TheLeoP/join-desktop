@@ -14,7 +14,7 @@ const searchSchema = z.object({
   deviceId: z.string(),
 })
 
-export const Route = createFileRoute('/devices/smsChat')({
+export const Route = createFileRoute('/smsChat')({
   component: RouteComponent,
   loaderDeps: ({ search: { address, regId2, deviceId } }) => ({ address, regId2, deviceId }),
   loader: async ({ deps: { address, regId2, deviceId } }) => {

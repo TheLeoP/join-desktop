@@ -213,7 +213,7 @@ function Device({
       {(deviceType === DeviceType.android_phone || deviceType === DeviceType.android_tablet) && (
         <div className="flex w-full flex-col space-y-1">
           <Link
-            to="/devices/files"
+            to="/files"
             search={{ regId2, deviceId }}
             from="/devices"
             className="w-full bg-orange-100 text-center text-xl"
@@ -221,7 +221,7 @@ function Device({
             Files
           </Link>
           <Link
-            to="/devices/contacts"
+            to="/contacts"
             search={{ regId2, deviceId }}
             from="/devices"
             className="w-full bg-orange-100 text-center text-xl"
@@ -229,7 +229,7 @@ function Device({
             Contacts
           </Link>
           <Link
-            to="/devices/sms"
+            to="/sms"
             search={{ regId2, deviceId }}
             from="/devices"
             className="w-full bg-orange-100 text-center text-xl"
@@ -267,7 +267,7 @@ function Devices() {
   )
 }
 
-export const Route = createFileRoute('/devices/')({
+export const Route = createFileRoute('/devices')({
   component: Devices,
   loader: async () => {
     queryClient.ensureQueryData(devicesQueryOptions).then((devices) => {

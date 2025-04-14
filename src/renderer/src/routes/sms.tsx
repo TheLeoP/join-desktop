@@ -14,7 +14,7 @@ const searchSchema = z.object({
   deviceId: z.string(),
 })
 
-export const Route = createFileRoute('/devices/sms')({
+export const Route = createFileRoute('/sms')({
   component: RouteComponent,
   loaderDeps: ({ search: { regId2, deviceId } }) => ({ regId2, deviceId }),
   loader: async ({ deps: { regId2, deviceId } }) => {
@@ -53,8 +53,8 @@ function RouteComponent() {
 
           return (
             <Link
-              to="/devices/smsChat"
-              from="/devices/sms"
+              to="/smsChat"
+              from="/sms"
               search={{ address: sms.address, regId2, deviceId }}
               key={sms.id}
               className="h-20 w-[calc(20%-4px)] items-center space-x-1 truncate bg-orange-100"
