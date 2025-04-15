@@ -170,7 +170,7 @@ function RouteComponent() {
 
       <form
         ref={form}
-        className="absolute fixed bottom-0 flex h-20 w-full items-center justify-center space-x-2 border-t bg-orange-200"
+        className="absolute bottom-0 flex h-20 w-full items-center justify-center space-x-2 border-t bg-orange-200"
         onSubmit={async (e) => {
           e.preventDefault()
           if (message === '' || !regId2) return
