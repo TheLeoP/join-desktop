@@ -38,6 +38,7 @@ If there's a Join feature that the app doesn't support and you would like to use
 While the goal of this app is to shatter some of the limitations the other Join implementations on PC had, there are limitations intrinsic to how Join works that cannot be fixed by this application. This is a non-exhaustive list of them:
 
 - Media info is not properly refreshed by the Join Android App. Even after deleting the old media info file from Google Drive and requesting the Join Android App to create a new one, it doesn't update the media information. Connecting to the Join Android App via local network also gives outdated media information.
+- The Join Google Chrome extension, the official Join Desktop app and the Join website register themselves as a Join device whenever they are opened. This means that, even after you have deleted them from within this application, they will be added again to your devices if you open the Join application that contained the deleted device.
 
 ## Non implemented features
 
