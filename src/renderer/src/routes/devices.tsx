@@ -17,6 +17,35 @@ import { useEffect, useRef, useState } from 'react'
 import { MediaAction, MediaInfo, DeviceInfo } from 'src/preload/types'
 import { z } from 'zod'
 
+const searchSchema = z.object({
+  onLocalNetworkDevices: z.record(z.string(), z.boolean()),
+})
+
+export const Route = createFileRoute('/devices')({
+  component: RouteComponent,
+
+  loaderDeps: ({ search: { onLocalNetworkDevices } }) => ({
+    onLocalNetworkDevices,
+  }),
+  loader: async ({ deps: { onLocalNetworkDevices } }) => {
+    queryClient.ensureQueryData(devicesQueryOptions).then((devices) => {
+      devices.records.forEach(async (device) => {
+        const deviceType = device.deviceType
+        if (deviceType !== DeviceType.android_phone && deviceType !== DeviceType.android_tablet)
+          return
+        await queryClient.ensureQueryData(
+          mediaQueryOptions(
+            device.deviceId,
+            device.regId2,
+            !!onLocalNetworkDevices[device.deviceId],
+          ),
+        )
+      })
+    })
+  },
+  validateSearch: zodValidator(searchSchema),
+})
+
 function Volume({
   max,
   initialValue,
@@ -251,8 +280,14 @@ function RouteComponent() {
   const onLocalNetwork = useOnLocalNetwork(deviceId)
   const navigate = useNavigate({ from: Route.fullPath })
   useEffect(() => {
-    navigate({ search: { onLocalNetwork } })
-  }, [onLocalNetwork, navigate])
+    navigate({
+      search: (prev) => {
+        if (!deviceId) return prev
+
+        return { ...prev, [deviceId]: onLocalNetwork }
+      },
+    })
+  }, [onLocalNetwork, navigate, deviceId])
   const { data: devices, error, isPending, isError } = useDevices()
 
   if (isPending) {
@@ -269,28 +304,3 @@ function RouteComponent() {
     </div>
   )
 }
-
-const searchSchema = z.object({
-  onLocalNetwork: z.boolean().default(false),
-})
-
-export const Route = createFileRoute('/devices')({
-  component: RouteComponent,
-
-  loaderDeps: ({ search: { onLocalNetwork } }) => ({
-    onLocalNetwork,
-  }),
-  loader: async ({ deps: { onLocalNetwork } }) => {
-    queryClient.ensureQueryData(devicesQueryOptions).then((devices) => {
-      devices.records.forEach(async (device) => {
-        const deviceType = device.deviceType
-        if (deviceType !== DeviceType.android_phone && deviceType !== DeviceType.android_tablet)
-          return
-        await queryClient.ensureQueryData(
-          mediaQueryOptions(device.deviceId, device.regId2, onLocalNetwork),
-        )
-      })
-    })
-  },
-  validateSearch: zodValidator(searchSchema),
-})
