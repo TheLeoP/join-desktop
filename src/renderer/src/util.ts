@@ -65,7 +65,7 @@ export const devicesOnLocalNetworkContext = createContext<Record<string, boolean
 export function useOnLocalNetwork(deviceId: string | null) {
   const devicesOnLocalNetwork = useContext(devicesOnLocalNetworkContext)
 
-  if (deviceId === null) return false
+  if (!deviceId) return false
 
   const onLocalNetwork = devicesOnLocalNetwork ? devicesOnLocalNetwork[deviceId] : false
   return onLocalNetwork

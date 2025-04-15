@@ -7,6 +7,7 @@ import { PhotoOrChar } from '@renderer/components'
 import { useEffect, useRef, useState } from 'react'
 import * as svg from '@renderer/svgs'
 import { SmsInfo } from 'src/preload/types'
+import Linkify from 'linkify-react'
 
 const searchSchema = z.object({
   address: z.string(),
@@ -135,7 +136,15 @@ function RouteComponent() {
                   data-received={message.received ? true : undefined}
                   className="rounded-md bg-orange-100 p-2 text-xl break-words whitespace-pre-line data-received:bg-orange-200"
                 >
-                  {message.text}
+                  <Linkify
+                    options={{
+                      target: '_blank',
+                      attributes: { rel: 'noreferrer' },
+                      className: 'text-blue-600 hover:underline',
+                    }}
+                  >
+                    {message.text}
+                  </Linkify>
                 </div>
                 {/* TODO: better date format */}
                 <div className="mt-2 text-xs text-gray-400">
