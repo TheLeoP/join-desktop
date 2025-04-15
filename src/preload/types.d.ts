@@ -74,7 +74,7 @@ export type MediaInfo = {
 export type ContactInfo = {
   name: string
   number: string
-  photo: string
+  photo?: string
 }
 
 export type SmsInfo = {

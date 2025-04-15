@@ -3,7 +3,6 @@ import {
   queryClient,
   smsQueryOptions,
   useContacts,
-  useOnLocalNetwork,
   useSms,
 } from '@renderer/util'
 import { createFileRoute, Link } from '@tanstack/react-router'
@@ -60,7 +59,7 @@ function RouteComponent() {
             <Link
               to="/smsChat"
               from="/sms"
-              search={{ address: sms.address, regId2, deviceId, onLocalNetwork }}
+              search={{ address: sms.address, regId2, deviceId, onLocalNetwork, contact }}
               key={sms.id}
               className="h-20 w-[calc(20%-4px)] items-center space-x-1 truncate bg-orange-100"
             >

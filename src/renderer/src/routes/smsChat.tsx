@@ -1,4 +1,4 @@
-import { contactsQueryOptions, queryClient, useContacts, useOnLocalNetwork } from '@renderer/util'
+import { contactsQueryOptions, queryClient, useContacts } from '@renderer/util'
 import { queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
@@ -13,6 +13,13 @@ const searchSchema = z.object({
   regId2: z.string(),
   deviceId: z.string(),
   onLocalNetwork: z.boolean(),
+  contact: z
+    .object({
+      name: z.string(),
+      number: z.string(),
+      photo: z.string().optional(),
+    })
+    .optional(),
 })
 
 export const Route = createFileRoute('/smsChat')({
@@ -90,7 +97,7 @@ function useSendSms(deviceId: string, regId2: string, address: string) {
 }
 
 function RouteComponent() {
-  const { address, regId2, deviceId, onLocalNetwork } = Route.useSearch()
+  const { address, regId2, deviceId, onLocalNetwork, contact } = Route.useSearch()
 
   const {
     data: smsChat,
@@ -98,13 +105,6 @@ function RouteComponent() {
     isError,
     error,
   } = useSmsChat(deviceId, regId2, address, onLocalNetwork)
-  const {
-    data: contacts,
-    isPending: isPendingContacts,
-    isError: isErrorContacts,
-    error: errorContacts,
-  } = useContacts(deviceId, regId2, onLocalNetwork)
-  const contact = contacts?.find((contact) => contact.number === address)
 
   const endOfList = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
@@ -148,21 +148,11 @@ function RouteComponent() {
     </>
   )
 
-  const header = isPendingContacts ? (
-    <div>Loading...</div>
-  ) : isErrorContacts ? (
-    <div>Error: {errorContacts.message}</div>
-  ) : (
-    <>
-      <PhotoOrChar photo={contact?.photo} char={(contact?.name ?? address).substring(0, 1)} />
-      <h1 className="text-4xl">{contact?.name ?? address}</h1>
-    </>
-  )
-
   return (
     <div className="relative flex h-[calc(100vh-45px)] flex-col">
       <div className="mx-auto my-1 flex h-20 w-fit items-center justify-center space-x-1 rounded-md bg-orange-100 p-2">
-        {header}
+        <PhotoOrChar photo={contact?.photo} char={(contact?.name ?? address).substring(0, 1)} />
+        <h1 className="text-4xl">{contact?.name ?? address}</h1>
       </div>
       <div className="absolute top-22 bottom-20 mx-1 flex w-[calc(100%-4px)] flex-col space-y-4 overflow-auto">
         {messages}

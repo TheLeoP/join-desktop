@@ -1,4 +1,4 @@
-import { contactsQueryOptions, queryClient, useContacts, useOnLocalNetwork } from '@renderer/util'
+import { contactsQueryOptions, queryClient, useContacts } from '@renderer/util'
 import * as svg from '@renderer/svgs'
 import { createFileRoute } from '@tanstack/react-router'
 import { PhotoOrChar } from '@renderer/components'
