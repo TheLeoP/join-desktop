@@ -27,6 +27,17 @@ If there's a Join feature that the app doesn't support and you would like to use
   - Connect to other Join devices via Local network
   - Status notifications from Android devices (battery low, charging, charged)
 - Media/contacts/calls/SMS/file access on remote Android devices.
+- Push history on all devices
+- Rename/delete devices
+- Global shortcuts
+
+  - Includes a picker to dynamically choose which device should be used for an action.
+
+## Join intrinsic limitations
+
+While the goal of this app is to shatter some of the limitations the other Join implementations on PC had, there are limitations intrinsic to how Join works that cannot be fixed by this application. This is a non-exhaustive list of them:
+
+- Media info is not properly refreshed by the Join Android App. Even after deleting the old media info file from Google Drive and requesting the Join Android App to create a new one, it doesn't update the media information. Connecting to the Join Android App via local network also gives outdated media information.
 
 ## Non implemented features
 
@@ -34,10 +45,10 @@ If there's a Join feature that the app doesn't support and you would like to use
 - Speak and Location pushes are received but don't work as expected because of Electron limitations.
 - MMS support for messages.
 - Custom commands
-- Using remote Join settings shared by all of the other apps
 - EventGhost or Node-RED integration
 - Menu with notifications from other devices
-- Push history
+- HTTP server available in Local Network to be able to communicate with this Join app within a Local Network.
+- Other features not present in all of the non-Android Join applications (exposing PC file system remotely, sending status updates, sending notifications to other devices, etc)
 
 ## Special thanks
 
