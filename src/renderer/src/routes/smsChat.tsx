@@ -152,7 +152,7 @@ function RouteComponent() {
     <div className="relative flex h-[calc(100vh-45px)] flex-col">
       <div className="mx-auto my-1 flex h-20 w-fit items-center justify-center space-x-1 rounded-md bg-orange-100 p-2">
         <PhotoOrChar photo={contact?.photo} char={(contact?.name ?? address).substring(0, 1)} />
-        <h1 className="text-4xl">{contact?.name ?? address}</h1>
+        <h1 className="max-w-lg truncate text-4xl">{contact?.name ?? address}</h1>
       </div>
       <div className="absolute top-22 bottom-20 mx-1 flex w-[calc(100%-4px)] flex-col space-y-4 overflow-auto">
         {messages}
