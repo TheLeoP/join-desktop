@@ -224,9 +224,12 @@ async function registerDevice(win: BrowserWindow, name: string) {
       deviceType: devicesTypes.firefox,
     }),
   })
-  const out = await res.json()
-  await afs.writeFile(deviceIdFile, out.deviceId, 'utf-8')
-  thisDeviceId = out.deviceId
+  const response = (await res.json()) as GenericResponse
+  if (!response.success) throw new Error(response.errorMessage)
+  const deviceId = (response as GenericResponse & { deviceId: string }).deviceId
+
+  await afs.writeFile(deviceIdFile, deviceId, 'utf-8')
+  thisDeviceId = deviceId
   win.webContents.send('on-device-id', thisDeviceId)
 }
 
