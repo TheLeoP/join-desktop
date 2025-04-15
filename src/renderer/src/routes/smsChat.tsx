@@ -1,4 +1,4 @@
-import { contactsQueryOptions, queryClient, useContacts } from '@renderer/util'
+import { contactsQueryOptions, queryClient, useContacts, useOnLocalNetwork } from '@renderer/util'
 import { queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
@@ -12,23 +12,38 @@ const searchSchema = z.object({
   address: z.string(),
   regId2: z.string(),
   deviceId: z.string(),
+  onLocalNetwork: z.boolean(),
 })
 
 export const Route = createFileRoute('/smsChat')({
   component: RouteComponent,
-  loaderDeps: ({ search: { address, regId2, deviceId } }) => ({ address, regId2, deviceId }),
-  loader: async ({ deps: { address, regId2, deviceId } }) => {
-    queryClient.ensureQueryData(smsChatOptions(deviceId, regId2, address))
-    await queryClient.ensureQueryData(contactsQueryOptions(deviceId, regId2))
+  loaderDeps: ({ search: { address, regId2, deviceId, onLocalNetwork } }) => ({
+    address,
+    regId2,
+    deviceId,
+    onLocalNetwork,
+  }),
+  loader: async ({ deps: { address, regId2, deviceId, onLocalNetwork } }) => {
+    queryClient.ensureQueryData(smsChatOptions(deviceId, regId2, address, onLocalNetwork))
+    await queryClient.ensureQueryData(contactsQueryOptions(deviceId, regId2, onLocalNetwork))
   },
   validateSearch: zodValidator(searchSchema),
 })
 
-function smsChatOptions(deviceId: string, regId2: string, address: string) {
-  return queryOptions<SmsInfo[], Error, SmsInfo[], readonly string[]>({
-    staleTime: 60 * 1000,
-    retry: false,
-    queryKey: ['smsChat', deviceId, regId2 as string, address],
+function smsChatOptions(
+  deviceId: string,
+  regId2: string,
+  address: string,
+  onLocalNetwork: boolean,
+) {
+  return queryOptions<
+    SmsInfo[],
+    Error,
+    SmsInfo[],
+    readonly ['smsChat', string, string, string, boolean]
+  >({
+    staleTime: onLocalNetwork ? 0 : 60 * 1000,
+    queryKey: ['smsChat', deviceId, regId2, address, onLocalNetwork],
     queryFn: async ({ queryKey }) => {
       const [_, deviceId, regId2] = queryKey
       return await window.api.smsChat(deviceId, regId2, address)
@@ -36,8 +51,8 @@ function smsChatOptions(deviceId: string, regId2: string, address: string) {
   })
 }
 
-function useSmsChat(deviceId: string, regId2: string, address: string) {
-  return useQuery(smsChatOptions(deviceId, regId2, address))
+function useSmsChat(deviceId: string, regId2: string, address: string, onLocalNetwork: boolean) {
+  return useQuery(smsChatOptions(deviceId, regId2, address, onLocalNetwork))
 }
 
 function useSendSms(deviceId: string, regId2: string, address: string) {
@@ -75,15 +90,20 @@ function useSendSms(deviceId: string, regId2: string, address: string) {
 }
 
 function RouteComponent() {
-  const { address, regId2, deviceId } = Route.useSearch()
+  const { address, regId2, deviceId, onLocalNetwork } = Route.useSearch()
 
-  const { data: smsChat, isPending, isError, error } = useSmsChat(deviceId, regId2, address)
+  const {
+    data: smsChat,
+    isPending,
+    isError,
+    error,
+  } = useSmsChat(deviceId, regId2, address, onLocalNetwork)
   const {
     data: contacts,
     isPending: isPendingContacts,
     isError: isErrorContacts,
     error: errorContacts,
-  } = useContacts(deviceId, regId2)
+  } = useContacts(deviceId, regId2, onLocalNetwork)
   const contact = contacts?.find((contact) => contact.number === address)
 
   const endOfList = useRef<HTMLDivElement | null>(null)

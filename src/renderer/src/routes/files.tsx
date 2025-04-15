@@ -2,7 +2,7 @@ import * as svg from '@renderer/svgs'
 import { formatBytes, queryClient, useOnLocalNetwork } from '@renderer/util'
 import { queryOptions, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { atom, useAtom, useSetAtom } from 'jotai'
 import { useEffect, useState, useRef, CSSProperties, useLayoutEffect } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useDebounce } from 'use-debounce'
@@ -13,51 +13,68 @@ import { FolderInfo } from 'src/preload/types'
 const searchSchema = z.object({
   regId2: z.string(),
   deviceId: z.string(),
+  onLocalNetwork: z.boolean(),
 })
 
 export const Route = createFileRoute('/files')({
   component: RouteComponent,
-  loaderDeps: ({ search: { regId2, deviceId } }) => ({ regId2, deviceId }),
-  loader: async ({ deps: { regId2, deviceId } }) => {
-    queryClient.ensureQueryData(remotePathQueryOptions(deviceId, regId2, '/'))
+  loaderDeps: ({ search: { regId2, deviceId, onLocalNetwork } }) => ({
+    regId2,
+    deviceId,
+    onLocalNetwork,
+  }),
+  loader: async ({ deps: { regId2, deviceId, onLocalNetwork } }) => {
+    queryClient.ensureQueryData(remotePathQueryOptions(deviceId, regId2, '/', onLocalNetwork))
   },
   validateSearch: zodValidator(searchSchema),
 })
 
-function remotePathQueryOptions(deviceId: string, regId2: string, path: string) {
-  return queryOptions<FolderInfo, Error, FolderInfo, readonly string[]>({
-    staleTime: 60 * 1000,
-    retry: false,
-    queryKey: ['folders', deviceId, regId2, path],
+function remotePathQueryOptions(
+  deviceId: string,
+  regId2: string,
+  path: string,
+  onLocalNetwork: boolean,
+) {
+  return queryOptions<
+    FolderInfo,
+    Error,
+    FolderInfo,
+    readonly ['folders', string, string, string, boolean]
+  >({
+    staleTime: onLocalNetwork ? 0 : 60 * 1000,
+    queryKey: ['folders', deviceId, regId2, path, onLocalNetwork],
     queryFn: async ({ queryKey }) => {
       const [_, deviceId, regId2, path] = queryKey
       return await window.api.folders(deviceId, regId2, path)
     },
   })
 }
-function useRemotePath(deviceId: string, regId2: string, path: string) {
-  return useQuery(remotePathQueryOptions(deviceId, regId2, path))
+function useRemotePath(deviceId: string, regId2: string, path: string, onLocalNetwork: boolean) {
+  return useQuery(remotePathQueryOptions(deviceId, regId2, path, onLocalNetwork))
 }
 
 function Directory({
-  deviceId,
-  regId2,
   path,
   active,
   i,
   style,
 }: {
-  deviceId: string
-  regId2: string
   path: string
   active: boolean
   i: number
   style: CSSProperties
 }) {
+  const { regId2, deviceId, onLocalNetwork } = Route.useSearch()
+
   const setPaths = useSetAtom(pathsAtom)
   const setCurrentFile = useSetAtom(currentFileAtom)
 
-  const { data: foldersInfo, error, isPending, isError } = useRemotePath(deviceId, regId2, path)
+  const {
+    data: foldersInfo,
+    error,
+    isPending,
+    isError,
+  } = useRemotePath(deviceId, regId2, path, onLocalNetwork)
   const [current, setCurrent] = useState(0)
   useEffect(() => {
     if (!active) return
@@ -83,8 +100,6 @@ function Directory({
     })
     setCurrentFile(null)
   }, [current, foldersInfo, i, active, setPaths, setCurrentFile])
-
-  const onLocalNetwork = useOnLocalNetwork(deviceId)
 
   useEffect(() => {
     const f = async (e: KeyboardEvent) => {
@@ -312,8 +327,6 @@ function RouteComponent() {
             return (
               <Directory
                 key={i}
-                deviceId={deviceId}
-                regId2={regId2}
                 path={path}
                 active={currentDir === i}
                 i={i}

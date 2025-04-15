@@ -104,7 +104,6 @@ export function PopUp() {
       const selectedDevice = devices[i]
       if (!selectedDevice) return
 
-      // TODO: send null on <esc>
       window.api.popUpSelected(selectedDevice)
     }
 

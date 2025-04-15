@@ -69,8 +69,11 @@ export function useDeviceId() {
 }
 
 export const devicesOnLocalNetworkContext = createContext<Record<string, boolean> | null>(null)
-export function useOnLocalNetwork(deviceId: string) {
+export function useOnLocalNetwork(deviceId: string | null) {
   const devicesOnLocalNetwork = useContext(devicesOnLocalNetworkContext)
+
+  if (deviceId === null) return false
+
   const onLocalNetwork = devicesOnLocalNetwork ? devicesOnLocalNetwork[deviceId] : false
   return onLocalNetwork
 }
@@ -137,35 +140,35 @@ export function formatBytes(bytes: number, decimals = 2) {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 }
 
-export function contactsQueryOptions(deviceId: string, regId2: string) {
-  return queryOptions<ContactInfo[], Error, ContactInfo[], readonly string[]>({
-    staleTime: 60 * 1000,
-    // TODO: allow retrying all queries
-    // TODO: when using loaders, maybe make them less eager if not in local network(?
-    // TODO: check staleTime, retry, etc for all queries and maybe take into account if in local network or not
-    retry: false,
-    queryKey: ['contacts', deviceId, regId2 as string],
+export function contactsQueryOptions(deviceId: string, regId2: string, onLocalNetwork: boolean) {
+  return queryOptions<
+    ContactInfo[],
+    Error,
+    ContactInfo[],
+    readonly ['contacts', string, string, boolean]
+  >({
+    staleTime: onLocalNetwork ? 0 : 60 * 1000,
+    queryKey: ['contacts', deviceId, regId2, onLocalNetwork],
     queryFn: async ({ queryKey }) => {
       const [_, deviceId, regId2] = queryKey
       return await window.api.contacts(deviceId, regId2)
     },
   })
 }
-export function useContacts(deviceId: string, regId2: string) {
-  return useQuery(contactsQueryOptions(deviceId, regId2))
+export function useContacts(deviceId: string, regId2: string, onLocalNetwork: boolean) {
+  return useQuery(contactsQueryOptions(deviceId, regId2, onLocalNetwork))
 }
 
-export function smsQueryOptions(deviceId: string, regId2: string) {
-  return queryOptions<SmsInfo[], Error, SmsInfo[], readonly string[]>({
-    staleTime: 60 * 1000,
-    retry: false,
-    queryKey: ['sms', deviceId, regId2 as string],
+export function smsQueryOptions(deviceId: string, regId2: string, onLocalNetwork: boolean) {
+  return queryOptions<SmsInfo[], Error, SmsInfo[], readonly ['sms', string, string, boolean]>({
+    staleTime: onLocalNetwork ? 0 : 60 * 1000,
+    queryKey: ['sms', deviceId, regId2, onLocalNetwork],
     queryFn: async ({ queryKey }) => {
       const [_, deviceId, regId2] = queryKey
       return await window.api.sms(deviceId, regId2)
     },
   })
 }
-export function useSms(deviceId: string, regId2: string) {
-  return useQuery(smsQueryOptions(deviceId, regId2))
+export function useSms(deviceId: string, regId2: string, onLocalNetwork: boolean) {
+  return useQuery(smsQueryOptions(deviceId, regId2, onLocalNetwork))
 }

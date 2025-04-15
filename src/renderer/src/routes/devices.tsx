@@ -10,10 +10,12 @@ import {
   useOnLocalNetwork,
 } from '@renderer/util'
 import { queryOptions, UseMutateFunction, useQuery } from '@tanstack/react-query'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { zodValidator } from '@tanstack/zod-adapter'
 import debounce from 'lodash.debounce'
 import { useEffect, useRef, useState } from 'react'
 import { MediaAction, MediaInfo, DeviceInfo } from 'src/preload/types'
+import { z } from 'zod'
 
 function Volume({
   max,
@@ -64,11 +66,10 @@ function Volume({
   )
 }
 
-function mediaQueryOptions(deviceId: string, regId2: string) {
+function mediaQueryOptions(deviceId: string, regId2: string, onLocalNetwork: boolean) {
   return queryOptions<MediaInfo>({
-    staleTime: 60 * 1000,
-    retry: false,
-    queryKey: ['mediaInfo', deviceId, regId2],
+    staleTime: onLocalNetwork ? 0 : 60 * 1000,
+    queryKey: ['mediaInfo', deviceId, regId2, onLocalNetwork],
     queryFn: async () => {
       return await window.api.media(deviceId, regId2)
     },
@@ -76,14 +77,13 @@ function mediaQueryOptions(deviceId: string, regId2: string) {
 }
 
 function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
+  const onLocalNetwork = useOnLocalNetwork(deviceId)
   const {
     data: mediaInfo,
     error,
     isPending,
     isError,
-    refetch,
-  } = useQuery(mediaQueryOptions(deviceId, regId2))
-  const onLocalNetwork = useOnLocalNetwork(deviceId)
+  } = useQuery(mediaQueryOptions(deviceId, regId2, onLocalNetwork))
   useEffect(
     () => void queryClient.invalidateQueries({ queryKey: ['mediaInfo', deviceId, regId2] }),
     [deviceId, regId2, onLocalNetwork],
@@ -172,17 +172,7 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
     )
   }
 
-  return (
-    <div className="flex flex-col items-center space-y-1">
-      {info}
-      <button
-        className="flex w-full cursor-pointer flex-col items-center bg-orange-100 stroke-black hover:stroke-gray-500 active:stroke-gray-700"
-        onClick={async () => await refetch()}
-      >
-        <svg.Refresh className="w-10" />
-      </button>
-    </div>
-  )
+  return <div className="flex flex-col items-center space-y-1">{info}</div>
 }
 
 function Device({
@@ -223,7 +213,7 @@ function Device({
           <>
             <Link
               to="/files"
-              search={{ regId2, deviceId }}
+              search={{ regId2, deviceId, onLocalNetwork }}
               from="/devices"
               className="w-full bg-orange-100 text-center text-xl"
             >
@@ -231,7 +221,7 @@ function Device({
             </Link>
             <Link
               to="/contacts"
-              search={{ regId2, deviceId }}
+              search={{ regId2, deviceId, onLocalNetwork }}
               from="/devices"
               className="w-full bg-orange-100 text-center text-xl"
             >
@@ -239,7 +229,7 @@ function Device({
             </Link>
             <Link
               to="/sms"
-              search={{ regId2, deviceId }}
+              search={{ regId2, deviceId, onLocalNetwork }}
               from="/devices"
               className="w-full bg-orange-100 text-center text-xl"
             >
@@ -256,15 +246,18 @@ function Device({
   )
 }
 
-function Devices() {
+function RouteComponent() {
   const deviceId = useDeviceId()
-
+  const onLocalNetwork = useOnLocalNetwork(deviceId)
+  const navigate = useNavigate({ from: Route.fullPath })
+  useEffect(() => {
+    navigate({ search: { onLocalNetwork } })
+  }, [onLocalNetwork, navigate])
   const { data: devices, error, isPending, isError } = useDevices()
+
   if (isPending) {
     return <div>Loading...</div>
-  }
-
-  if (isError) {
+  } else if (isError) {
     return <div>Error: {error.message}</div>
   }
 
@@ -277,16 +270,27 @@ function Devices() {
   )
 }
 
+const searchSchema = z.object({
+  onLocalNetwork: z.boolean().default(false),
+})
+
 export const Route = createFileRoute('/devices')({
-  component: Devices,
-  loader: async () => {
+  component: RouteComponent,
+
+  loaderDeps: ({ search: { onLocalNetwork } }) => ({
+    onLocalNetwork,
+  }),
+  loader: async ({ deps: { onLocalNetwork } }) => {
     queryClient.ensureQueryData(devicesQueryOptions).then((devices) => {
       devices.records.forEach(async (device) => {
         const deviceType = device.deviceType
         if (deviceType !== DeviceType.android_phone && deviceType !== DeviceType.android_tablet)
           return
-        await queryClient.ensureQueryData(mediaQueryOptions(device.deviceId, device.regId2))
+        await queryClient.ensureQueryData(
+          mediaQueryOptions(device.deviceId, device.regId2, onLocalNetwork),
+        )
       })
     })
   },
+  validateSearch: zodValidator(searchSchema),
 })

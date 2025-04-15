@@ -1536,6 +1536,7 @@ app.whenReady().then(() => {
 
   m.handle('get-access-token', async () => (await oauth2Client.getAccessToken()).token)
   // TODO: handle local connection failling and removing secureServerAddress if it fails
+  // TODO: use fcmPush instead and refactor to make it async return the generic response
   m.handle('media', async (_, deviceId, regId2) => {
     const device = devices.get(deviceId)
     if (device && device.secureServerAddress) {

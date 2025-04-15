@@ -3,6 +3,7 @@ import {
   queryClient,
   smsQueryOptions,
   useContacts,
+  useOnLocalNetwork,
   useSms,
 } from '@renderer/util'
 import { createFileRoute, Link } from '@tanstack/react-router'
@@ -12,28 +13,33 @@ import { z } from 'zod'
 const searchSchema = z.object({
   regId2: z.string(),
   deviceId: z.string(),
+  onLocalNetwork: z.boolean(),
 })
 
 export const Route = createFileRoute('/sms')({
   component: RouteComponent,
-  loaderDeps: ({ search: { regId2, deviceId } }) => ({ regId2, deviceId }),
-  loader: async ({ deps: { regId2, deviceId } }) => {
-    queryClient.ensureQueryData(contactsQueryOptions(deviceId, regId2))
-    queryClient.ensureQueryData(smsQueryOptions(deviceId, regId2))
+  loaderDeps: ({ search: { regId2, deviceId, onLocalNetwork } }) => ({
+    regId2,
+    deviceId,
+    onLocalNetwork,
+  }),
+  loader: async ({ deps: { regId2, deviceId, onLocalNetwork } }) => {
+    queryClient.ensureQueryData(contactsQueryOptions(deviceId, regId2, onLocalNetwork))
+    queryClient.ensureQueryData(smsQueryOptions(deviceId, regId2, onLocalNetwork))
   },
   validateSearch: zodValidator(searchSchema),
 })
 
 function RouteComponent() {
-  const { regId2, deviceId } = Route.useSearch()
+  const { regId2, deviceId, onLocalNetwork } = Route.useSearch()
 
-  const { data: sms, isPending, isError, error } = useSms(deviceId, regId2)
+  const { data: sms, isPending, isError, error } = useSms(deviceId, regId2, onLocalNetwork)
   const {
     data: contacts,
     isPending: isPendingContacts,
     isError: isErrorContacts,
     error: errorContacts,
-  } = useContacts(deviceId, regId2)
+  } = useContacts(deviceId, regId2, onLocalNetwork)
 
   if (isPending || isPendingContacts) {
     return <div>Loading...</div>
@@ -45,7 +51,6 @@ function RouteComponent() {
 
   return (
     <div className="ms-1 flex flex-wrap space-y-1 space-x-1">
-      {/* TODO: order sms before showing them */}
       {sms
         .sort((a, b) => b.date - a.date)
         .map((sms) => {
@@ -55,7 +60,7 @@ function RouteComponent() {
             <Link
               to="/smsChat"
               from="/sms"
-              search={{ address: sms.address, regId2, deviceId }}
+              search={{ address: sms.address, regId2, deviceId, onLocalNetwork }}
               key={sms.id}
               className="h-20 w-[calc(20%-4px)] items-center space-x-1 truncate bg-orange-100"
             >

@@ -17,7 +17,6 @@ function Root() {
   const isLoggedIn = useIsLoggedIn()
   const deviceId = useDeviceId()
 
-  // TODO: the navigation makes this flash. Maybe add some loading screen for x amount of seconds to aviod it
   useEffect(() => {
     if (!isLoggedIn || (isLoggedIn && !deviceId)) {
       navigate({ from: '/', to: '/login' })
@@ -32,7 +31,6 @@ function Root() {
         <>
           <div className="flex gap-2 p-2">
             {/* TODO: maybe show all buttons and a selector for avilable devices */}
-            {/* TODO: or maybe move subroutes of devices out of it to avoid bolding it */}
 
             {/* TODO: some kind of back button (? */}
             <Link to="/devices" className="text-xl [&.active]:font-bold">

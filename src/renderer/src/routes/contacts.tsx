@@ -1,4 +1,4 @@
-import { contactsQueryOptions, queryClient, useContacts } from '@renderer/util'
+import { contactsQueryOptions, queryClient, useContacts, useOnLocalNetwork } from '@renderer/util'
 import * as svg from '@renderer/svgs'
 import { createFileRoute } from '@tanstack/react-router'
 import { PhotoOrChar } from '@renderer/components'
@@ -8,21 +8,31 @@ import { z } from 'zod'
 const searchSchema = z.object({
   regId2: z.string(),
   deviceId: z.string(),
+  onLocalNetwork: z.boolean(),
 })
 
 export const Route = createFileRoute('/contacts')({
   component: RouteComponent,
-  loaderDeps: ({ search: { regId2, deviceId } }) => ({ regId2, deviceId }),
-  loader: async ({ deps: { regId2, deviceId } }) => {
-    queryClient.ensureQueryData(contactsQueryOptions(deviceId, regId2))
+  loaderDeps: ({ search: { regId2, deviceId, onLocalNetwork } }) => ({
+    regId2,
+    deviceId,
+    onLocalNetwork,
+  }),
+  loader: async ({ deps: { regId2, deviceId, onLocalNetwork } }) => {
+    queryClient.ensureQueryData(contactsQueryOptions(deviceId, regId2, onLocalNetwork))
   },
   validateSearch: zodValidator(searchSchema),
 })
 
 function RouteComponent() {
-  const { regId2, deviceId } = Route.useSearch()
+  const { regId2, deviceId, onLocalNetwork } = Route.useSearch()
 
-  const { data: contacts, isPending, isError, error } = useContacts(deviceId, regId2)
+  const {
+    data: contacts,
+    isPending,
+    isError,
+    error,
+  } = useContacts(deviceId, regId2, onLocalNetwork)
 
   if (isPending) {
     return <div>Loading...</div>
