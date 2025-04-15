@@ -11,6 +11,7 @@ export const api = {
 
   startPushReceiver: () => r.invoke('start-push-receiver'),
   registerDevice: (name: string) => r.invoke('register-device', name),
+  renameDevice: (deviceId: string, name: string) => r.invoke('rename-device', deviceId, name),
   isLoggedInWithGoogle: () => r.invoke('is-logged-in-with-google'),
   getAccessToken: () => r.invoke('get-access-token'),
 

@@ -9,11 +9,12 @@ import {
   useMediaAction,
   useOnLocalNetwork,
 } from '@renderer/util'
-import { queryOptions, UseMutateFunction, useQuery } from '@tanstack/react-query'
+import { queryOptions, UseMutateFunction, useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import debounce from 'lodash.debounce'
 import { useEffect, useRef, useState } from 'react'
-import { MediaAction, MediaInfo, DeviceInfo } from 'src/preload/types'
+import { MediaAction, MediaInfo, DeviceInfo, Data } from 'src/preload/types'
+import { record } from 'zod'
 
 export const Route = createFileRoute('/devices')({
   component: RouteComponent,
@@ -190,6 +191,46 @@ function Device({
   deviceName,
 }: DeviceInfo & { thisDeviceId: string | null }) {
   const onLocalNetwork = useOnLocalNetwork(deviceId)
+  const [name, setName] = useState(deviceName)
+
+  const nameInput = useRef<HTMLInputElement | null>(null)
+
+  const { mutate: renameDevice } = useMutation<
+    unknown,
+    Error,
+    {
+      deviceId: string
+      name: string
+    },
+    {
+      previousDevices: Data<DeviceInfo>
+    }
+  >({
+    mutationFn: async ({ deviceId, name }) => {
+      await window.api.renameDevice(deviceId, name)
+    },
+    onMutate: async ({ deviceId, name }) => {
+      await queryClient.cancelQueries({ queryKey: ['devices'] })
+
+      const previousDevices = queryClient.getQueryData(['devices']) as Data<DeviceInfo>
+
+      queryClient.setQueryData(['devices'], (old: Data<DeviceInfo>) => {
+        const newValue = { ...old, records: [...old.records] }
+        const changedDevice = newValue.records.find((device) => device.deviceId === deviceId)
+        if (changedDevice) changedDevice.deviceName = name
+
+        return newValue
+      })
+
+      return { previousDevices }
+    },
+    onError: (err, variables, context) => {
+      if (!context) return
+
+      queryClient.setQueryData(['devices'], context.previousDevices)
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['devices'] }),
+  })
 
   return (
     <div className="flex w-60 flex-col items-center space-y-1">
@@ -197,16 +238,33 @@ function Device({
         src={`./${ReverseDeviceType[deviceType]}.png`}
         className="max-w-40 rounded-full bg-orange-300 p-2"
       />
-      <div className="flex items-center space-x-1">
-        <h2 className="text-center text-2xl">
-          {thisDeviceId === deviceId ? `${deviceName} (this device)` : deviceName}
+      <form
+        className="flex items-center space-x-1"
+        onSubmit={(e) => {
+          e.preventDefault()
+          renameDevice({ deviceId, name })
+
+          if (nameInput.current) nameInput.current.blur()
+        }}
+      >
+        <h2 className="flex text-center text-2xl whitespace-nowrap">
+          <input
+            ref={nameInput}
+            type="text"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value)
+            }}
+            className="w-3/4 appearance-none border px-2 py-2 leading-tight shadow focus:outline-none"
+          />
+          <p className="flex w-1/4 items-center justify-center text-sm text-wrap">
+            {thisDeviceId === deviceId ? ' (this device)' : undefined}
+            {onLocalNetwork && (
+              <svg.LocalNetwork className="h-10 w-10 rounded-full bg-orange-300 fill-white p-1" />
+            )}
+          </p>
         </h2>
-        {onLocalNetwork && (
-          <div className="rounded-full bg-orange-300 fill-white p-1">
-            <svg.LocalNetwork />
-          </div>
-        )}
-      </div>
+      </form>
       <div className="flex w-full flex-col space-y-1">
         <Link
           to="/history"

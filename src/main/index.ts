@@ -205,7 +205,7 @@ async function logInWithGoogle(win: BrowserWindow) {
 
 let thisDeviceId: string
 
-async function registerDevice(name: string) {
+async function registerDevice(win: BrowserWindow, name: string) {
   const token = await oauth2Client.getAccessToken()
 
   if (!credentials) throw new Error('There are no credentials')
@@ -227,9 +227,25 @@ async function registerDevice(name: string) {
   const out = await res.json()
   await afs.writeFile(deviceIdFile, out.deviceId, 'utf-8')
   thisDeviceId = out.deviceId
-  const win = BrowserWindow.getFocusedWindow()
-  if (!win) throw new Error("There's no win")
   win.webContents.send('on-device-id', thisDeviceId)
+}
+
+async function renameDevice(deviceId: string, name: string) {
+  const token = await oauth2Client.getAccessToken()
+
+  const res = await fetch(`${joinUrl}/registration/v1/renameDevice`, {
+    method: 'post',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token.token}`,
+    },
+    body: JSON.stringify({
+      deviceId: deviceId,
+      newName: name,
+    }),
+  })
+  const response = (await res.json()) as GenericResponse
+  if (!response.success) throw new Error(response.errorMessage)
 }
 
 let credentials: Credentials | undefined
@@ -1107,6 +1123,9 @@ function createWindow(tray: Tray) {
     },
   })
 
+  m.handle('register-device', (_, name) => {
+    return registerDevice(win, name)
+  })
   m.handle('start-push-receiver', () =>
     startPushReceiver(win, async () => {
       const devicesInfo = await getDevicesInfo()
@@ -1529,8 +1548,8 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  m.handle('register-device', (_, name) => {
-    return registerDevice(name)
+  m.handle('rename-device', async (_, deviceId: string, name: string) => {
+    await renameDevice(deviceId, name)
   })
   m.handle('get-access-token', async () => (await oauth2Client.getAccessToken()).token)
   m.handle('media', async (_, deviceId, regId2) => {
