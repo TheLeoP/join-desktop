@@ -251,6 +251,23 @@ async function renameDevice(deviceId: string, name: string) {
   if (!response.success) throw new Error(response.errorMessage)
 }
 
+async function deleteDevice(deviceId: string) {
+  const token = await oauth2Client.getAccessToken()
+
+  const res = await fetch(`${joinUrl}/registration/v1/unregisterDevice`, {
+    method: 'post',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token.token}`,
+    },
+    body: JSON.stringify({
+      deviceId: deviceId,
+    }),
+  })
+  const response = (await res.json()) as GenericResponse
+  if (!response.success) throw new Error(response.errorMessage)
+}
+
 let credentials: Credentials | undefined
 
 const responseFileTypes = {
@@ -1553,6 +1570,9 @@ app.whenReady().then(() => {
 
   m.handle('rename-device', async (_, deviceId: string, name: string) => {
     await renameDevice(deviceId, name)
+  })
+  m.handle('delete-device', async (_, deviceId: string) => {
+    await deleteDevice(deviceId)
   })
   m.handle('get-access-token', async () => (await oauth2Client.getAccessToken()).token)
   m.handle('media', async (_, deviceId, regId2) => {

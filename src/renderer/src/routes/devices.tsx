@@ -231,6 +231,38 @@ function Device({
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['devices'] }),
   })
+  const { mutate: deleteDevice } = useMutation<
+    unknown,
+    Error,
+    {
+      deviceId: string
+    },
+    {
+      previousDevices: Data<DeviceInfo>
+    }
+  >({
+    mutationFn: async ({ deviceId }) => {
+      await window.api.deleteDevice(deviceId)
+    },
+    onMutate: async ({ deviceId }) => {
+      await queryClient.cancelQueries({ queryKey: ['devices'] })
+
+      const previousDevices = queryClient.getQueryData(['devices']) as Data<DeviceInfo>
+
+      queryClient.setQueryData(['devices'], (old: Data<DeviceInfo>) => ({
+        ...old,
+        records: old.records.filter((device) => device.deviceId !== deviceId),
+      }))
+
+      return { previousDevices }
+    },
+    onError: (err, variables, context) => {
+      if (!context) return
+
+      queryClient.setQueryData(['devices'], context.previousDevices)
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['devices'] }),
+  })
 
   return (
     <div className="flex w-60 flex-col items-center space-y-1">
@@ -274,6 +306,17 @@ function Device({
         >
           History
         </Link>
+        <button
+          className="w-full cursor-pointer bg-red-500 text-center text-xl text-white hover:bg-red-600 active:bg-red-700"
+          onClick={() => {
+            // TODO: use better confirm dialog
+            const proceed = confirm('Are you sure?')
+            if (!proceed) return
+            deleteDevice({ deviceId })
+          }}
+        >
+          Delete
+        </button>
         {(deviceType === DeviceType.android_phone || deviceType === DeviceType.android_tablet) && (
           <>
             <Link
