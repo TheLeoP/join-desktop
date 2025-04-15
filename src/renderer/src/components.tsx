@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
+  deviceIdContext,
   devicesOnLocalNetworkContext,
   isLoggedInContext,
   ReverseDeviceType,
@@ -37,11 +38,20 @@ export function JoinProvider({ children }: { children: ReactNode }) {
     return () => removeListener()
   }, [])
 
+  const [deviceId, setDeviceId] = useState<string | null>(null)
+  useEffect(() => {
+    const removeListener = window.api.onDeviceId((id) => {
+      setDeviceId(id)
+    })
+
+    return () => removeListener()
+  }, [])
+
   return (
     <devicesOnLocalNetworkContext.Provider value={devicesOnLocalNetwork}>
       <isLoggedInContext.Provider value={isLoggedIn}>
         <shortcutsContext.Provider value={[shortcuts, setShortcuts]}>
-          {children}
+          <deviceIdContext.Provider value={deviceId}>{children}</deviceIdContext.Provider>
         </shortcutsContext.Provider>
       </isLoggedInContext.Provider>
     </devicesOnLocalNetworkContext.Provider>

@@ -55,16 +55,9 @@ export function useShortcuts() {
   return shortcuts
 }
 
+export const deviceIdContext = createContext<string | null>(null)
 export function useDeviceId() {
-  const [deviceId, setDeviceId] = useState<string | null>(null)
-  useEffect(() => {
-    const removeListener = window.api.onDeviceId((id) => {
-      setDeviceId(id)
-    })
-
-    return () => removeListener()
-  }, [])
-
+  const deviceId = useContext(deviceIdContext)
   return deviceId
 }
 

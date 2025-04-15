@@ -10,7 +10,7 @@ import {
   useOnLocalNetwork,
 } from '@renderer/util'
 import { queryOptions, UseMutateFunction, useQuery } from '@tanstack/react-query'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import debounce from 'lodash.debounce'
 import { useEffect, useRef, useState } from 'react'
 import { MediaAction, MediaInfo, DeviceInfo } from 'src/preload/types'

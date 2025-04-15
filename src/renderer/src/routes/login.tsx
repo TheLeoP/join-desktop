@@ -1,13 +1,20 @@
 import { Google } from '@renderer/svgs'
 import { useIsLoggedIn, useDeviceId } from '@renderer/util'
-import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useEffect, useState } from 'react'
 
 function LogIn() {
   const isLoggedIn = useIsLoggedIn()
   const deviceId = useDeviceId()
 
   const [deviceName, setDeviceName] = useState<string>('')
+
+  const navigate = useNavigate()
+  useEffect(() => {
+    if (isLoggedIn && deviceId) {
+      navigate({ from: '/login', to: '/devices' })
+    }
+  }, [deviceId, isLoggedIn, navigate])
 
   return (
     <div className="flex h-screen flex-col">

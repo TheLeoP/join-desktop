@@ -1,5 +1,12 @@
 import { useIsLoggedIn, useDeviceId } from '@renderer/util'
-import { createRootRoute, Link, Outlet, useNavigate } from '@tanstack/react-router'
+import {
+  createRootRoute,
+  Link,
+  Outlet,
+  useCanGoBack,
+  useNavigate,
+  useRouter,
+} from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { useEffect } from 'react'
 
@@ -14,6 +21,9 @@ function Root() {
   }, [])
 
   const navigate = useNavigate()
+  const router = useRouter()
+  const canGoBack = useCanGoBack()
+
   const isLoggedIn = useIsLoggedIn()
   const deviceId = useDeviceId()
 
@@ -31,7 +41,13 @@ function Root() {
         <>
           <div className="flex gap-2 p-2">
             {/* TODO: maybe show all buttons and a selector for avilable devices */}
-            {/* TODO: some kind of back button (? */}
+            <button
+              className="cursor-pointer text-xl"
+              onClick={() => router.history.back()}
+              disabled={!canGoBack}
+            >
+              Go back
+            </button>
             <Link to="/devices" className="text-xl [&.active]:font-bold">
               Devices
             </Link>
