@@ -78,7 +78,7 @@ export function useOnLocalNetwork(deviceId: string | null) {
   return onLocalNetwork
 }
 
-export function useMediaAction(deviceId: string, regId2: string) {
+export function useMediaAction(deviceId: string, regId2: string, onLocalNetwork: boolean) {
   return useMutation<
     unknown,
     Error,
@@ -90,20 +90,23 @@ export function useMediaAction(deviceId: string, regId2: string) {
       await window.api.mediaAction(deviceId, regId2, action)
     },
     onMutate: async ({ action }) => {
-      await queryClient.cancelQueries({ queryKey: ['mediaInfo', deviceId, regId2] })
+      await queryClient.cancelQueries({ queryKey: ['mediaInfo', deviceId, regId2, onLocalNetwork] })
 
-      queryClient.setQueryData(['mediaInfo', deviceId, regId2], (old: MediaInfo) => {
-        const newValue = { ...old }
-        const currentInfo = newValue.mediaInfosForClients.find(
-          (info) => info.packageName === action.mediaAppPackage,
-        )
-        if (currentInfo && action.play) {
-          currentInfo.playing = true
-        } else if (currentInfo && action.pause) {
-          currentInfo.playing = false
-        }
-        return newValue
-      })
+      queryClient.setQueryData(
+        ['mediaInfo', deviceId, regId2, onLocalNetwork],
+        (old: MediaInfo) => {
+          const newValue = { ...old }
+          const currentInfo = newValue.mediaInfosForClients.find(
+            (info) => info.packageName === action.mediaAppPackage,
+          )
+          if (currentInfo && action.play) {
+            currentInfo.playing = true
+          } else if (currentInfo && action.pause) {
+            currentInfo.playing = false
+          }
+          return newValue
+        },
+      )
     },
     // NOTE: can't simply invalidate and refetch the query because Join (the
     // mobile app) won't deliver updated information

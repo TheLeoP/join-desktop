@@ -37,8 +37,9 @@ function Volume({
   regId2: string
 }) {
   const [volume, setVolume] = useState(initialValue)
+  const onLocalNetwork = useOnLocalNetwork(deviceId)
 
-  const { mutate: mediaAction } = useMediaAction(deviceId, regId2)
+  const { mutate: mediaAction } = useMediaAction(deviceId, regId2, onLocalNetwork)
   const debouncedMediaAction = useRef<UseMutateFunction<
     unknown,
     Error,
@@ -95,7 +96,7 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
     [deviceId, regId2, onLocalNetwork],
   )
 
-  const { mutate: mediaAction } = useMediaAction(deviceId, regId2)
+  const { mutate: mediaAction } = useMediaAction(deviceId, regId2, onLocalNetwork)
 
   let info: JSX.Element
   if (isPending) {
