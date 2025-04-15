@@ -5,8 +5,8 @@ import type { DeviceInfo, MediaAction, Push } from './types'
 // Custom APIs for renderer
 export const api = {
   logInWithGoogle: () => r.send('log-in-with-google'),
-  openRemoteFile: (deviceId: string, regId: string, path: string, fileName: string) =>
-    r.send('open-remote-file', deviceId, regId, path, fileName),
+  openRemoteFile: (deviceId: string, regId2: string, path: string, fileName: string) =>
+    r.send('open-remote-file', deviceId, regId2, path, fileName),
   getRemoteUrl: (deviceId: string, path: string) => r.invoke('get-remote-url', deviceId, path),
 
   startPushReceiver: () => r.invoke('start-push-receiver'),
@@ -14,18 +14,18 @@ export const api = {
   isLoggedInWithGoogle: () => r.invoke('is-logged-in-with-google'),
   getAccessToken: () => r.invoke('get-access-token'),
 
-  mediaAction: (deviceId: string, regId: string, action: MediaAction) =>
-    r.invoke('media-action', deviceId, regId, action),
-  media: (deviceId: string, regId: string) => r.invoke('media', deviceId, regId),
+  mediaAction: (deviceId: string, regId2: string, action: MediaAction) =>
+    r.invoke('media-action', deviceId, regId2, action),
+  media: (deviceId: string, regId2: string) => r.invoke('media', deviceId, regId2),
 
-  folders: (deviceId: string, regId: string, path: string) =>
-    r.invoke('folders', deviceId, regId, path),
-  contacts: (deviceId: string, regId: string) => r.invoke('contacts', deviceId, regId),
-  sms: (deviceId: string, regId: string) => r.invoke('sms', deviceId, regId),
+  folders: (deviceId: string, regId2: string, path: string) =>
+    r.invoke('folders', deviceId, regId2, path),
+  contacts: (deviceId: string, regId2: string) => r.invoke('contacts', deviceId, regId2),
+  sms: (deviceId: string, regId2: string) => r.invoke('sms', deviceId, regId2),
   smsChat: (deviceId: string, regId2: string, address: string) =>
     r.invoke('sms-chat', deviceId, regId2, address),
-  smsSend: (deviceId: string, regId: string, smsnumber: string, smstext: string) =>
-    r.invoke('sms-send', deviceId, regId, smsnumber, smstext),
+  smsSend: (deviceId: string, regId2: string, smsnumber: string, smstext: string) =>
+    r.invoke('sms-send', deviceId, regId2, smsnumber, smstext),
   call: (deviceId: string, regId2: string, callnumber: string) =>
     r.send('call', deviceId, regId2, callnumber),
   actions: () => r.invoke('actions') as Promise<string[]>,
