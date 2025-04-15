@@ -21,7 +21,7 @@ function Root() {
     if (!isLoggedIn || (isLoggedIn && !deviceId)) {
       navigate({ from: '/', to: '/login' })
     } else if (isLoggedIn && deviceId) {
-      navigate({ from: '/', to: '/devices', search: { onLocalNetworkDevices: {} } })
+      navigate({ from: '/', to: '/devices' })
     }
   }, [deviceId, isLoggedIn, navigate])
 
@@ -32,11 +32,7 @@ function Root() {
           <div className="flex gap-2 p-2">
             {/* TODO: maybe show all buttons and a selector for avilable devices */}
             {/* TODO: some kind of back button (? */}
-            <Link
-              to="/devices"
-              className="text-xl [&.active]:font-bold"
-              search={{ onLocalNetworkDevices: {} }}
-            >
+            <Link to="/devices" className="text-xl [&.active]:font-bold">
               Devices
             </Link>
             <Link to="/shortcuts" className="text-xl [&.active]:font-bold">

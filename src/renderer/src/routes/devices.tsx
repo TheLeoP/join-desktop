@@ -11,39 +11,16 @@ import {
 } from '@renderer/util'
 import { queryOptions, UseMutateFunction, useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { zodValidator } from '@tanstack/zod-adapter'
 import debounce from 'lodash.debounce'
 import { useEffect, useRef, useState } from 'react'
 import { MediaAction, MediaInfo, DeviceInfo } from 'src/preload/types'
-import { z } from 'zod'
-
-const searchSchema = z.object({
-  onLocalNetworkDevices: z.record(z.string(), z.boolean()),
-})
 
 export const Route = createFileRoute('/devices')({
   component: RouteComponent,
 
-  loaderDeps: ({ search: { onLocalNetworkDevices } }) => ({
-    onLocalNetworkDevices,
-  }),
-  loader: async ({ deps: { onLocalNetworkDevices } }) => {
-    queryClient.ensureQueryData(devicesQueryOptions).then((devices) => {
-      devices.records.forEach(async (device) => {
-        const deviceType = device.deviceType
-        if (deviceType !== DeviceType.android_phone && deviceType !== DeviceType.android_tablet)
-          return
-        await queryClient.ensureQueryData(
-          mediaQueryOptions(
-            device.deviceId,
-            device.regId2,
-            !!onLocalNetworkDevices[device.deviceId],
-          ),
-        )
-      })
-    })
+  loader: async () => {
+    queryClient.ensureQueryData(devicesQueryOptions)
   },
-  validateSearch: zodValidator(searchSchema),
 })
 
 function Volume({
@@ -277,17 +254,6 @@ function Device({
 
 function RouteComponent() {
   const deviceId = useDeviceId()
-  const onLocalNetwork = useOnLocalNetwork(deviceId)
-  const navigate = useNavigate({ from: Route.fullPath })
-  useEffect(() => {
-    navigate({
-      search: (prev) => {
-        if (!deviceId) return prev
-
-        return { ...prev, [deviceId]: onLocalNetwork }
-      },
-    })
-  }, [onLocalNetwork, navigate, deviceId])
   const { data: devices, error, isPending, isError } = useDevices()
 
   if (isPending) {
