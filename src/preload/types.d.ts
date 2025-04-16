@@ -309,3 +309,7 @@ export type LocationInfo = {
   latitude: number
   longitude: number
 }
+
+export type Settings = {
+  autostart: boolean
+}

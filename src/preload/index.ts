@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer as r } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { DeviceInfo, MediaAction, Push } from './types'
+import type { DeviceInfo, MediaAction, Push, Settings } from './types'
 
 // Custom APIs for renderer
 export const api = {
@@ -33,9 +33,10 @@ export const api = {
   actions: () => r.invoke('actions') as Promise<string[]>,
   pushHistory: (deviceId: string) => r.invoke('push-history', deviceId) as Promise<Push[]>,
   shortcutsSave: (shortcuts: Map<string, string>) => r.invoke('shortcuts-save', shortcuts),
+  settingsSave: (settings: Settings) => r.invoke('settings-save', settings),
 
   onLocalNetwork: (cb: (deviceId: string, onLocalNetwork: boolean) => void) => {
-    const f = (_, deviceId: string, onLocalNetwork: boolean) => {
+    const f = (_: Electron.IpcRendererEvent, deviceId: string, onLocalNetwork: boolean) => {
       cb(deviceId, onLocalNetwork)
     }
 
@@ -45,7 +46,7 @@ export const api = {
     }
   },
   onDeviceId: (cb: (deviceId: string) => void) => {
-    const f = (_, deviceId: string) => cb(deviceId)
+    const f = (_: Electron.IpcRendererEvent, deviceId: string) => cb(deviceId)
 
     r.on('on-device-id', f)
     return () => {
@@ -53,29 +54,36 @@ export const api = {
     }
   },
   onLogIn: (cb: () => void) => {
-    const f = (_) => cb()
+    const f = (_: Electron.IpcRendererEvent) => cb()
     r.on('on-log-in', f)
     return () => {
       r.off('on-log-in', f)
     }
   },
   onSpeak: (cb: (say: string, language: string | undefined) => void) => {
-    const f = (_, say: string, language: string) => cb(say, language)
+    const f = (_: Electron.IpcRendererEvent, say: string, language: string) => cb(say, language)
     r.on('on-speak', f)
     return () => {
       r.off('on-speak', f)
     }
   },
   onShortcuts: (cb: (shortcuts: Map<string, string>) => void) => {
-    const f = (_, shortcuts: Map<string, string>) => cb(shortcuts)
+    const f = (_: Electron.IpcRendererEvent, shortcuts: Map<string, string>) => cb(shortcuts)
     r.on('on-shortcuts', f)
     return () => {
       r.off('on-shortcuts', f)
     }
   },
+  onSettings: (cb: (settings: Settings) => void) => {
+    const f = (_: Electron.IpcRendererEvent, settings: Settings) => cb(settings)
+    r.on('on-settings', f)
+    return () => {
+      r.off('on-settings', f)
+    }
+  },
 
   onPopUpDevices: (cb: (devices: DeviceInfo[]) => void) => {
-    const f = (_, devices: DeviceInfo[]) => cb(devices)
+    const f = (_: Electron.IpcRendererEvent, devices: DeviceInfo[]) => cb(devices)
     r.on('on-pop-up-devices', f)
     return () => {
       r.off('on-pop-up-devices', f)

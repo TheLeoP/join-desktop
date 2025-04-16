@@ -54,6 +54,9 @@ function Root() {
             <Link to="/shortcuts" className="text-xl [&.active]:font-bold">
               Shortcuts
             </Link>
+            <Link to="/settings" className="text-xl [&.active]:font-bold">
+              Settings
+            </Link>
           </div>
           <hr />
         </>

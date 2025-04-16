@@ -48,8 +48,8 @@ import {
   FoldersResponse,
   SmsResponse,
   LocationInfo,
-  PushType,
   DeviceTypes,
+  Settings,
 } from '../preload/types'
 import { basename } from 'node:path'
 
@@ -62,6 +62,7 @@ const tokenFile = `${dataDir}/token.json`
 const devicesFile = `${dataDir}/devices.json`
 const deviceIdFile = `${dataDir}/deviceId`
 const shortcutsFile = `${dataDir}/shortcuts.json`
+const settingsFile = `${dataDir}/settings.json`
 const notificationImage = nativeImage.createFromPath(joinIcon).resize({ width: 50 })
 const batteryOkImage = nativeImage.createFromPath(batteryOkIcon).resize({ width: 50 })
 const batteryChargingImage = nativeImage.createFromPath(batteryChargingIcon).resize({ width: 50 })
@@ -70,7 +71,7 @@ const batteryLowImage = nativeImage.createFromPath(batteryLowIcon).resize({ widt
 const notifications = new Map<string, Notification>()
 let devices: Map<string, { secureServerAddress?: string }>
 let shortcuts: Map<string, keyof Actions>
-
+let settings: Settings
 const mediaRequests = new Map<string, (mediaInfo: MediaInfo | null) => void>()
 const folderRequests = new Map<string, (folderInfo: FolderInfo | null) => void>()
 const fileRequests = new Map<string, (folderInfo: FileInfo | null) => void>()
@@ -159,8 +160,6 @@ const fcm = google.fcm('v1')
 const drive = google.drive('v3')
 
 const joinAutoLauncher = new AutoLaunch({ name: 'join-desktop', isHidden: true })
-// TODO: allow disabling in settings
-joinAutoLauncher.enable()
 
 async function logInWithGoogle(win: BrowserWindow) {
   if (Object.keys(oauth2Client.credentials).length !== 0) return win.webContents.send('on-log-in')
@@ -833,7 +832,6 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
         return
       }
 
-      // TODO: support reading settings and modyfing behaviour accordingly?
       let n: Notification | undefined
       switch (data.type) {
         case 'GCMPush': {
@@ -1128,6 +1126,29 @@ async function getDevicesInfo() {
   return devicesInfo
 }
 
+async function saveShortcuts(newShortcuts: Map<string, keyof Actions>) {
+  await afs.writeFile(shortcutsFile, JSON.stringify(newShortcuts, mapReplacer), 'utf-8')
+}
+
+function applyShortcuts(shortcuts: Map<string, keyof Actions>) {
+  globalShortcut.unregisterAll()
+  shortcuts.forEach((action, accelerator) => {
+    globalShortcut.register(accelerator, async () => {
+      await actions[action](popupWin)
+    })
+  })
+}
+
+async function saveSettings(newSettings: Settings) {
+  await afs.writeFile(settingsFile, JSON.stringify(newSettings), 'utf-8')
+}
+
+function applySettings(settings: Settings) {
+  // TODO: mention in README that the app needs to be opened at least once in order for autostart to work?
+  if (settings.autostart) joinAutoLauncher.enable()
+  else joinAutoLauncher.disable()
+}
+
 function createWindow(tray: Tray) {
   // Create the browser window.
   const win = new BrowserWindow({
@@ -1334,15 +1355,22 @@ function createWindow(tray: Tray) {
     try {
       const content = await afs.readFile(shortcutsFile, 'utf-8')
       shortcuts = JSON.parse(content, mapReviver)
-      shortcuts.forEach((action, accelerator) => {
-        globalShortcut.register(accelerator, async () => {
-          await actions[action](popupWin)
-        })
-      })
+      applyShortcuts(shortcuts)
     } catch {
       shortcuts = new Map()
     }
     win.webContents.send('on-shortcuts', shortcuts)
+    // TODO: maybe read all of these files before ready-to-show, but send the UI a notification after ready-to-show
+    try {
+      const content = await afs.readFile(settingsFile, 'utf-8')
+      settings = JSON.parse(content)
+    } catch {
+      settings = {
+        autostart: true,
+      }
+    }
+    applySettings(settings)
+    win.webContents.send('on-settings', settings)
   })
 
   win.webContents.setWindowOpenHandler((details) => {
@@ -1962,13 +1990,13 @@ app.whenReady().then(() => {
   })
   m.handle('shortcuts-save', async (_, newShortcuts: Map<string, keyof Actions>) => {
     shortcuts = newShortcuts
-    await afs.writeFile(shortcutsFile, JSON.stringify(shortcuts, mapReplacer), 'utf-8')
-    globalShortcut.unregisterAll()
-    shortcuts.forEach((action, accelerator) => {
-      globalShortcut.register(accelerator, async () => {
-        await actions[action](popupWin)
-      })
-    })
+    saveShortcuts(newShortcuts)
+    applyShortcuts(newShortcuts)
+  })
+  m.handle('settings-save', async (_, newSettings: Settings) => {
+    settings = newSettings
+    saveSettings(newSettings)
+    applySettings(newSettings)
   })
 
   createWindow(tray)

@@ -5,9 +5,10 @@ import {
   devicesOnLocalNetworkContext,
   isLoggedInContext,
   ReverseDeviceType,
+  settingsContext,
   shortcutsContext,
 } from './util'
-import { type DeviceInfo } from 'src/preload/types'
+import { Settings, type DeviceInfo } from 'src/preload/types'
 
 export function JoinProvider({ children }: { children: ReactNode }) {
   const [devicesOnLocalNetwork, setDevicesOnLocalNetwork] = useState<Record<string, boolean>>({})
@@ -47,11 +48,24 @@ export function JoinProvider({ children }: { children: ReactNode }) {
     return () => removeListener()
   }, [])
 
+  const [settings, setSettings] = useState<Settings | null>(null)
+  useEffect(() => {
+    const removeListener = window.api.onSettings((newSettings) => {
+      setSettings(newSettings)
+    })
+
+    return () => removeListener()
+  }, [])
+
   return (
     <devicesOnLocalNetworkContext.Provider value={devicesOnLocalNetwork}>
       <isLoggedInContext.Provider value={isLoggedIn}>
         <shortcutsContext.Provider value={[shortcuts, setShortcuts]}>
-          <deviceIdContext.Provider value={deviceId}>{children}</deviceIdContext.Provider>
+          <deviceIdContext.Provider value={deviceId}>
+            <settingsContext.Provider value={[settings, setSettings]}>
+              {children}
+            </settingsContext.Provider>
+          </deviceIdContext.Provider>
         </shortcutsContext.Provider>
       </isLoggedInContext.Provider>
     </devicesOnLocalNetworkContext.Provider>

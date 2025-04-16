@@ -1,6 +1,14 @@
 import { QueryClient, queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { createContext, useContext } from 'react'
-import { MediaAction, MediaInfo, DeviceInfo, ContactInfo, SmsInfo, Data } from 'src/preload/types'
+import {
+  MediaAction,
+  MediaInfo,
+  DeviceInfo,
+  ContactInfo,
+  SmsInfo,
+  Data,
+  Settings,
+} from 'src/preload/types'
 
 export const queryClient = new QueryClient()
 
@@ -69,6 +77,17 @@ export function useOnLocalNetwork(deviceId: string | null) {
 
   const onLocalNetwork = devicesOnLocalNetwork ? devicesOnLocalNetwork[deviceId] : false
   return onLocalNetwork
+}
+
+export const settingsContext = createContext<
+  [Settings, React.Dispatch<React.SetStateAction<Settings>>] | null
+>(null)
+export function useSettings() {
+  const settings = useContext(settingsContext)
+  if (settings === null) {
+    throw new Error('settings context is null')
+  }
+  return settings
 }
 
 export function useMediaAction(deviceId: string, regId2: string, onLocalNetwork: boolean) {

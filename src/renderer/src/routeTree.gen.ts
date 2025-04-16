@@ -14,6 +14,7 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as SmsChatImport } from './routes/smsChat'
 import { Route as SmsImport } from './routes/sms'
 import { Route as ShortcutsImport } from './routes/shortcuts'
+import { Route as SettingsImport } from './routes/settings'
 import { Route as LoginImport } from './routes/login'
 import { Route as HistoryImport } from './routes/history'
 import { Route as FilesImport } from './routes/files'
@@ -38,6 +39,12 @@ const SmsRoute = SmsImport.update({
 const ShortcutsRoute = ShortcutsImport.update({
   id: '/shortcuts',
   path: '/shortcuts',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const SettingsRoute = SettingsImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -123,6 +130,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginImport
       parentRoute: typeof rootRoute
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsImport
+      parentRoute: typeof rootRoute
+    }
     '/shortcuts': {
       id: '/shortcuts'
       path: '/shortcuts'
@@ -156,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/files': typeof FilesRoute
   '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/shortcuts': typeof ShortcutsRoute
   '/sms': typeof SmsRoute
   '/smsChat': typeof SmsChatRoute
@@ -168,6 +183,7 @@ export interface FileRoutesByTo {
   '/files': typeof FilesRoute
   '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/shortcuts': typeof ShortcutsRoute
   '/sms': typeof SmsRoute
   '/smsChat': typeof SmsChatRoute
@@ -181,6 +197,7 @@ export interface FileRoutesById {
   '/files': typeof FilesRoute
   '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/shortcuts': typeof ShortcutsRoute
   '/sms': typeof SmsRoute
   '/smsChat': typeof SmsChatRoute
@@ -195,6 +212,7 @@ export interface FileRouteTypes {
     | '/files'
     | '/history'
     | '/login'
+    | '/settings'
     | '/shortcuts'
     | '/sms'
     | '/smsChat'
@@ -206,6 +224,7 @@ export interface FileRouteTypes {
     | '/files'
     | '/history'
     | '/login'
+    | '/settings'
     | '/shortcuts'
     | '/sms'
     | '/smsChat'
@@ -217,6 +236,7 @@ export interface FileRouteTypes {
     | '/files'
     | '/history'
     | '/login'
+    | '/settings'
     | '/shortcuts'
     | '/sms'
     | '/smsChat'
@@ -230,6 +250,7 @@ export interface RootRouteChildren {
   FilesRoute: typeof FilesRoute
   HistoryRoute: typeof HistoryRoute
   LoginRoute: typeof LoginRoute
+  SettingsRoute: typeof SettingsRoute
   ShortcutsRoute: typeof ShortcutsRoute
   SmsRoute: typeof SmsRoute
   SmsChatRoute: typeof SmsChatRoute
@@ -242,6 +263,7 @@ const rootRouteChildren: RootRouteChildren = {
   FilesRoute: FilesRoute,
   HistoryRoute: HistoryRoute,
   LoginRoute: LoginRoute,
+  SettingsRoute: SettingsRoute,
   ShortcutsRoute: ShortcutsRoute,
   SmsRoute: SmsRoute,
   SmsChatRoute: SmsChatRoute,
@@ -263,6 +285,7 @@ export const routeTree = rootRoute
         "/files",
         "/history",
         "/login",
+        "/settings",
         "/shortcuts",
         "/sms",
         "/smsChat"
@@ -285,6 +308,9 @@ export const routeTree = rootRoute
     },
     "/login": {
       "filePath": "login.tsx"
+    },
+    "/settings": {
+      "filePath": "settings.tsx"
     },
     "/shortcuts": {
       "filePath": "shortcuts.tsx"
