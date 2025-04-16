@@ -43,10 +43,10 @@ You can configure this app to execute custom Javascript functions in response to
 
 1. Go to the `Settings` tab in the app
 2. Click `New script`
-3. Write a `Command` (the name of the Join action that should execute this script, for example `foo`) and `Script` (the name of the script that's gonna be executed, for example `foo.mjs`) for this new script
+3. Write a `Command` (a regular expression that should match the Join action that will execute this script, for example `^foo`) and `Script` (the name of the script that's gonna be executed, for example `foo.mjs`) for this new script
 4. Click `Save`
 5. Go to this app's configuration directory (`%APPDATA%/join-desktop/` on Windows, `~/.config/join-desktop/` on Linux and, `~/Library/Application Support/join-desktop/` on Mac)
-6. Create a new directory named `scripts`
+6. Create a new directory named `scripts` if it doesn't exist already
 7. Put/create your custom Javascript script inside of it using the same name you used in step 3 (for example, `foo.mjs`)
 8. The default export of the module should be a function with the signature `(values: string, valuesArray: string[]) => void`
 
