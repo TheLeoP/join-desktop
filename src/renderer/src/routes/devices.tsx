@@ -25,7 +25,6 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import debounce from 'lodash.debounce'
 import { useEffect, useRef, useState } from 'react'
 import { MediaAction, MediaInfo, DeviceInfo, Data } from 'src/preload/types'
-import { record } from 'zod'
 
 export const Route = createFileRoute('/devices')({
   component: RouteComponent,
@@ -313,7 +312,7 @@ function Device({
           to="/history"
           search={{ deviceId }}
           from="/devices"
-          className="w-full bg-orange-100 text-center text-xl"
+          className="w-full bg-orange-100 text-center text-xl hover:bg-orange-200"
         >
           History
         </Link>
@@ -346,7 +345,7 @@ function Device({
               to="/files"
               search={{ regId2, deviceId, onLocalNetwork }}
               from="/devices"
-              className="w-full bg-orange-100 text-center text-xl"
+              className="w-full bg-orange-100 text-center text-xl hover:bg-orange-200"
             >
               Files
             </Link>
@@ -354,7 +353,7 @@ function Device({
               to="/contacts"
               search={{ regId2, deviceId, onLocalNetwork }}
               from="/devices"
-              className="w-full bg-orange-100 text-center text-xl"
+              className="w-full bg-orange-100 text-center text-xl hover:bg-orange-200"
             >
               Contacts
             </Link>
@@ -362,7 +361,7 @@ function Device({
               to="/sms"
               search={{ regId2, deviceId, onLocalNetwork }}
               from="/devices"
-              className="w-full bg-orange-100 text-center text-xl"
+              className="w-full bg-orange-100 text-center text-xl hover:bg-orange-200"
             >
               SMS
             </Link>
