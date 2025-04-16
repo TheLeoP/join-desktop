@@ -914,9 +914,7 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
                 const script = module.default as (values: string, valuesArray: string[]) => void
                 script(push.values, push.valuesArray as string[])
                 ok = true
-              } catch (e) {
-                console.error(e)
-              }
+              } catch (e) {}
             }
             n = new Notification({
               title: `Command received: ${push.text}`,
