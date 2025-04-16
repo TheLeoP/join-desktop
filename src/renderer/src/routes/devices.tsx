@@ -1,3 +1,14 @@
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogCancel,
+  AlertDialogAction,
+  AlertDialogFooter,
+  AlertDialogHeader,
+} from '@renderer/components/ui/alert-dialog'
 import * as svg from '@renderer/svgs'
 import {
   devicesQueryOptions,
@@ -306,17 +317,29 @@ function Device({
         >
           History
         </Link>
-        <button
-          className="w-full cursor-pointer bg-red-500 text-center text-xl text-white hover:bg-red-600 active:bg-red-700"
-          onClick={() => {
-            // TODO: use better confirm dialog
-            const proceed = confirm('Are you sure?')
-            if (!proceed) return
-            deleteDevice({ deviceId })
-          }}
-        >
-          Delete
-        </button>
+
+        <AlertDialog>
+          <AlertDialogTrigger className="cursor-pointer bg-red-500 text-xl text-white hover:bg-red-600 active:bg-red-700">
+            Delete
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="cursor-pointer"
+                onClick={() => {
+                  deleteDevice({ deviceId })
+                }}
+              >
+                Continue
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         {(deviceType === DeviceType.android_phone || deviceType === DeviceType.android_tablet) && (
           <>
             <Link

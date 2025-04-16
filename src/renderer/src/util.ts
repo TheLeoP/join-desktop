@@ -1,5 +1,5 @@
 import { QueryClient, queryOptions, useMutation, useQuery } from '@tanstack/react-query'
-import { useState, useEffect, createContext, useContext } from 'react'
+import { createContext, useContext } from 'react'
 import { MediaAction, MediaInfo, DeviceInfo, ContactInfo, SmsInfo, Data } from 'src/preload/types'
 
 export const queryClient = new QueryClient()
