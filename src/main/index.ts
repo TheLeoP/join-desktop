@@ -905,10 +905,14 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
               body: push.text,
               icon: notificationImage,
             })
-          } else if (push.text !== undefined && push.values !== undefined) {
-            const scriptName = settings.scripts.get(push.text)
+          } else if (push.text && push.text !== undefined && push.values !== undefined) {
+            const key = settings.scripts
+              .keys()
+              .find((command) => new RegExp(command).test(push.text as string))
+
             let ok = false
-            if (scriptName) {
+            if (key) {
+              const scriptName = settings.scripts.get(key)
               try {
                 const module = await import(scriptsDir + '/' + scriptName)
                 const script = module.default as (values: string, valuesArray: string[]) => void
@@ -918,7 +922,7 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
             }
             n = new Notification({
               title: `Command received: ${push.text}`,
-              body: ok ? `values: ${push.values}` : 'No script found. Doing nothing',
+              body: ok ? 'Script executed correctly' : 'No script found, nothing was done',
             })
           } else {
             // TODO: do something else?
