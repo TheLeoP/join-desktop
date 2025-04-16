@@ -32,9 +32,8 @@ Note: there is no guarantee that any feature will be implemented in the future. 
 - Push history on all devices
 - Rename/delete devices
 - Global shortcuts
-- Execute custom Javascript functions as a response to a Join action. Check [Custom scripts](#custom-scripts) for in-depth information.
-
   - Includes a picker to dynamically choose which device should be used for an action.
+- Execute custom Javascript functions as a response to a Join action. Check [Custom scripts](#custom-scripts) for in-depth information.
 
 ## Custom scripts
 
