@@ -16,6 +16,8 @@ No, the app is supported in an best effort basis. Most of the features have been
 
 If there's a Join feature that the app doesn't support and you would like to use, please open an Issue with a Feature Request describing it.
 
+Note: there is no guarantee that any feature will be implemented in the future. This is a hobby project.
+
 ## Current features
 
 - Listening on the background for Pushes from other devices:
@@ -30,8 +32,39 @@ If there's a Join feature that the app doesn't support and you would like to use
 - Push history on all devices
 - Rename/delete devices
 - Global shortcuts
+- Execute custom Javascript functions as a response to a Join action. Check [Custom scripts](#custom-scripts) for in-depth information.
 
   - Includes a picker to dynamically choose which device should be used for an action.
+
+## Custom scripts
+
+You can configure this app to execute custom Javascript functions in response to any Join command.
+
+### How
+
+1. Go to the `Settings` tab in the app
+2. Click `New script`
+3. Write a `Command` (the name of the Join action that should execute this script, for example `foo`) and `Script` (the name of the script that's gonna be executed, for example `foo.mjs`) for this new script
+4. Click `Save`
+5. Go to this app's configuration directory (`%APPDATA%/join-desktop/` on Windows, `~/.config/join-desktop/` on Linux and, `~/Library/Application Support/join-desktop/` on Mac)
+6. Create a new directory named `scripts`
+7. Put/create your custom Javascript script inside of it using the same name you used in step 3 (for example, `foo.mjs`)
+8. The default export of the module should be a function with the signature `(values: string, valuesArray: string[]) => void`
+
+### Example script
+
+The following script will print the value of both `values` and `valuesArray`:
+
+```javascript
+/**
+ * @param {string} values
+ * @param {string[]} valuesArray
+ */
+export default function action(values, valuesArray) {
+  console.log('values: %s', values)
+  console.log('valuesArray: %s', valuesArray)
+}
+```
 
 ## Join intrinsic limitations
 
