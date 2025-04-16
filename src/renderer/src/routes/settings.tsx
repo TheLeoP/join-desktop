@@ -11,7 +11,7 @@ function RouteComponent() {
 
   return (
     <form
-      className="mt-1 flex min-w-100 flex-col items-center justify-center space-y-1"
+      className="mt-1 flex flex-col items-center justify-center space-y-1"
       onSubmit={(e) => {
         e.preventDefault()
 
@@ -33,7 +33,7 @@ function RouteComponent() {
         setSettings(newSettings)
       }}
     >
-      <div className="min-w-100 space-y-1">
+      <div className="min-w-200 space-y-1">
         <div className="flex flex-col items-center rounded-md bg-orange-100 p-2">
           <h1 className="text-2xl font-bold">General</h1>
           <hr className="w-full" />
@@ -60,7 +60,7 @@ function RouteComponent() {
                 <th></th>
               </tr>
             </thead>
-            <tbody className="h-10">
+            <tbody>
               {[...settings.scripts.keys()].map((command, i) => {
                 const script = settings.scripts.get(command)
                 return (
