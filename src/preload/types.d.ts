@@ -146,6 +146,8 @@ type Push = {
   smsnumber?: string
   smstext?: string
   requestId?: 'SMS' | '' // TODO: what other cases are there?
+  values?: string
+  valuesArray?: string[]
 }
 type PushWrapper = {
   push: Push
@@ -312,4 +314,5 @@ export type LocationInfo = {
 
 export type Settings = {
   autostart: boolean
+  scripts: Map<string, string>
 }

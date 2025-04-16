@@ -63,6 +63,7 @@ const devicesFile = `${dataDir}/devices.json`
 const deviceIdFile = `${dataDir}/deviceId`
 const shortcutsFile = `${dataDir}/shortcuts.json`
 const settingsFile = `${dataDir}/settings.json`
+const scriptsDir = `${dataDir}/scripts`
 const notificationImage = nativeImage.createFromPath(joinIcon).resize({ width: 50 })
 const batteryOkImage = nativeImage.createFromPath(batteryOkIcon).resize({ width: 50 })
 const batteryChargingImage = nativeImage.createFromPath(batteryChargingIcon).resize({ width: 50 })
@@ -836,7 +837,7 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
       switch (data.type) {
         case 'GCMPush': {
           const push = (content as PushWrapper).push
-          // TODO: handle commands (they have text and some other field (command/args/arguments/options or something similar))
+
           if (push.clipboard && push.clipboard !== 'Clipboard not set') {
             clipboard.writeText(push.clipboard)
             n = new Notification({
@@ -899,11 +900,27 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
               icon: notificationImage,
             })
           } else if (push.title) {
-            // TODO: handle custom commands. They will be on `text` and there won't be any title
             n = new Notification({
               title: push.title,
               body: push.text,
               icon: notificationImage,
+            })
+          } else if (push.text !== undefined && push.values !== undefined) {
+            const scriptName = settings.scripts.get(push.text)
+            let ok = false
+            if (scriptName) {
+              try {
+                const module = await import(scriptsDir + '/' + scriptName)
+                const script = module.default as (values: string, valuesArray: string[]) => void
+                script(push.values, push.valuesArray as string[])
+                ok = true
+              } catch (e) {
+                console.error(e)
+              }
+            }
+            n = new Notification({
+              title: `Command received: ${push.text}`,
+              body: ok ? `values: ${push.values}` : 'No script found. Doing nothing',
             })
           } else {
             // TODO: do something else?
@@ -1140,7 +1157,7 @@ function applyShortcuts(shortcuts: Map<string, keyof Actions>) {
 }
 
 async function saveSettings(newSettings: Settings) {
-  await afs.writeFile(settingsFile, JSON.stringify(newSettings), 'utf-8')
+  await afs.writeFile(settingsFile, JSON.stringify(newSettings, mapReplacer), 'utf-8')
 }
 
 function applySettings(settings: Settings) {
@@ -1363,10 +1380,11 @@ function createWindow(tray: Tray) {
     // TODO: maybe read all of these files before ready-to-show, but send the UI a notification after ready-to-show
     try {
       const content = await afs.readFile(settingsFile, 'utf-8')
-      settings = JSON.parse(content)
+      settings = JSON.parse(content, mapReviver)
     } catch {
       settings = {
         autostart: true,
+        scripts: new Map<string, string>(),
       }
     }
     applySettings(settings)

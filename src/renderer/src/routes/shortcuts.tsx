@@ -54,6 +54,7 @@ function RouteComponent() {
           <tr>
             <th>Keyboard shortcut</th>
             <th>Action</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -80,7 +81,7 @@ function RouteComponent() {
                 </td>
                 <td>
                   <button
-                    className="cursor-pointer rounded-md bg-red-600 p-1 text-white hover:bg-red-700 active:bg-red-800"
+                    className="m-1 cursor-pointer rounded-md bg-red-600 p-1 text-white hover:bg-red-700 active:bg-red-800"
                     onClick={(e) => {
                       e.preventDefault()
                       setShortcuts((shortcuts) => {
