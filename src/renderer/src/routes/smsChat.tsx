@@ -1,4 +1,4 @@
-import { contactsQueryOptions, queryClient, useContacts } from '@renderer/util'
+import { contactsQueryOptions, queryClient } from '@renderer/util'
 import { queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'

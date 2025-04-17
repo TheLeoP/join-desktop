@@ -77,7 +77,7 @@ const mediaRequests = new Map<string, (mediaInfo: MediaInfo | null) => void>()
 const folderRequests = new Map<string, (folderInfo: FolderInfo | null) => void>()
 const fileRequests = new Map<string, (folderInfo: FileInfo | null) => void>()
 const contactRequests = new Map<string, (contactInfo: ContactInfo[] | null) => void>()
-const smsThreadRequests = new Map<string, (smsThreadInfo: SmsInfo[] | null) => void>()
+const smsRequests = new Map<string, (smsInfo: SmsInfo[] | null) => void>()
 const smsChatRequests = new Map<string, (smsChatInfo: SmsInfo[] | null) => void>()
 
 function mapReplacer(key, value: []) {
@@ -605,7 +605,7 @@ async function getContactsNonLocal(deviceId: string) {
   return contactsInfo
 }
 
-async function getSmsThreadsNonLocal(deviceId: string) {
+async function getSmsNonLocal(deviceId: string) {
   const smssFileName = `lastsms=:=${deviceId}`
   const response = await drive.files.list({
     q: `name = '${smssFileName}' and trashed = false`,
@@ -1053,10 +1053,10 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
                     const contactsInfo = await getContactsNonLocal(deviceId)
                     contactRequest(contactsInfo)
                   }
-                  const smsThreadRequest = smsThreadRequests.get(deviceId)
-                  if (smsThreadRequest) {
-                    const smsInfo = await getSmsThreadsNonLocal(deviceId)
-                    smsThreadRequest(smsInfo)
+                  const smsRequest = smsRequests.get(deviceId)
+                  if (smsRequest) {
+                    const smsInfo = await getSmsNonLocal(deviceId)
+                    smsRequest(smsInfo)
                   }
                 }),
               )
@@ -1069,7 +1069,7 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
 
               await Promise.all(
                 response.request.deviceIds.map(async (deviceId) => {
-                  const smsChatRequest = smsChatRequests.get(deviceId)
+                  const smsChatRequest = smsChatRequests.get(`${deviceId}${address}`)
                   if (!smsChatRequest) return
 
                   const smsInfo = await getSmsChatsNonLocal(deviceId, address)
@@ -1914,24 +1914,23 @@ app.whenReady().then(() => {
       })
     } else {
       // when the lastsms file doesn't exists yet, we need to send a message to the device to create it
-      // TODO: the file won't be updated unless requested to. Add button to do so? Or do it always like on sms chats?
       try {
-        const smsThreadsInfo = await getSmsThreadsNonLocal(deviceId)
-        return smsThreadsInfo
+        const smsInfo = await getSmsNonLocal(deviceId)
+        return smsInfo
       } catch (e) {
         await requestContactsAndLastSmSCreation(deviceId, regId2)
 
         return await new Promise((res, rej) => {
-          const request = smsThreadRequests.get(deviceId)
+          const request = smsRequests.get(deviceId)
           if (request) request(null)
 
-          smsThreadRequests.set(deviceId, (smsThreadInfo) => {
-            res(smsThreadInfo)
+          smsRequests.set(deviceId, (smsInfo) => {
+            res(smsInfo)
           })
           setTimeout(
             () => {
-              smsThreadRequests.delete(deviceId)
-              rej(new Error('SmsThread request timed out'))
+              smsRequests.delete(deviceId)
+              rej(new Error('Sms request timed out'))
             },
             2 * 60 * 1000,
           )
@@ -1986,15 +1985,15 @@ app.whenReady().then(() => {
       await requestSmsChatCreationOrUpdate(deviceId, regId2, address)
 
       return await new Promise((res, rej) => {
-        const request = smsChatRequests.get(deviceId)
+        const request = smsChatRequests.get(`${deviceId}${address}`)
         if (request) request(null)
 
-        smsChatRequests.set(deviceId, (smsChatInfo) => {
+        smsChatRequests.set(`${deviceId}${address}`, (smsChatInfo) => {
           res(smsChatInfo)
         })
         setTimeout(
           () => {
-            smsChatRequests.delete(deviceId)
+            smsChatRequests.delete(`${deviceId}${address}`)
             rej(new Error('SmsChat request timed out'))
           },
           2 * 60 * 1000,
