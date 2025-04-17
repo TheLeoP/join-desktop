@@ -75,7 +75,7 @@ export function useOnLocalNetwork(deviceId: string | null) {
 
   if (!deviceId) return false
 
-  const onLocalNetwork = devicesOnLocalNetwork ? devicesOnLocalNetwork[deviceId] : false
+  const onLocalNetwork = devicesOnLocalNetwork ? !!devicesOnLocalNetwork[deviceId] : false
   return onLocalNetwork
 }
 
