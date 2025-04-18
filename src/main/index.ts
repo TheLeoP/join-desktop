@@ -705,8 +705,8 @@ function createWindow(tray: Tray) {
     {
       label: 'Close',
       role: 'hide',
-      click: (_item, win, _event) => {
-        win?.hide()
+      click: () => {
+        win.hide()
       },
     },
   ])
