@@ -143,7 +143,7 @@ type Push = {
   responseType?: ResponseType[keyof ResponseType]
   smsnumber?: string
   smstext?: string
-  requestId?: 'SMS' | '' // TODO: what other cases are there?
+  requestId?: 'SMS' | 'batteryevent' // TODO: what other cases are there?
   values?: string
   valuesArray?: string[]
 }

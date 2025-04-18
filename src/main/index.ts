@@ -259,7 +259,6 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
               icon: notificationImage,
             })
           } else if (push.files && push.files.length > 0) {
-            // TODO: maybe handle base64 images?
             n = new Notification({
               title: 'Received files',
               body: 'Openning now...',
@@ -268,7 +267,22 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
             push.files
               .filter((file) => file.startsWith('https://'))
               .forEach((file) => {
-                return shell.openExternal(file)
+                const url = new URL(file)
+                const path = url.pathname
+                const parts = path.split('/')
+                const host = url.hostname
+
+                if (host === 'drive.google.com') {
+                  // https://drive.google.com/file/d/1ts8nAlpuX6CCiB7tkv8PzjnEDd1banM5/view?usp=sharing
+                  const id = parts[3]
+                  shell.openExternal(`https://drive.google.com/uc?export=download&id=${id}`)
+                } else if (host === 'www.googleapis.com') {
+                  // https://www.googleapis.com/drive/v2/files/1ts8nAlpuX6CCiB7tkv8PzjnEDd1banM5?alt=media
+                  const id = parts[4]
+                  shell.openExternal(`https://drive.google.com/uc?export=download&id=${id}`)
+                } else {
+                  shell.openExternal(file)
+                }
               })
           } else if (push.location) {
             // doesn't work in Electron because it needs a Google API_KEY with location API access
