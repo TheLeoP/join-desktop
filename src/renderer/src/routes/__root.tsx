@@ -1,3 +1,4 @@
+import { cn, buttonVariants } from '@renderer/lib/utils'
 import { useIsLoggedIn, useDeviceId } from '@renderer/util'
 import {
   createRootRoute,
@@ -69,4 +70,22 @@ function Root() {
 
 export const Route = createRootRoute({
   component: Root,
+  errorComponent: ({ error }) => {
+    const router = useRouter()
+
+    return (
+      <div className="flex h-screen flex-col items-center justify-center">
+        <h1 className="text-4xl">Error:</h1>
+        <span className="text-2xl text-red-600">{error.message}</span>
+        <button
+          className={cn(buttonVariants(), 'text-xl')}
+          onClick={() => {
+            router.invalidate()
+          }}
+        >
+          retry
+        </button>
+      </div>
+    )
+  },
 })
