@@ -5,31 +5,22 @@ import {
   ipcMain as m,
   clipboard,
   Notification,
-  nativeImage,
-  globalShortcut,
   Tray,
   Menu,
-  dialog,
 } from 'electron'
-import mime from 'mime'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import joinIcon from '../../resources/join.png?asset'
-import batteryOkIcon from '../../resources/battery_ok.png?asset'
-import batteryChargingIcon from '../../resources/battery_charging.png?asset'
-import batteryLowIcon from '../../resources/battery_low.png?asset'
 import * as fs from 'node:fs'
 import { promises as afs } from 'node:fs'
 import * as http from 'node:http'
 import { URL } from 'node:url'
 import { PushReceiver } from '@eneris/push-receiver'
 import { type MessageEnvelope, type Credentials } from '@eneris/push-receiver/dist/types'
-import { google } from 'googleapis'
 import * as https from 'node:https'
 import { v4 as uuidv4 } from 'uuid'
 import AutoLaunch from 'auto-launch'
 import {
-  Data,
   MediaInfo,
   FolderInfo,
   FileInfo,
@@ -43,17 +34,17 @@ import {
   DeviceNotOnLocalNetworkRequest,
   Status,
   RespondFile,
-  DeviceInfo,
   GenericResponse,
   FoldersResponse,
   SmsResponse,
   LocationInfo,
-  DeviceTypes,
   Settings,
 } from '../preload/types'
-import { basename } from 'node:path'
-
-const joinUrl = 'https://joinjoaomgcd.appspot.com/_ah/api'
+import { actions, Actions, fcmPush, setClipboard, smsSend, call } from './actions'
+import { createPopup, applyShortcuts } from './popup'
+import { getCachedDevicesInfo, getDevicesInfo, joinUrl, state } from './state'
+import { drive, fcm, jwtClient, oauth2Client } from './google'
+import { notificationImage, batteryOkImage, batteryLowImage } from './images'
 
 const dataDir = app.getPath('userData')
 const credentialsFile = `${dataDir}/credentials.json`
@@ -64,13 +55,8 @@ const deviceIdFile = `${dataDir}/deviceId`
 const shortcutsFile = `${dataDir}/shortcuts.json`
 const settingsFile = `${dataDir}/settings.json`
 const scriptsDir = `${dataDir}/scripts`
-const notificationImage = nativeImage.createFromPath(joinIcon).resize({ width: 50 })
-const batteryOkImage = nativeImage.createFromPath(batteryOkIcon).resize({ width: 50 })
-const batteryChargingImage = nativeImage.createFromPath(batteryChargingIcon).resize({ width: 50 })
-const batteryLowImage = nativeImage.createFromPath(batteryLowIcon).resize({ width: 50 })
 
 const notifications = new Map<string, Notification>()
-let devices: Map<string, { secureServerAddress?: string }>
 let shortcuts: Map<string, keyof Actions>
 let settings: Settings
 const mediaRequests = new Map<string, (mediaInfo: MediaInfo | null) => void>()
@@ -80,7 +66,7 @@ const contactRequests = new Map<string, (contactInfo: ContactInfo[] | null) => v
 const smsRequests = new Map<string, (smsInfo: SmsInfo[] | null) => void>()
 const smsChatRequests = new Map<string, (smsChatInfo: SmsInfo[] | null) => void>()
 
-function mapReplacer(key, value: []) {
+function mapReplacer(_key: unknown, value: unknown) {
   if (value instanceof Map) {
     return {
       dataType: 'Map',
@@ -91,10 +77,10 @@ function mapReplacer(key, value: []) {
   }
 }
 
-function mapReviver(key, value) {
+function mapReviver(_key: unknown, value: unknown) {
   if (typeof value === 'object' && value !== null) {
-    if (value.dataType === 'Map') {
-      return new Map(value.value)
+    if ((value as Record<string, unknown>).dataType === 'Map') {
+      return new Map((value as { value: [unknown, unknown][] }).value)
     }
   }
   return value
@@ -117,49 +103,6 @@ const devicesTypes = {
   mqtt: 14,
 } as const
 
-const joinAppId = '596310809542-giumrib7hohfiftljqmj7eaio3kl21ek.apps.googleusercontent.com'
-const joinAppSecret = 'NTA9UbFpNhaIP74B_lpxGgvR'
-const joinRedirectUri = 'http://127.0.0.1:9876'
-const oauth2Client = new google.auth.OAuth2(joinAppId, joinAppSecret, joinRedirectUri)
-google.options({ auth: oauth2Client })
-
-const email = 'fcm-sender@join-external-gcm.iam.gserviceaccount.com'
-const jwtSecret = `-----BEGIN PRIVATE KEY-----
-MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCybvuSZiNWISfi
-BiCMLXMtak93LGyE3faxnKg7TSvx19YJ0Stcofq7jyuehcHMhoksYVwSzdfYm8yV
-VIliNNVAysdI4bSELR8LTNF7wVzLi1UNfpjQGuxiWS0VIev1WuheqvHIbdiJtD38
-tQ89cGlKLiN5DizQD5cg6GGcyFwZv35jOQAIYuQhhJZWl8RRkemcndiZ+semmf6E
-TeSGnmbyFmhXyWySerdvyj+ZzvoPL4olo5deURlgoCg8uiv8ajVCOdOkOQ/E9J+n
-2yIwvjGk/VSeMxXpzQw+5Qj2/gvtz6ufAlIBDb4HpSsE7+Ui7er7BCjSLXdEpS4y
-3PsHKJodAgMBAAECggEAF0eolfCygo2/3Nrsyy0w3keFB6jpnaoyAflM77PBXIPK
-/qvmKudNRcRHrh6Iau1Qn1QyhZeKpk2pcwA9Dm2TNyldt9IO0cHrT3edyzYuq7XJ
-ioGuYVRp6+jzm1K6LOBH+fX2pq5CNrEn9z0OOHdenVmIskYZramjD52SArkXXxpn
-elFcAIbAaiqY1OBU0swGadXuhoeC5fqk8axGEF9ZXbf/utXD0mFqhFI3zz9x/gwY
-LzP5Fkd50UQmAb4PE+8q4etjCazvttr9864YlXMTKGwNx8Sh8SehDL4+B56pK1Kr
-ano0v+Fj0cHh/UJSJit4RXSJiuxxGGQ5IO7koTWYIQKBgQDjz2BpCZ7OgB2iYsi2
-xZEf8PWWXPpW2aYsn+KcTT4DA1L65aSaWRQVKBUUDHIT7cNzf+wjw7C7Y0ISG2yT
-MfgQbAZMCIzLV3GsM3kV6yqciQczGlp/TqdaJVnGGXPVe5P0sC/Bfwgoi02EkK1K
-+rm/rE5ueT+eHwgxNXeWZcc/8QKBgQDIg3Gltsh8xoMcgbBA/poiCrxSklQ22jq8
-CqzyqrdUDC7pr5hp+DcEjOBiX3j5qp5diSoROrZmYW1go3MG5P6/HR7bitj4feW6
-Yl9vblHch9fTaFGsZMJwchjaaN+2RklYUZ6/Nhr4TCnKQgMOyaaCyzCwzDpE2GOX
-1Wktt8Do7QKBgQCKZF+4T6zW3AOks4glaG4aTmKTPtahzkTiFRswQshqQim1264c
-SgMmOxxa+piOvMEguFS3AVmq7MilgV17Kj79kvJcXFFT8kJPD1H+28ceIyxpghf6
-AMkvvUMFUk8JILKoUiQg01AceUvVPaLYyunuo/ldqXDZWRa79jQ4/ImHsQKBgEA1
-75/sr7ldbMElOsclgUBjhbk/iN5j9ikflhDD4J92o1NMWxecWCoJ3xVBk6EIJVy4
-vxLzZVPV4UvwK7bKgFW9QpN1nFO/JWERfZRWlLp1egUGRBlbzvRpZVIUAYgCbBxv
-TtHWxr46zasqhoYmxz7dSMNlM0e2r/YAboUocgtlAoGAZgaKi0hH/JW1cSGTfbMI
-1V4056YtrUgiX5AhKEtfC2sVLC5orwuZmJaa5JjdQT+2PnecMdDmatojDQjklE/e
-vrpopN2oeBDqVA+ofcpVsFxgLTlWRD5uKb027tAcneViRN2CNHlO/Cw4c8ZIG0xe
-QRBL0hYZ7DUaVIdmhvlALMw=
------END PRIVATE KEY-----`
-const jwtClient = new google.auth.JWT({
-  email,
-  key: jwtSecret,
-  scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
-})
-const fcm = google.fcm('v1')
-const drive = google.drive('v3')
-
 const joinAutoLauncher = new AutoLaunch({ name: 'join-desktop', isHidden: true })
 
 async function logInWithGoogle(win: BrowserWindow) {
@@ -176,7 +119,7 @@ async function logInWithGoogle(win: BrowserWindow) {
     scope: scopes,
   })
 
-  const code = await new Promise<string | null>((res, rej) => {
+  const code = await new Promise<string | null>((res, _rej) => {
     const server = http.createServer((req, resp) => {
       if (!req.url) return
 
@@ -203,8 +146,6 @@ async function logInWithGoogle(win: BrowserWindow) {
   win.webContents.send('on-log-in')
 }
 
-let thisDeviceId: string
-
 async function registerDevice(win: BrowserWindow, name: string) {
   const token = await oauth2Client.getAccessToken()
 
@@ -217,7 +158,7 @@ async function registerDevice(win: BrowserWindow, name: string) {
       Authorization: `Bearer ${token.token}`,
     },
     body: JSON.stringify({
-      deviceId: thisDeviceId,
+      deviceId: state.thisDeviceId,
       regId: credentials.fcm.token,
       regId2: credentials.fcm.token,
       deviceName: name,
@@ -229,8 +170,8 @@ async function registerDevice(win: BrowserWindow, name: string) {
   const deviceId = (response as GenericResponse & { deviceId: string }).deviceId
 
   await afs.writeFile(deviceIdFile, deviceId, 'utf-8')
-  thisDeviceId = deviceId
-  win.webContents.send('on-device-id', thisDeviceId)
+  state.thisDeviceId = deviceId
+  win.webContents.send('on-device-id', state.thisDeviceId)
 }
 
 async function renameDevice(deviceId: string, name: string) {
@@ -279,263 +220,17 @@ const responseFileTypes = {
   // NOTE: there doesn't seem to be a type for 6 (?
   media_infos: 7,
 } as const
-const responseType = {
+export const responseType = {
   push: 0,
   file: 1,
 } as const
-
-async function fcmPush(deviceId: string, regId2: string, data: Record<string, string>) {
-  const device = devices.get(deviceId)
-  if (device && device.secureServerAddress) {
-    const url = device.secureServerAddress
-    const token = await oauth2Client.getAccessToken()
-    const body = JSON.stringify(data)
-
-    await new Promise<void>((res, rej) => {
-      const req = https.request(`${url}gcm?token=${token.token}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': body.length,
-        },
-        rejectUnauthorized: false,
-        insecureHTTPParser: true,
-      })
-      req.write(body)
-      req.end()
-      req.on('response', async (resp) => {
-        resp.setEncoding('utf8')
-        const body: string[] = []
-        resp.on('data', (data) => {
-          body.push(data)
-        })
-        resp.on('end', () => {
-          const data = body.join('')
-          try {
-            const parsedData = JSON.parse(data) as GenericResponse
-            // TODO: show some kind of error?
-            if (!parsedData.success) return rej(new Error(parsedData.errorMessage))
-            res()
-          } catch (e) {
-            // TODO: show some kind of error? x2
-          }
-        })
-      })
-      req.on('error', async (err: NodeJS.ErrnoException) => {
-        if (err.code !== 'ECONNRESET' && err.code !== 'ECONNREFUSED') return rej(err)
-        delete device.secureServerAddress
-        fcmPush(deviceId, regId2, data)
-      })
-    })
-  } else {
-    await fcm.projects.messages.send({
-      auth: jwtClient,
-      parent: 'projects/join-external-gcm',
-      requestBody: {
-        message: {
-          token: regId2,
-          android: {
-            priority: 'high',
-          },
-          data: data,
-        },
-      },
-    })
-  }
-}
-
-async function push(deviceId: string, regId2: string, data: Push) {
-  await fcmPush(deviceId, regId2, {
-    type: 'GCMPush',
-    json: JSON.stringify({
-      type: 'GCMPush',
-      push: {
-        id: uuidv4(),
-        senderId: thisDeviceId,
-        ...data,
-      },
-      senderId: thisDeviceId,
-    }),
-  })
-
-  const pushesFileName = `pushes=:=${deviceId}`
-  const pushesFiles = await drive.files.list({
-    q: `name = '${pushesFileName}' and trashed = false`,
-  })
-  const files = pushesFiles.data.files
-  if (!files) throw new Error(`No files with the name ${pushesFileName}`)
-
-  let pushesFile = files[0]
-
-  if (!pushesFile) {
-    const joinDirId = await joinDirNonLocal()
-    const deviceDirId = await deviceDirNonLocal(deviceId, joinDirId)
-    const historyDirId = await dirNonLocal('Push History Files', [deviceDirId])
-    pushesFile = (
-      await drive.files.create({
-        requestBody: {
-          name: pushesFileName,
-          parents: [historyDirId],
-        },
-        media: {
-          mimeType: 'application/json',
-          body: '',
-        },
-        fields: 'id',
-      })
-    ).data
-  }
-  if (!pushesFile.id)
-    throw new Error(`Push history file for deviceId ${deviceId} has no defined id on Google Drive`)
-
-  const pushesFileContent = (
-    await drive.files.get({
-      alt: 'media',
-      fileId: pushesFile.id,
-    })
-  ).data
-
-  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-  const text = await pushesFileContent.text()
-  let pushHistory: {
-    apiLevel: number
-    deviceId: string
-    deviceType: DeviceTypes[keyof DeviceTypes]
-    pushes: Push[]
-  }
-  try {
-    pushHistory = JSON.parse(text)
-  } catch (e) {
-    if (!cachedDevicesInfo) await getDevicesInfo()
-
-    const deviceType = cachedDevicesInfo.find((device) => device.deviceId === deviceId)?.deviceType
-    if (!deviceType) throw new Error(`Device with id ${deviceId} is not in cache`)
-
-    pushHistory = {
-      apiLevel: 0,
-      deviceId: deviceId,
-      deviceType,
-      pushes: [],
-    }
-  }
-  pushHistory.pushes.push(data)
-  await drive.files.update({ fileId: pushesFile.id, media: { body: JSON.stringify(pushHistory) } })
-}
-
-async function setClipboard(deviceId: string, regId2: string, text: string) {
-  push(deviceId, regId2, {
-    clipboard: text,
-  })
-}
-async function getClipboard(deviceId: string, regId2: string) {
-  push(deviceId, regId2, {
-    clipboardget: true,
-  })
-}
-
-async function call(deviceId: string, regId2: string, callnumber: string) {
-  push(deviceId, regId2, {
-    callnumber: callnumber,
-  })
-}
-
-async function smsSend(deviceId: string, regId2: string, smsnumber: string, smstext: string) {
-  push(deviceId, regId2, {
-    // TODO: do I need to send the empty mms fields?
-    responseType: responseType.push,
-    smsnumber,
-    smstext,
-    requestId: 'SMS',
-  })
-}
-
-async function openUrl(deviceId: string, regId2: string, url: string) {
-  push(deviceId, regId2, {
-    url,
-  })
-}
-
-async function sendFile(deviceId: string, regId2: string, path: string) {
-  const filename = basename(path)
-  const mimeType = mime.getType(path) ?? 'application/octet-stream'
-
-  let fileUri: string
-  const device = devices.get(deviceId)
-  if (device && device.secureServerAddress) {
-    const url = device.secureServerAddress
-    const token = await oauth2Client.getAccessToken()
-    const content = await afs.readFile(path)
-    const req = https.request(`${url}files`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': mimeType,
-        'Content-Length': content.length,
-        'Content-Disposition': `filename*=UTF-8''${encodeURIComponent(filename)}`,
-        Authorization: `Bearer ${token.token}`,
-      },
-      rejectUnauthorized: false,
-      insecureHTTPParser: true,
-    })
-    req.write(content)
-    req.end()
-    fileUri = await new Promise<string>((res, rej) => {
-      req.on('response', (resp) => {
-        resp.setEncoding('utf8')
-        const body: string[] = []
-        resp.on('data', (data) => {
-          body.push(data)
-        })
-        resp.on('end', () => {
-          const data = body.join('')
-          try {
-            const parsedData = JSON.parse(data) as GenericResponse
-            if (!parsedData.success) return rej(parsedData.errorMessage)
-            const info = parsedData.payload as { path: string }[]
-            const file = info[0]
-            res(file.path)
-          } catch (e) {
-            rej(e)
-          }
-        })
-      })
-      req.on('error', (err) => {
-        rej(err)
-      })
-    })
-  } else {
-    const body = fs.createReadStream(path)
-    fileUri = await UploadFileNonLocal(filename, mimeType, body)
-  }
-
-  new Notification({
-    title: `File ${filename} uploaded`,
-    body: `Available at ${fileUri}`,
-    // TODO: use a file-esque icon(?
-    icon: notificationImage,
-  }).show()
-  push(deviceId, regId2, {
-    files: [fileUri],
-  })
-}
-
-async function ring(deviceId: string, regId2: string) {
-  push(deviceId, regId2, {
-    find: true,
-  })
-}
-
-async function locate(deviceId: string, regId2: string) {
-  push(deviceId, regId2, {
-    location: true,
-  })
-}
 
 async function testLocalAddress(id: string, url: string, win: BrowserWindow) {
   const body = JSON.stringify({
     type: 'GCMLocalNetworkTest',
     json: JSON.stringify({
       type: 'GCMLocalNetworkTest',
-      senderID: thisDeviceId,
+      senderID: state.thisDeviceId,
     }),
   })
 
@@ -552,25 +247,26 @@ async function testLocalAddress(id: string, url: string, win: BrowserWindow) {
   req.write(body)
   req.end()
 
-  return new Promise<boolean>((res, rej) => {
+  return new Promise<boolean>((res, _rej) => {
     req.on('response', async () => {
-      if (!devices.has(id)) {
-        devices.set(id, { secureServerAddress: url })
-      } else if (devices.has(id)) {
-        const device = devices.get(id)
+      if (!state.devices.has(id)) {
+        state.devices.set(id, { secureServerAddress: url })
+      } else if (state.devices.has(id)) {
+        const device = state.devices.get(id)
         device!.secureServerAddress = url
       }
-      await afs.writeFile(devicesFile, JSON.stringify(devices, mapReplacer), 'utf-8')
+      await afs.writeFile(devicesFile, JSON.stringify(state.devices, mapReplacer), 'utf-8')
       win.webContents.send('on-local-network', id, true)
 
       res(true)
     })
     req.on('error', async () => {
-      if (!devices.has(id)) return
+      if (!state.devices.has(id)) return
 
-      const device = devices.get(id)
+      const device = state.devices.get(id)
+
       delete device?.secureServerAddress
-      await afs.writeFile(devicesFile, JSON.stringify(devices, mapReplacer), 'utf-8')
+      await afs.writeFile(devicesFile, JSON.stringify(state.devices, mapReplacer), 'utf-8')
       win.webContents.send('on-local-network', id, false)
 
       res(false)
@@ -657,66 +353,6 @@ async function getSmsChatsNonLocal(deviceId: string, address: string) {
   return smssChats.smses
 }
 
-async function dirNonLocal(name: string, parents?: string[]) {
-  const query = `name = '${name}' and trashed = false and mimeType = '${dirMime}'${parents ? ` ${parents.map((parent) => `and '${parent}' in parents`).join(' ')}` : ''}`
-  const dir = await drive.files.list({
-    q: query,
-  })
-  const dirFiles = dir.data.files
-  if (!dirFiles) throw new Error(`No directories with the name ${name}`)
-
-  let dirInfo = dirFiles[0]
-  if (!dirInfo) {
-    const deviceDirCreate = await drive.files.create({
-      requestBody: {
-        name,
-        mimeType: dirMime,
-        ...(parents ? { parents } : {}),
-      },
-      fields: 'id',
-    })
-    dirInfo = deviceDirCreate.data
-  }
-
-  if (!dirInfo) throw new Error(`No directories with the name ${name}`)
-  if (!dirInfo.id) throw new Error(`${name} directory does not have an id on Google Drive`)
-  return dirInfo.id
-}
-
-async function joinDirNonLocal() {
-  return await dirNonLocal('Join files')
-}
-
-async function deviceDirNonLocal(deviceId: string, joinDirId: string) {
-  if (!cachedDevicesInfo) await getDevicesInfo()
-
-  const deviceName = cachedDevicesInfo.find((device) => device.deviceId === deviceId)?.deviceName
-  if (!deviceName) throw new Error(`There is no device with id ${deviceId} in cache`)
-
-  return await dirNonLocal(`from ${deviceName}`, [joinDirId])
-}
-
-const dirMime = 'application/vnd.google-apps.folder'
-async function UploadFileNonLocal(filename: string, mimeType: string, body: fs.ReadStream) {
-  const joinDirId = await joinDirNonLocal()
-  const deviceDirId = await deviceDirNonLocal(thisDeviceId, joinDirId)
-
-  // TODO: check if file exists first?
-  const file = await drive.files.create({
-    requestBody: {
-      name: filename,
-      parents: [deviceDirId],
-    },
-    media: {
-      mimeType,
-      body,
-    },
-    fields: 'id',
-  })
-
-  return `https://www.googleapis.com/drive/v3/files/${file.data.id}/download`
-}
-
 async function getPushHistoryNonLocal(deviceId: string) {
   const pushesFileName = `pushes=:=${deviceId}`
   const pushesFiles = await drive.files.list({
@@ -778,11 +414,11 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
       projectId: 'join-external-gcm',
       storageBucket: 'join-external-gcm.appspot.com',
     },
-    credentials: credentials,
+    ...(credentials ? { credentials } : {}),
   })
   instance.onReady(onReady)
 
-  instance.onCredentialsChanged(async ({ oldCredentials, newCredentials }) => {
+  instance.onCredentialsChanged(async ({ oldCredentials: _oldCredentials, newCredentials }) => {
     credentials = newCredentials
     await afs.writeFile(credentialsFile, JSON.stringify(credentials), 'utf-8')
   })
@@ -845,7 +481,8 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
               icon: notificationImage,
             })
           } else if (push.clipboard && push.clipboard === 'Clipboard not set') {
-            const deviceName = cachedDevicesInfo.find(
+            const devicesInfo = await getCachedDevicesInfo()
+            const deviceName = devicesInfo.find(
               (device) => device.deviceId === push.senderId,
             )?.deviceName
             n = new Notification({
@@ -859,7 +496,7 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
               icon: notificationImage,
             })
 
-            const devicesInfo = await getDevicesInfo()
+            const devicesInfo = await getCachedDevicesInfo()
             if (!devicesInfo) return
 
             const receiver = devicesInfo.find((device) => device.deviceId === push.senderId)
@@ -973,11 +610,11 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
           const req = content as DeviceNotOnLocalNetworkRequest
           const id = req.senderId
 
-          if (!devices.has(id)) return
+          if (!state.devices.has(id)) return
 
-          const device = devices.get(id)
+          const device = state.devices.get(id)
           delete device?.secureServerAddress
-          await afs.writeFile(devicesFile, JSON.stringify(devices, mapReplacer), 'utf-8')
+          await afs.writeFile(devicesFile, JSON.stringify(state.devices, mapReplacer), 'utf-8')
           win.webContents.send('on-local-network', id, false)
           break
         }
@@ -1123,39 +760,8 @@ async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void
   await instance.connect()
 }
 
-// TODO: try to use something else?
-let cachedDevicesInfo: DeviceInfo[]
-async function getDevicesInfo() {
-  const token = await oauth2Client.getAccessToken()
-  const res = await fetch(
-    `${joinUrl}/registration/v1/listDevices`,
-
-    {
-      headers: {
-        Authorization: `Bearer ${token.token}`,
-      },
-    },
-  )
-  const parsedRes = (await res.json()) as Data<DeviceInfo>
-  // TODO: toast in frontend with errors? Notifications?
-  if (!parsedRes.success) return
-
-  const devicesInfo = parsedRes.records
-  cachedDevicesInfo = devicesInfo
-  return devicesInfo
-}
-
 async function saveShortcuts(newShortcuts: Map<string, keyof Actions>) {
   await afs.writeFile(shortcutsFile, JSON.stringify(newShortcuts, mapReplacer), 'utf-8')
-}
-
-function applyShortcuts(shortcuts: Map<string, keyof Actions>) {
-  globalShortcut.unregisterAll()
-  shortcuts.forEach((action, accelerator) => {
-    globalShortcut.register(accelerator, async () => {
-      await actions[action](popupWin)
-    })
-  })
 }
 
 async function saveSettings(newSettings: Settings) {
@@ -1169,7 +775,6 @@ function applySettings(settings: Settings) {
 }
 
 function createWindow(tray: Tray) {
-  // Create the browser window.
   const win = new BrowserWindow({
     // TODO: how does this look in windows? Start maximized instead?
     width: 900,
@@ -1194,7 +799,7 @@ function createWindow(tray: Tray) {
       // TODO: check how this is working and if it always is failing and then requesting an address
       const resultsLocal = await Promise.all(
         devicesInfo.map(async (info) => {
-          const localInfo = devices.get(info.deviceId)
+          const localInfo = state.devices.get(info.deviceId)
           if (!localInfo || !localInfo?.secureServerAddress) return { info, success: false }
 
           const success = await testLocalAddress(info.deviceId, localInfo.secureServerAddress, win)
@@ -1251,7 +856,7 @@ function createWindow(tray: Tray) {
                     type: 'GCMLocalNetworkTestRequest',
                     json: JSON.stringify({
                       type: 'GCMLocalNetworkTestRequest',
-                      senderId: thisDeviceId,
+                      senderId: state.thisDeviceId,
                     }),
                   },
                 },
@@ -1268,7 +873,7 @@ function createWindow(tray: Tray) {
   m.on(
     'open-remote-file',
     async (_, deviceId: string, regId2: string, path: string, fileName: string) => {
-      const device = devices.get(deviceId)
+      const device = state.devices.get(deviceId)
       if (device && device.secureServerAddress) {
         const url = device.secureServerAddress
         const token = await oauth2Client.getAccessToken()
@@ -1288,7 +893,7 @@ function createWindow(tray: Tray) {
                 json: JSON.stringify({
                   type: 'GCMFolderRequest',
                   path,
-                  senderId: thisDeviceId,
+                  senderId: state.thisDeviceId,
                 }),
               },
             },
@@ -1307,7 +912,7 @@ function createWindow(tray: Tray) {
     },
   )
   m.handle('get-remote-url', async (_, deviceId: string, path: string) => {
-    const device = devices.get(deviceId)
+    const device = state.devices.get(deviceId)
     if (device && device.secureServerAddress) {
       const url = device.secureServerAddress
       const token = await oauth2Client.getAccessToken()
@@ -1337,7 +942,7 @@ function createWindow(tray: Tray) {
     {
       label: 'Close',
       role: 'hide',
-      click: (item, win, event) => {
+      click: (_item, win, _event) => {
         win?.hide()
       },
     },
@@ -1361,16 +966,14 @@ function createWindow(tray: Tray) {
     } catch {}
     try {
       const content = await afs.readFile(deviceIdFile, 'utf-8')
-      thisDeviceId = content
-      win.webContents.send('on-device-id', thisDeviceId)
+      state.thisDeviceId = content
+      win.webContents.send('on-device-id', state.thisDeviceId)
     } catch (e) {}
     try {
       const content = await afs.readFile(devicesFile, 'utf-8')
-      devices = JSON.parse(content, mapReviver)
-    } catch {
-      devices = new Map()
-    }
-    popupWin = createPopup()
+      state.devices = JSON.parse(content, mapReviver)
+    } catch {}
+    createPopup()
     try {
       const content = await afs.readFile(shortcutsFile, 'utf-8')
       shortcuts = JSON.parse(content, mapReviver)
@@ -1407,70 +1010,6 @@ function createWindow(tray: Tray) {
   }
 }
 
-function createPopup() {
-  // TODO: change size of screen based on number of devices?
-  const win = new BrowserWindow({
-    width: 900,
-    height: 300,
-    show: false,
-    autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon: joinIcon } : {}),
-    webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      sandbox: false,
-    },
-    ...(process.platform === 'linux'
-      ? { type: 'toolbar' }
-      : process.platform === 'darwin'
-        ? { type: 'panel' }
-        : {}),
-    resizable: false,
-    movable: false,
-    minimizable: false,
-    maximizable: false,
-    closable: false,
-    alwaysOnTop: true,
-    fullscreenable: false,
-    frame: false,
-    titleBarStyle: 'hidden',
-  })
-
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/popup.html`)
-  } else {
-    win.loadFile(join(__dirname, '../renderer/popup.html'))
-  }
-
-  return win
-}
-
-async function selectDevice(
-  win: BrowserWindow,
-  predicate?: (device: DeviceInfo, index: number, array: DeviceInfo[]) => boolean,
-) {
-  if (!cachedDevicesInfo) await getDevicesInfo()
-  win.show()
-  return new Promise<DeviceInfo>((res) => {
-    const onSelected = (_: Electron.IpcMainEvent, device: DeviceInfo) => {
-      res(device)
-      win.hide()
-      m.off('pop-up-selected', onSelected)
-      m.off('pop-up-selected', onClose)
-    }
-    m.on('pop-up-selected', onSelected)
-    const onClose = (_: Electron.IpcMainEvent) => {
-      win.hide()
-      m.off('pop-up-selected', onSelected)
-      m.off('pop-up-selected', onClose)
-    }
-    m.on('pop-up-close', onClose)
-
-    let filteredDevices = cachedDevicesInfo.filter((device) => device.deviceId !== thisDeviceId)
-    if (predicate) filteredDevices = filteredDevices.filter(predicate)
-    win.webContents.send('on-pop-up-devices', filteredDevices)
-  })
-}
-
 async function requestContactsAndLastSmSCreation(deviceId: string, regId2: string) {
   fcmPush(deviceId, regId2, {
     type: 'GCMRequestFile',
@@ -1478,10 +1017,10 @@ async function requestContactsAndLastSmSCreation(deviceId: string, regId2: strin
       type: 'GCMRequestFile',
       requestFile: {
         requestType: responseFileTypes.sms_threads,
-        senderId: thisDeviceId,
+        senderId: state.thisDeviceId,
         deviceIds: [deviceId],
       },
-      senderId: thisDeviceId,
+      senderId: state.thisDeviceId,
     }),
   })
 }
@@ -1494,10 +1033,10 @@ async function requestSmsChatCreationOrUpdate(deviceId: string, regId2: string, 
       requestFile: {
         requestType: responseFileTypes.sms_conversation,
         payload: address,
-        senderId: thisDeviceId,
+        senderId: state.thisDeviceId,
         deviceIds: [deviceId],
       },
-      senderId: thisDeviceId,
+      senderId: state.thisDeviceId,
     }),
   })
 }
@@ -1518,10 +1057,10 @@ async function getMediaInfoNonLocal(deviceId: string, regId2: string) {
             type: 'GCMRequestFile',
             requestFile: {
               requestType: responseFileTypes.media_infos,
-              senderId: thisDeviceId,
+              senderId: state.thisDeviceId,
               deviceIds: [deviceId],
             },
-            senderId: thisDeviceId,
+            senderId: state.thisDeviceId,
           }),
         },
       },
@@ -1558,49 +1097,6 @@ async function mediaActionNonLocal(regId2: string, data: Record<string, string>)
   })
 }
 
-let popupWin: BrowserWindow
-const actions: Record<string, (popupWin: BrowserWindow) => Promise<void>> = {
-  copy: async (popupWin: BrowserWindow) => {
-    const device = await selectDevice(popupWin)
-    getClipboard(device.deviceId, device.regId2)
-  },
-  paste: async (popupWin: BrowserWindow) => {
-    const device = await selectDevice(popupWin)
-    setClipboard(device.deviceId, device.regId2, clipboard.readText())
-  },
-  openUrl: async (popupWin: BrowserWindow) => {
-    const device = await selectDevice(popupWin)
-    openUrl(device.deviceId, device.regId2, clipboard.readText())
-  },
-  call: async (popupWin: BrowserWindow) => {
-    const device = await selectDevice(
-      popupWin,
-      (device) =>
-        device.deviceType === devicesTypes.android_phone ||
-        device.deviceType === devicesTypes.android_tablet,
-    )
-    call(device.deviceId, device.regId2, clipboard.readText())
-  },
-  sendFile: async (popupWin: BrowserWindow) => {
-    const device = await selectDevice(popupWin)
-    const selected = await dialog.showOpenDialog(popupWin, {
-      properties: ['openFile', 'multiSelections', 'showHiddenFiles', 'dontAddToRecent'],
-    })
-    if (selected.canceled) return
-
-    selected.filePaths.forEach((path) => sendFile(device.deviceId, device.regId2, path))
-  },
-  ring: async (popupWin: BrowserWindow) => {
-    const device = await selectDevice(popupWin)
-    ring(device.deviceId, device.regId2)
-  },
-  locate: async (popupWin: BrowserWindow) => {
-    const device = await selectDevice(popupWin)
-    locate(device.deviceId, device.regId2)
-  },
-} as const
-type Actions = typeof actions
-
 Menu.setApplicationMenu(null)
 app.whenReady().then(() => {
   const tray = new Tray(joinIcon)
@@ -1624,7 +1120,7 @@ app.whenReady().then(() => {
   })
   m.handle('get-access-token', async () => (await oauth2Client.getAccessToken()).token)
   m.handle('media', async (_, deviceId, regId2) => {
-    const device = devices.get(deviceId)
+    const device = state.devices.get(deviceId)
     if (device && device.secureServerAddress) {
       const url = device.secureServerAddress
       const token = await oauth2Client.getAccessToken()
@@ -1665,7 +1161,7 @@ app.whenReady().then(() => {
     }
   })
   m.handle('folders', async (_, deviceId, regId2, path) => {
-    const device = devices.get(deviceId)
+    const device = state.devices.get(deviceId)
     if (device && device.secureServerAddress) {
       const url = device.secureServerAddress
       const token = await oauth2Client.getAccessToken()
@@ -1724,7 +1220,7 @@ app.whenReady().then(() => {
               json: JSON.stringify({
                 type: 'GCMFolderRequest',
                 path,
-                senderId: thisDeviceId,
+                senderId: state.thisDeviceId,
               }),
             },
           },
@@ -1749,7 +1245,7 @@ app.whenReady().then(() => {
     }
   })
   m.handle('media-action', async (_, deviceId, regId2, action) => {
-    const device = devices.get(deviceId)
+    const device = state.devices.get(deviceId)
     const data = {
       type: 'GCMPush',
       json: JSON.stringify({
@@ -1757,9 +1253,9 @@ app.whenReady().then(() => {
         push: {
           ...action,
           id: uuidv4(),
-          senderId: thisDeviceId,
+          senderId: state.thisDeviceId,
         },
-        senderId: thisDeviceId,
+        senderId: state.thisDeviceId,
       }),
     }
     if (device && device.secureServerAddress) {
@@ -1808,7 +1304,7 @@ app.whenReady().then(() => {
     }
   })
   m.handle('contacts', async (_, deviceId, regId2) => {
-    const device = devices.get(deviceId)
+    const device = state.devices.get(deviceId)
     if (device && device.secureServerAddress) {
       const url = device.secureServerAddress
       const token = await oauth2Client.getAccessToken()
@@ -1874,7 +1370,7 @@ app.whenReady().then(() => {
     }
   })
   m.handle('sms', async (_, deviceId, regId2) => {
-    const device = devices.get(deviceId)
+    const device = state.devices.get(deviceId)
     if (device && device.secureServerAddress) {
       const url = device.secureServerAddress
       const token = await oauth2Client.getAccessToken()
@@ -1939,7 +1435,7 @@ app.whenReady().then(() => {
     }
   })
   m.handle('sms-chat', async (_, deviceId: string, regId2: string, address: string) => {
-    const device = devices.get(deviceId)
+    const device = state.devices.get(deviceId)
     if (device && device.secureServerAddress) {
       const url = device.secureServerAddress
       const token = await oauth2Client.getAccessToken()
@@ -2054,7 +1550,7 @@ A2Hz/E5sLFU810D/F86EtJWa2hadF7VPrfQ5sCZ2WeMwtKG2Z6ghCXDCWxS09gxb
 cy+aLqr1fhkBl/9o
 -----END CERTIFICATE-----
 `
-app.on('certificate-error', (event, webContents, url, error, certificate, cb) => {
+app.on('certificate-error', (_event, _webContents, _url, _error, certificate, cb) => {
   cb(certificate.data === allowedCertificate)
 })
 

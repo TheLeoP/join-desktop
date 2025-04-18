@@ -8,10 +8,8 @@ export type MediaAction = {
 }
 
 export type Data<T> = {
-  success: boolean
-  userAuthError: boolean
   records: T[]
-}
+} & GenericResponse
 
 const devicesTypes = {
   android_phone: 1,

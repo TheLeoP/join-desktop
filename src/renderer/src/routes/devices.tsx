@@ -234,7 +234,7 @@ function Device({
 
       return { previousDevices }
     },
-    onError: (err, variables, context) => {
+    onError: (_err, _variables, context) => {
       if (!context) return
 
       queryClient.setQueryData(['devices'], context.previousDevices)
@@ -266,7 +266,7 @@ function Device({
 
       return { previousDevices }
     },
-    onError: (err, variables, context) => {
+    onError: (_err, _variables, context) => {
       if (!context) return
 
       queryClient.setQueryData(['devices'], context.previousDevices)
