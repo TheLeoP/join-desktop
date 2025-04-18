@@ -287,7 +287,7 @@ function RouteComponent() {
   const [dirsWidth, setDirsWidth] = useState(0)
   const scrollElement = useRef<HTMLDivElement | null>(null)
   const dirVirtualizer = useVirtualizer({
-    count: debouncedPaths.length,
+    count: paths.length,
     getScrollElement: () => scrollElement.current,
     estimateSize: () => dirsWidth / 3,
     horizontal: true,
@@ -295,7 +295,7 @@ function RouteComponent() {
   const virtualCols = dirVirtualizer.getVirtualItems()
   useEffect(() => {
     dirVirtualizer.scrollToIndex(currentDir, { align: 'center' })
-  }, [currentDir, dirVirtualizer, debouncedPaths])
+  }, [currentDir, dirVirtualizer, paths])
   useLayoutEffect(() => {
     const f = () => {
       if (!scrollElement.current) return
