@@ -296,14 +296,18 @@ async function UploadFileNonLocal(filename: string, mimeType: string, body: fs.R
 export const actions: Record<string, (popupWin: BrowserWindow) => Promise<void>> = {
   copy: async (popupWin: BrowserWindow) => {
     const device = await selectDevice(popupWin)
+    if (!device) return
+
     getClipboard(device.deviceId, device.regId2)
   },
   paste: async (popupWin: BrowserWindow) => {
     const device = await selectDevice(popupWin)
+    if (!device) return
     setClipboard(device.deviceId, device.regId2, clipboard.readText())
   },
   openUrl: async (popupWin: BrowserWindow) => {
     const device = await selectDevice(popupWin)
+    if (!device) return
     openUrl(device.deviceId, device.regId2, clipboard.readText())
   },
   call: async (popupWin: BrowserWindow) => {
@@ -313,10 +317,12 @@ export const actions: Record<string, (popupWin: BrowserWindow) => Promise<void>>
         device.deviceType === devicesTypes.android_phone ||
         device.deviceType === devicesTypes.android_tablet,
     )
+    if (!device) return
     call(device.deviceId, device.regId2, clipboard.readText())
   },
   sendFile: async (popupWin: BrowserWindow) => {
     const device = await selectDevice(popupWin)
+    if (!device) return
     const selected = await dialog.showOpenDialog(popupWin, {
       properties: ['openFile', 'multiSelections', 'showHiddenFiles', 'dontAddToRecent'],
     })
@@ -326,10 +332,12 @@ export const actions: Record<string, (popupWin: BrowserWindow) => Promise<void>>
   },
   ring: async (popupWin: BrowserWindow) => {
     const device = await selectDevice(popupWin)
+    if (!device) return
     ring(device.deviceId, device.regId2)
   },
   locate: async (popupWin: BrowserWindow) => {
     const device = await selectDevice(popupWin)
+    if (!device) return
     locate(device.deviceId, device.regId2)
   },
 } as const

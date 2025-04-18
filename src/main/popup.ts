@@ -1,10 +1,10 @@
 import { is } from '@electron-toolkit/utils'
-import { BrowserWindow, globalShortcut, ipcMain as m } from 'electron'
+import { BrowserWindow, globalShortcut, ipcMain as m, Notification } from 'electron'
 import { join } from 'path'
 import { actions, Actions } from './actions'
 import joinIcon from '../../resources/join.png?asset'
 import { DeviceInfo } from '../preload/types'
-import { cachedDevicesInfo, getDevicesInfo, state } from './state'
+import { getCachedDevicesInfo, state } from './state'
 
 let popupWin: BrowserWindow
 
@@ -56,9 +56,17 @@ export async function selectDevice(
   win: BrowserWindow,
   predicate?: (device: DeviceInfo, index: number, array: DeviceInfo[]) => boolean,
 ) {
-  if (!cachedDevicesInfo) await getDevicesInfo()
+  if (win.isVisible()) {
+    new Notification({
+      title: 'Popup window already opened',
+      body: "You can't open multiple popup windows. Doing nothing",
+    }).show()
+    return
+  }
+  const devicesInfo = await getCachedDevicesInfo()
+
   win.show()
-  return new Promise<DeviceInfo>((res) => {
+  return new Promise<DeviceInfo | undefined>((res) => {
     const onSelected = (_: Electron.IpcMainEvent, device: DeviceInfo) => {
       res(device)
       win.hide()
@@ -67,15 +75,14 @@ export async function selectDevice(
     }
     m.on('pop-up-selected', onSelected)
     const onClose = (_: Electron.IpcMainEvent) => {
+      res(undefined)
       win.hide()
       m.off('pop-up-selected', onSelected)
       m.off('pop-up-selected', onClose)
     }
     m.on('pop-up-close', onClose)
 
-    let filteredDevices = cachedDevicesInfo.filter(
-      (device) => device.deviceId !== state.thisDeviceId,
-    )
+    let filteredDevices = devicesInfo.filter((device) => device.deviceId !== state.thisDeviceId)
     if (predicate) filteredDevices = filteredDevices.filter(predicate)
     win.webContents.send('on-pop-up-devices', filteredDevices)
   })
