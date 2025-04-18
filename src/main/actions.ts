@@ -305,7 +305,7 @@ export const actions: Record<string, (popupWin: BrowserWindow) => Promise<void>>
     if (!device) return
     setClipboard(device.deviceId, device.regId2, clipboard.readText())
   },
-  openUrl: async (popupWin: BrowserWindow) => {
+  'open url': async (popupWin: BrowserWindow) => {
     const device = await selectDevice(popupWin)
     if (!device) return
     openUrl(device.deviceId, device.regId2, clipboard.readText())
@@ -320,7 +320,7 @@ export const actions: Record<string, (popupWin: BrowserWindow) => Promise<void>>
     if (!device) return
     call(device.deviceId, device.regId2, clipboard.readText())
   },
-  sendFile: async (popupWin: BrowserWindow) => {
+  'send file': async (popupWin: BrowserWindow) => {
     const device = await selectDevice(popupWin)
     if (!device) return
     const selected = await dialog.showOpenDialog(popupWin, {
