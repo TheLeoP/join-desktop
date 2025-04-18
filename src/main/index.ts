@@ -13,21 +13,19 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import joinIcon from '../../resources/join.png?asset'
 import * as fs from 'node:fs'
 import { promises as afs } from 'node:fs'
-import * as http from 'node:http'
 import { URL } from 'node:url'
 import { PushReceiver } from '@eneris/push-receiver'
 import { type MessageEnvelope, type Credentials } from '@eneris/push-receiver/dist/types'
 import * as https from 'node:https'
 import { v4 as uuidv4 } from 'uuid'
 import AutoLaunch from 'auto-launch'
-import {
+import type {
   MediaInfo,
   FolderInfo,
   FileInfo,
   ContactInfo,
   SmsInfo,
   JoinData,
-  Push,
   PushWrapper,
   NotificationClear,
   LocalNetworkRequest,
@@ -42,188 +40,48 @@ import {
 } from '../preload/types'
 import { actions, Actions, fcmPush, setClipboard, smsSend, call } from './actions'
 import { createPopup, applyShortcuts } from './popup'
-import { getCachedDevicesInfo, getDevicesInfo, joinUrl, state } from './state'
-import { drive, fcm, jwtClient, oauth2Client } from './google'
+import { getCachedDevicesInfo, getDevicesInfo, state } from './state'
+import {
+  drive,
+  fcm,
+  getContactsNonLocal,
+  getMediaInfoNonLocal,
+  getPushHistoryNonLocal,
+  getSmsChatsNonLocal,
+  getSmsNonLocal,
+  jwtClient,
+  logInWithGoogle,
+  mediaActionNonLocal,
+  oauth2Client,
+} from './google'
 import { notificationImage, batteryOkImage, batteryLowImage } from './images'
-
-const dataDir = app.getPath('userData')
-const credentialsFile = `${dataDir}/credentials.json`
-const persistentIdsFile = `${dataDir}/persistentIds.json`
-const tokenFile = `${dataDir}/token.json`
-const devicesFile = `${dataDir}/devices.json`
-const deviceIdFile = `${dataDir}/deviceId`
-const shortcutsFile = `${dataDir}/shortcuts.json`
-const settingsFile = `${dataDir}/settings.json`
-const scriptsDir = `${dataDir}/scripts`
+import {
+  contactRequests,
+  credentialsFile,
+  deviceIdFile,
+  devicesFile,
+  fileRequests,
+  folderRequests,
+  mediaRequests,
+  persistentIdsFile,
+  responseFileTypes,
+  scriptsDir,
+  settingsFile,
+  shortcutsFile,
+  smsChatRequests,
+  smsRequests,
+  tokenFile,
+} from './consts'
+import { mapReplacer, mapReviver } from './utils'
+import { registerDevice, renameDevice, deleteDevice } from './joinApi'
 
 const notifications = new Map<string, Notification>()
 let shortcuts: Map<string, keyof Actions>
 let settings: Settings
-const mediaRequests = new Map<string, (mediaInfo: MediaInfo | null) => void>()
-const folderRequests = new Map<string, (folderInfo: FolderInfo | null) => void>()
-const fileRequests = new Map<string, (folderInfo: FileInfo | null) => void>()
-const contactRequests = new Map<string, (contactInfo: ContactInfo[] | null) => void>()
-const smsRequests = new Map<string, (smsInfo: SmsInfo[] | null) => void>()
-const smsChatRequests = new Map<string, (smsChatInfo: SmsInfo[] | null) => void>()
-
-function mapReplacer(_key: unknown, value: unknown) {
-  if (value instanceof Map) {
-    return {
-      dataType: 'Map',
-      value: [...value],
-    }
-  } else {
-    return value
-  }
-}
-
-function mapReviver(_key: unknown, value: unknown) {
-  if (typeof value === 'object' && value !== null) {
-    if ((value as Record<string, unknown>).dataType === 'Map') {
-      return new Map((value as { value: [unknown, unknown][] }).value)
-    }
-  }
-  return value
-}
-
-const devicesTypes = {
-  android_phone: 1,
-  android_tablet: 2,
-  chrome_browser: 3,
-  windows_10: 4,
-  tasker: 5,
-  firefox: 6,
-  group: 7,
-  android_tv: 8,
-  google_assistant: 9,
-  ios_phone: 10,
-  ios_tablet: 11,
-  ifttt: 12,
-  ip: 13,
-  mqtt: 14,
-} as const
 
 const joinAutoLauncher = new AutoLaunch({ name: 'join-desktop', isHidden: true })
 
-async function logInWithGoogle(win: BrowserWindow) {
-  if (Object.keys(oauth2Client.credentials).length !== 0) return win.webContents.send('on-log-in')
-
-  const scopes = [
-    'openid',
-    'https://www.googleapis.com/auth/userinfo.email',
-    'https://www.googleapis.com/auth/userinfo.profile',
-    'https://www.googleapis.com/auth/drive.file',
-  ]
-  const authUrl = oauth2Client.generateAuthUrl({
-    access_type: 'offline',
-    scope: scopes,
-  })
-
-  const code = await new Promise<string | null>((res, _rej) => {
-    const server = http.createServer((req, resp) => {
-      if (!req.url) return
-
-      const code = new URL(`http://localhost${req.url}`).searchParams.get('code')
-      res(code)
-
-      resp.writeHead(200)
-      resp.end(`<!DOCTYPE html>
-<html>
-  <body onload="window.close()">
-    <h1>Everything done, you can close this<h1>
-  </body>
-</html>`)
-      server.close()
-    })
-    server.listen(9876, () => shell.openExternal(authUrl))
-  })
-  if (!code) throw new Error('No code was received')
-
-  const { tokens } = await oauth2Client.getToken(code)
-  oauth2Client.setCredentials(tokens)
-  await afs.writeFile(tokenFile, JSON.stringify(tokens), 'utf-8')
-
-  win.webContents.send('on-log-in')
-}
-
-async function registerDevice(win: BrowserWindow, name: string) {
-  const token = await oauth2Client.getAccessToken()
-
-  if (!credentials) throw new Error('There are no credentials')
-
-  const res = await fetch(`${joinUrl}/registration/v1/registerDevice`, {
-    method: 'post',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token.token}`,
-    },
-    body: JSON.stringify({
-      deviceId: state.thisDeviceId,
-      regId: credentials.fcm.token,
-      regId2: credentials.fcm.token,
-      deviceName: name,
-      deviceType: devicesTypes.firefox,
-    }),
-  })
-  const response = (await res.json()) as GenericResponse
-  if (!response.success) throw new Error(response.errorMessage)
-  const deviceId = (response as GenericResponse & { deviceId: string }).deviceId
-
-  await afs.writeFile(deviceIdFile, deviceId, 'utf-8')
-  state.thisDeviceId = deviceId
-  win.webContents.send('on-device-id', state.thisDeviceId)
-}
-
-async function renameDevice(deviceId: string, name: string) {
-  const token = await oauth2Client.getAccessToken()
-
-  const res = await fetch(`${joinUrl}/registration/v1/renameDevice`, {
-    method: 'post',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token.token}`,
-    },
-    body: JSON.stringify({
-      deviceId: deviceId,
-      newName: name,
-    }),
-  })
-  const response = (await res.json()) as GenericResponse
-  if (!response.success) throw new Error(response.errorMessage)
-}
-
-async function deleteDevice(deviceId: string) {
-  const token = await oauth2Client.getAccessToken()
-
-  const res = await fetch(`${joinUrl}/registration/v1/unregisterDevice`, {
-    method: 'post',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token.token}`,
-    },
-    body: JSON.stringify({
-      deviceId: deviceId,
-    }),
-  })
-  const response = (await res.json()) as GenericResponse
-  if (!response.success) throw new Error(response.errorMessage)
-}
-
 let credentials: Credentials | undefined
-
-const responseFileTypes = {
-  screenshot: 1,
-  video: 2,
-  sms_threads: 3,
-  sms_conversation: 4,
-  notifications: 5,
-  // NOTE: there doesn't seem to be a type for 6 (?
-  media_infos: 7,
-} as const
-export const responseType = {
-  push: 0,
-  file: 1,
-} as const
 
 async function testLocalAddress(id: string, url: string, win: BrowserWindow) {
   const body = JSON.stringify({
@@ -272,116 +130,6 @@ async function testLocalAddress(id: string, url: string, win: BrowserWindow) {
       res(false)
     })
   })
-}
-
-// TODO: I should  handle the errors from this functions outside of them?
-async function getContactsNonLocal(deviceId: string) {
-  const contactsFileName = `contacts=:=${deviceId}`
-  const response = await drive.files.list({
-    q: `name = '${contactsFileName}' and trashed = false`,
-  })
-  const files = response.data.files
-  if (!files) throw new Error(`No files with the name ${contactsFileName}`)
-
-  const fileInfo = files[0]
-  if (!fileInfo) throw new Error(`No files with the name ${contactsFileName}`)
-  if (!fileInfo.id)
-    throw new Error(`Contacts file for deviceId ${deviceId} has no defined id on Google Drive`)
-
-  const file = (
-    await drive.files.get({
-      alt: 'media',
-      fileId: fileInfo.id,
-    })
-  ).data
-
-  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-  const text = await file.text()
-  const contactsInfo = JSON.parse(text).contacts as ContactInfo[]
-  return contactsInfo
-}
-
-async function getSmsNonLocal(deviceId: string) {
-  const smssFileName = `lastsms=:=${deviceId}`
-  const response = await drive.files.list({
-    q: `name = '${smssFileName}' and trashed = false`,
-  })
-  const files = response.data.files
-  if (!files) throw new Error(`No files with the name ${smssFileName}`)
-
-  const fileInfo = files[0]
-  if (!fileInfo) throw new Error(`No files with the name ${smssFileName}`)
-  if (!fileInfo.id)
-    throw new Error(`Smss file for deviceId ${deviceId} has no defined id on Google Drive`)
-
-  const file = (
-    await drive.files.get({
-      alt: 'media',
-      fileId: fileInfo.id,
-    })
-  ).data
-
-  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-  const text = await file.text()
-  const smssThreadInfo = JSON.parse(text) as SmsInfo[]
-  return smssThreadInfo
-}
-
-async function getSmsChatsNonLocal(deviceId: string, address: string) {
-  const smsFileName = `sms=:=${deviceId}=:=${address}`
-  const smsFiles = await drive.files.list({
-    q: `name = '${smsFileName}' and trashed = false`,
-  })
-  const files = smsFiles.data.files
-  if (!files) throw new Error(`No files with the name ${smsFileName}`)
-
-  const smsFile = files[0]
-  if (!smsFile) throw new Error(`No files with the name ${smsFileName}`)
-  if (!smsFile.id)
-    throw new Error(`Smss file for deviceId ${deviceId} has no defined id on Google Drive`)
-
-  const smsFileContent = (
-    await drive.files.get({
-      alt: 'media',
-      fileId: smsFile.id,
-    })
-  ).data
-
-  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-  const text = await smsFileContent.text()
-  const smssChats = JSON.parse(text) as { number: string; smses: SmsInfo[] }
-  return smssChats.smses
-}
-
-async function getPushHistoryNonLocal(deviceId: string) {
-  const pushesFileName = `pushes=:=${deviceId}`
-  const pushesFiles = await drive.files.list({
-    q: `name = '${pushesFileName}' and trashed = false`,
-  })
-  const files = pushesFiles.data.files
-  if (!files) throw new Error(`No files with the name ${pushesFileName}`)
-
-  const pushesFile = files[0]
-  if (!pushesFile) throw new Error(`No files with the name ${pushesFileName}`)
-  if (!pushesFile.id)
-    throw new Error(`Smss file for deviceId ${deviceId} has no defined id on Google Drive`)
-
-  const pushesFileContent = (
-    await drive.files.get({
-      alt: 'media',
-      fileId: pushesFile.id,
-    })
-  ).data
-
-  // TODO: why is this a string? And the other uses of `drive.files.get` isn't?
-  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-  const pushHistory = JSON.parse(pushesFileContent) as {
-    apiLevel: number
-    deviceId: string
-    deviceType: number
-    pushes: Push[]
-  }
-  return pushHistory.pushes
 }
 
 const multiNotifications = new Map<string, string[]>()
@@ -789,7 +537,8 @@ function createWindow(tray: Tray) {
   })
 
   m.handle('register-device', (_, name) => {
-    return registerDevice(win, name)
+    if (!credentials) throw new Error('There are no credentials')
+    return registerDevice(name, credentials, win)
   })
   m.handle('start-push-receiver', () =>
     startPushReceiver(win, async () => {
@@ -1038,62 +787,6 @@ async function requestSmsChatCreationOrUpdate(deviceId: string, regId2: string, 
       },
       senderId: state.thisDeviceId,
     }),
-  })
-}
-
-async function getMediaInfoNonLocal(deviceId: string, regId2: string) {
-  await fcm.projects.messages.send({
-    auth: jwtClient,
-    parent: 'projects/join-external-gcm',
-    requestBody: {
-      message: {
-        token: regId2,
-        android: {
-          priority: 'high',
-        },
-        data: {
-          type: 'GCMRequestFile',
-          json: JSON.stringify({
-            type: 'GCMRequestFile',
-            requestFile: {
-              requestType: responseFileTypes.media_infos,
-              senderId: state.thisDeviceId,
-              deviceIds: [deviceId],
-            },
-            senderId: state.thisDeviceId,
-          }),
-        },
-      },
-    },
-  })
-
-  return await new Promise((res, rej) => {
-    const mediaRequest = mediaRequests.get(deviceId)
-    if (mediaRequest) mediaRequest(null)
-
-    mediaRequests.set(deviceId, (mediaInfo) => {
-      res(mediaInfo)
-    })
-    setTimeout(() => {
-      mediaRequests.delete(deviceId)
-      rej(new Error('Media request timed out'))
-    }, 30 * 1000)
-  })
-}
-
-async function mediaActionNonLocal(regId2: string, data: Record<string, string>) {
-  await fcm.projects.messages.send({
-    auth: jwtClient,
-    parent: 'projects/join-external-gcm',
-    requestBody: {
-      message: {
-        token: regId2,
-        android: {
-          priority: 'high',
-        },
-        data: data,
-      },
-    },
   })
 }
 

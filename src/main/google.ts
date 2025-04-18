@@ -1,5 +1,10 @@
 import { google } from 'googleapis'
-import { getCachedDevicesInfo } from './state'
+import { promises as afs } from 'node:fs'
+import * as http from 'node:http'
+import { getCachedDevicesInfo, state } from './state'
+import { BrowserWindow, shell } from 'electron'
+import { mediaRequests, responseFileTypes, tokenFile } from './consts'
+import type { ContactInfo, SmsInfo, Push } from '../preload/types'
 
 const joinAppId = '596310809542-giumrib7hohfiftljqmj7eaio3kl21ek.apps.googleusercontent.com'
 const joinAppSecret = 'NTA9UbFpNhaIP74B_lpxGgvR'
@@ -83,4 +88,211 @@ export async function deviceDirNonLocal(deviceId: string, joinDirId: string) {
   if (!deviceName) throw new Error(`There is no device with id ${deviceId} in cache`)
 
   return await dirNonLocal(`from ${deviceName}`, [joinDirId])
+}
+
+// TODO: I should  handle the errors from this functions outside of them?
+export async function getContactsNonLocal(deviceId: string) {
+  const contactsFileName = `contacts=:=${deviceId}`
+  const response = await drive.files.list({
+    q: `name = '${contactsFileName}' and trashed = false`,
+  })
+  const files = response.data.files
+  if (!files) throw new Error(`No files with the name ${contactsFileName}`)
+
+  const fileInfo = files[0]
+  if (!fileInfo) throw new Error(`No files with the name ${contactsFileName}`)
+  if (!fileInfo.id)
+    throw new Error(`Contacts file for deviceId ${deviceId} has no defined id on Google Drive`)
+
+  const file = (
+    await drive.files.get({
+      alt: 'media',
+      fileId: fileInfo.id,
+    })
+  ).data
+
+  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
+  const text = await file.text()
+  const contactsInfo = JSON.parse(text).contacts as ContactInfo[]
+  return contactsInfo
+}
+
+export async function getSmsNonLocal(deviceId: string) {
+  const smssFileName = `lastsms=:=${deviceId}`
+  const response = await drive.files.list({
+    q: `name = '${smssFileName}' and trashed = false`,
+  })
+  const files = response.data.files
+  if (!files) throw new Error(`No files with the name ${smssFileName}`)
+
+  const fileInfo = files[0]
+  if (!fileInfo) throw new Error(`No files with the name ${smssFileName}`)
+  if (!fileInfo.id)
+    throw new Error(`Smss file for deviceId ${deviceId} has no defined id on Google Drive`)
+
+  const file = (
+    await drive.files.get({
+      alt: 'media',
+      fileId: fileInfo.id,
+    })
+  ).data
+
+  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
+  const text = await file.text()
+  const smssThreadInfo = JSON.parse(text) as SmsInfo[]
+  return smssThreadInfo
+}
+
+export async function getSmsChatsNonLocal(deviceId: string, address: string) {
+  const smsFileName = `sms=:=${deviceId}=:=${address}`
+  const smsFiles = await drive.files.list({
+    q: `name = '${smsFileName}' and trashed = false`,
+  })
+  const files = smsFiles.data.files
+  if (!files) throw new Error(`No files with the name ${smsFileName}`)
+
+  const smsFile = files[0]
+  if (!smsFile) throw new Error(`No files with the name ${smsFileName}`)
+  if (!smsFile.id)
+    throw new Error(`Smss file for deviceId ${deviceId} has no defined id on Google Drive`)
+
+  const smsFileContent = (
+    await drive.files.get({
+      alt: 'media',
+      fileId: smsFile.id,
+    })
+  ).data
+
+  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
+  const text = await smsFileContent.text()
+  const smssChats = JSON.parse(text) as { number: string; smses: SmsInfo[] }
+  return smssChats.smses
+}
+
+export async function getPushHistoryNonLocal(deviceId: string) {
+  const pushesFileName = `pushes=:=${deviceId}`
+  const pushesFiles = await drive.files.list({
+    q: `name = '${pushesFileName}' and trashed = false`,
+  })
+  const files = pushesFiles.data.files
+  if (!files) throw new Error(`No files with the name ${pushesFileName}`)
+
+  const pushesFile = files[0]
+  if (!pushesFile) throw new Error(`No files with the name ${pushesFileName}`)
+  if (!pushesFile.id)
+    throw new Error(`Smss file for deviceId ${deviceId} has no defined id on Google Drive`)
+
+  const pushesFileContent = (
+    await drive.files.get({
+      alt: 'media',
+      fileId: pushesFile.id,
+    })
+  ).data
+
+  // TODO: why is this a string? And the other uses of `drive.files.get` isn't?
+  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
+  const pushHistory = JSON.parse(pushesFileContent) as {
+    apiLevel: number
+    deviceId: string
+    deviceType: number
+    pushes: Push[]
+  }
+  return pushHistory.pushes
+}
+
+export async function getMediaInfoNonLocal(deviceId: string, regId2: string) {
+  await fcm.projects.messages.send({
+    auth: jwtClient,
+    parent: 'projects/join-external-gcm',
+    requestBody: {
+      message: {
+        token: regId2,
+        android: {
+          priority: 'high',
+        },
+        data: {
+          type: 'GCMRequestFile',
+          json: JSON.stringify({
+            type: 'GCMRequestFile',
+            requestFile: {
+              requestType: responseFileTypes.media_infos,
+              senderId: state.thisDeviceId,
+              deviceIds: [deviceId],
+            },
+            senderId: state.thisDeviceId,
+          }),
+        },
+      },
+    },
+  })
+
+  return await new Promise((res, rej) => {
+    const mediaRequest = mediaRequests.get(deviceId)
+    if (mediaRequest) mediaRequest(null)
+
+    mediaRequests.set(deviceId, (mediaInfo) => {
+      res(mediaInfo)
+    })
+    setTimeout(() => {
+      mediaRequests.delete(deviceId)
+      rej(new Error('Media request timed out'))
+    }, 30 * 1000)
+  })
+}
+
+export async function mediaActionNonLocal(regId2: string, data: Record<string, string>) {
+  await fcm.projects.messages.send({
+    auth: jwtClient,
+    parent: 'projects/join-external-gcm',
+    requestBody: {
+      message: {
+        token: regId2,
+        android: {
+          priority: 'high',
+        },
+        data: data,
+      },
+    },
+  })
+}
+
+export async function logInWithGoogle(win: BrowserWindow) {
+  if (Object.keys(oauth2Client.credentials).length !== 0) return win.webContents.send('on-log-in')
+
+  const scopes = [
+    'openid',
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile',
+    'https://www.googleapis.com/auth/drive.file',
+  ]
+  const authUrl = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: scopes,
+  })
+
+  const code = await new Promise<string | null>((res, _rej) => {
+    const server = http.createServer((req, resp) => {
+      if (!req.url) return
+
+      const code = new URL(`http://localhost${req.url}`).searchParams.get('code')
+      res(code)
+
+      resp.writeHead(200)
+      resp.end(`<!DOCTYPE html>
+<html>
+  <body onload="window.close()">
+    <h1>Everything done, you can close this<h1>
+  </body>
+</html>`)
+      server.close()
+    })
+    server.listen(9876, () => shell.openExternal(authUrl))
+  })
+  if (!code) throw new Error('No code was received')
+
+  const { tokens } = await oauth2Client.getToken(code)
+  oauth2Client.setCredentials(tokens)
+  await afs.writeFile(tokenFile, JSON.stringify(tokens), 'utf-8')
+
+  win.webContents.send('on-log-in')
 }

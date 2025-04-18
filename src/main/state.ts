@@ -1,7 +1,6 @@
 import { Data, DeviceInfo } from '../preload/types'
+import { joinUrl } from './consts'
 import { oauth2Client } from './google'
-
-export const joinUrl = 'https://joinjoaomgcd.appspot.com/_ah/api'
 
 export const state: {
   thisDeviceId?: string

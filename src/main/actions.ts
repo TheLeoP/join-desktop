@@ -4,7 +4,7 @@ import mime from 'mime'
 import { v4 as uuidv4 } from 'uuid'
 import * as https from 'node:https'
 import * as fs from 'node:fs'
-import { devicesTypes, DeviceTypes, GenericResponse, Push, responseType } from '../preload/types'
+import { type DeviceTypes, type GenericResponse, type Push } from '../preload/types'
 import { basename } from 'node:path'
 import { selectDevice } from './popup'
 import { getCachedDevicesInfo, state } from './state'
@@ -18,6 +18,7 @@ import {
   joinDirNonLocal,
 } from './google'
 import { notificationImage } from './images'
+import { responseType, devicesTypes } from './consts'
 
 export async function fcmPush(deviceId: string, regId2: string, data: Record<string, string>) {
   const device = state.devices.get(deviceId)
