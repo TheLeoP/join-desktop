@@ -70,7 +70,7 @@ function Root() {
 
 export const Route = createRootRoute({
   component: Root,
-  errorComponent: ({ error }) => {
+  errorComponent: ({ error, reset }) => {
     const router = useRouter()
 
     return (
@@ -81,6 +81,14 @@ export const Route = createRootRoute({
           className={cn(buttonVariants(), 'text-xl')}
           onClick={() => {
             router.invalidate()
+          }}
+        >
+          Invalidate
+        </button>
+        <button
+          className={cn(buttonVariants(), 'text-xl')}
+          onClick={() => {
+            reset()
           }}
         >
           retry
