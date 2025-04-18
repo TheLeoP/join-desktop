@@ -65,6 +65,18 @@ export default function action(values, valuesArray) {
 }
 ```
 
+## Remote device file system navigation
+
+The remote file system interface doesn't work with the mouse. Instead it uses the following keyboard shortcuts:
+
+- `Enter` if current selected item is a file, open it in your default browser
+- `Down arrow key` go down the current directory files
+- `Up arrow key` go up the current directory files
+- `Left arrow key` go one directory up (e.g. go from `/foo/bar/baz` to `/foo/bar`)
+- `Right arrow key` if the current selected item is a directory, go one directory down on it (e.g. with the cursor in the `baz` directory, go from `/foo/bar` to `/foo/bar/baz`)
+
+Additionally, the UI previews the current selected item if it's an image and your remote Device is in reachable for this app through your local network.
+
 ## Join intrinsic limitations
 
 While the goal of this app is to shatter some of the limitations the other Join implementations on PC had, there are limitations intrinsic to how Join works that cannot be fixed by this application. This is a non-exhaustive list of them:
@@ -77,7 +89,7 @@ While the goal of this app is to shatter some of the limitations the other Join 
 - Background clipboard sync
 - Speak and Location pushes are received but don't work as expected because of Electron limitations.
 - MMS support for messages.
-- Custom commands
+- Send custom commands
 - EventGhost or Node-RED integration
 - Menu with notifications from other devices
 - HTTP server available in Local Network to be able to communicate with this Join app within a Local Network.
