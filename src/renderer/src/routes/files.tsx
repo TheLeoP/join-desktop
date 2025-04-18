@@ -107,6 +107,7 @@ function Directory({
       e.preventDefault()
 
       const code = e.code
+      if (code === 'ArrowLeft') return setCurrent(0)
       if (code !== 'ArrowUp' && code !== 'ArrowDown' && code !== 'Enter') return
       switch (code) {
         case 'ArrowUp': {
