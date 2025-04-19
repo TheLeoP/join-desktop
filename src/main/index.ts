@@ -569,20 +569,26 @@ function createWindow(tray: Tray) {
       }
 
       state.devices.forEach((_, deviceId) => {
-        const deviceInfo = devicesInfo.find((deviceInfo) => deviceInfo.deviceId === deviceId)
-        if (!deviceInfo) state.devices.delete(deviceId)
+        const info = devicesInfo.find((info) => info.deviceId === deviceId)
+        if (!info) state.devices.delete(deviceId)
       })
       await afs.writeFile(devicesFile, JSON.stringify(state.devices, mapReplacer), 'utf-8')
 
       // TODO: check how this is working and if it always is failing and then requesting an address
       const resultsLocal = await Promise.all(
-        devicesInfo.map(async (info) => {
-          const localInfo = state.devices.get(info.deviceId)
-          if (!localInfo || !localInfo?.secureServerAddress) return { info, success: false }
+        devicesInfo
+          .filter((info) => info.deviceId !== state.thisDeviceId)
+          .map(async (info) => {
+            const localInfo = state.devices.get(info.deviceId)
+            if (!localInfo || !localInfo?.secureServerAddress) return { info, success: false }
 
-          const success = await testLocalAddress(info.deviceId, localInfo.secureServerAddress, win)
-          return { info, success }
-        }),
+            const success = await testLocalAddress(
+              info.deviceId,
+              localInfo.secureServerAddress,
+              win,
+            )
+            return { info, success }
+          }),
       )
       const resultsDrive = await Promise.all(
         resultsLocal
