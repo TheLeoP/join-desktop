@@ -88,7 +88,7 @@ async function testLocalAddress(id: string, url: string, win: BrowserWindow) {
     type: 'GCMLocalNetworkTest',
     json: JSON.stringify({
       type: 'GCMLocalNetworkTest',
-      senderID: state.thisDeviceId,
+      senderId: state.thisDeviceId,
     }),
   })
 
@@ -574,7 +574,11 @@ function createWindow(tray: Tray) {
       })
       await afs.writeFile(devicesFile, JSON.stringify(state.devices, mapReplacer), 'utf-8')
 
-      // TODO: check how this is working and if it always is failing and then requesting an address
+      // TODO: it seems like Android devices use this information to list if we
+      // are in a local network. Do they try to use the HTTP server or do they
+      // always use an FCM push? Maybe we need to lie and say that we are other
+      // kind of devices to make them try to use the HTTP server if we ever
+      // implement it
       const resultsLocal = await Promise.all(
         devicesInfo
           .filter((info) => info.deviceId !== state.thisDeviceId)
