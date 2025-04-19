@@ -158,6 +158,55 @@ export async function push(deviceId: string, regId2: string, data: Push) {
   await drive.files.update({ fileId: pushesFile.id, media: { body: JSON.stringify(pushHistory) } })
 }
 
+export async function testLocalAddress(id: string, url: string, win: BrowserWindow) {
+  const body = JSON.stringify({
+    type: 'GCMLocalNetworkTest',
+    json: JSON.stringify({
+      type: 'GCMLocalNetworkTest',
+      senderId: state.thisDeviceId,
+    }),
+  })
+
+  const token = await oauth2Client.getAccessToken()
+  const req = https.request(`${url}gcm?token=${token.token}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Length': body.length,
+    },
+    rejectUnauthorized: false,
+    insecureHTTPParser: true,
+  })
+  req.write(body)
+  req.end()
+
+  return new Promise<boolean>((res, _rej) => {
+    req.on('response', async () => {
+      if (!state.devices.has(id)) {
+        state.devices.set(id, { secureServerAddress: url })
+      } else if (state.devices.has(id)) {
+        const device = state.devices.get(id)
+        device!.secureServerAddress = url
+      }
+      await afs.writeFile(devicesFile, JSON.stringify(state.devices, mapReplacer), 'utf-8')
+      win.webContents.send('on-local-network', id, true)
+
+      res(true)
+    })
+    req.on('error', async () => {
+      if (!state.devices.has(id)) return
+
+      const device = state.devices.get(id)
+
+      delete device?.secureServerAddress
+      await afs.writeFile(devicesFile, JSON.stringify(state.devices, mapReplacer), 'utf-8')
+      win.webContents.send('on-local-network', id, false)
+
+      res(false)
+    })
+  })
+}
+
 export async function setClipboard(deviceId: string, regId2: string, text: string) {
   push(deviceId, regId2, {
     clipboard: text,

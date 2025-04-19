@@ -1,6 +1,6 @@
 import { BrowserWindow } from 'electron'
 import { promises as afs } from 'node:fs'
-import { GenericResponse } from '../preload/types'
+import type { GenericResponse } from '../preload/types'
 import { joinUrl, deviceIdFile, devicesTypes } from './consts'
 import { oauth2Client } from './google'
 import { state } from './state'

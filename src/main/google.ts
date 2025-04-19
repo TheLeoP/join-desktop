@@ -48,6 +48,7 @@ export const jwtClient = new google.auth.JWT({
 })
 export const fcm = google.fcm('v1')
 export const drive = google.drive('v3')
+export const oauth2 = google.oauth2('v2')
 
 const dirMime = 'application/vnd.google-apps.folder'
 

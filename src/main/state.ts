@@ -1,12 +1,20 @@
-import { Data, DeviceInfo } from '../preload/types'
+import type { Data, DeviceInfo, Settings } from '../preload/types'
+import { type Credentials } from '@eneris/push-receiver/dist/types'
 import { joinUrl } from './consts'
 import { oauth2Client } from './google'
 
 export const state: {
   thisDeviceId?: string
   devices: Map<string, { secureServerAddress?: string }>
+  settings: Settings
+  credentials: Credentials | undefined
 } = {
   devices: new Map(),
+  settings: {
+    autostart: true,
+    scripts: new Map<string, string>(),
+  },
+  credentials: undefined,
 }
 export let cachedDevicesInfo: DeviceInfo[]
 
