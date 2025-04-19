@@ -80,7 +80,7 @@ export function useOnLocalNetwork(deviceId: string | null) {
 }
 
 export const settingsContext = createContext<
-  [Settings, React.Dispatch<React.SetStateAction<Settings>>] | null
+  [Settings | null, React.Dispatch<React.SetStateAction<Settings | null>>] | null
 >(null)
 export function useSettings() {
   const settings = useContext(settingsContext)
