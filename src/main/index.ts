@@ -559,6 +559,7 @@ function createWindow(tray: Tray) {
       const devicesInfo = await getCachedDevicesInfo()
       if (!devicesInfo) return
 
+      // TODO: if this code path if followed, devices on local network seem to work fine, but the local Network isn't shown. Why?
       const isThisDeviceRegistered = devicesInfo.some(
         (device) => device.deviceId === state.thisDeviceId,
       )
@@ -566,6 +567,12 @@ function createWindow(tray: Tray) {
         win.webContents.send('on-device-id', null)
         return
       }
+
+      state.devices.forEach((_, deviceId) => {
+        const deviceInfo = devicesInfo.find((deviceInfo) => deviceInfo.deviceId === deviceId)
+        if (!deviceInfo) state.devices.delete(deviceId)
+      })
+      await afs.writeFile(devicesFile, JSON.stringify(state.devices, mapReplacer), 'utf-8')
 
       // TODO: check how this is working and if it always is failing and then requesting an address
       const resultsLocal = await Promise.all(
