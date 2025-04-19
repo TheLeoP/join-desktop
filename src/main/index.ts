@@ -40,7 +40,7 @@ import type {
 } from '../preload/types'
 import { actions, Actions, fcmPush, setClipboard, smsSend, call } from './actions'
 import { createPopup, applyShortcuts } from './popup'
-import { getCachedDevicesInfo, getDevicesInfo, state } from './state'
+import { getCachedDevicesInfo, state } from './state'
 import {
   drive,
   fcm,
@@ -556,8 +556,16 @@ function createWindow(tray: Tray) {
   })
   m.handle('start-push-receiver', () =>
     startPushReceiver(win, async () => {
-      const devicesInfo = await getDevicesInfo()
+      const devicesInfo = await getCachedDevicesInfo()
       if (!devicesInfo) return
+
+      const isThisDeviceRegistered = devicesInfo.some(
+        (device) => device.deviceId === state.thisDeviceId,
+      )
+      if (!isThisDeviceRegistered) {
+        win.webContents.send('on-device-id', null)
+        return
+      }
 
       // TODO: check how this is working and if it always is failing and then requesting an address
       const resultsLocal = await Promise.all(

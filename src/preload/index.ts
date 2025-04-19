@@ -45,7 +45,7 @@ export const api = {
       r.off('on-local-network', f)
     }
   },
-  onDeviceId: (cb: (deviceId: string) => void) => {
+  onDeviceId: (cb: (deviceId: string | null) => void) => {
     const f = (_: Electron.IpcRendererEvent, deviceId: string) => cb(deviceId)
 
     r.on('on-device-id', f)
