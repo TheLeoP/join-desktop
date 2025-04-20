@@ -41,15 +41,6 @@ export type DeviceInfo = {
   hasTasker: boolean
 }
 
-export type MediaAction = {
-  play?: boolean
-  pause?: boolean
-  back?: boolean
-  next?: boolean
-  mediaAppPackage?: string
-  mediaVolume?: string
-}
-
 export type MediaInfo = {
   extraInfo: {
     maxMediaVolume: number
@@ -67,33 +58,6 @@ export type MediaInfo = {
     art?: string
     album?: string
   }[]
-}
-
-export type ContactInfo = {
-  name: string
-  number: string
-  photo?: string
-}
-
-export type SmsInfo = {
-  address: string
-  date: number
-  isMMS: boolean
-  received: boolean
-  text: string
-  id: string // it's a number on a string
-}
-
-export type File = {
-  date: number
-  isFolder: boolean
-  name: string
-  size: number //bytes
-}
-
-export type FolderInfo = {
-  files: File[]
-  pathSegments: string[]
 }
 
 export type PushType =
@@ -231,25 +195,6 @@ export type RespondFile = {
     success: boolean
     userAuthError: boolean
   }
-}
-
-export type MediaInfo = {
-  extraInfo: {
-    maxMediaVolume: number
-    mediaVolume: number
-  }
-  mediaInfosForClients: {
-    appIcon: string
-    appName: string
-    artist: string
-    date: number
-    packageName: string
-    playing: boolean
-    track: string
-
-    art?: string
-    album?: string
-  }[]
 }
 
 export type GenericResponse = {
