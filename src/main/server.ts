@@ -13,7 +13,7 @@ declare module 'fastify' {
   }
 }
 
-let currentFastify: FastifyInstance
+let currentFastify: FastifyInstance | undefined
 async function checkTokenInfo(token: string | undefined) {
   if (!token) return false
 
@@ -143,5 +143,6 @@ export async function start(win: BrowserWindow) {
 }
 
 export async function stop() {
+  if (!currentFastify) return
   await currentFastify.close()
 }
