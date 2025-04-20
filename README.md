@@ -83,6 +83,8 @@ While the goal of this app is to shatter some of the limitations the other Join 
 
 - Media info is not properly refreshed by the Join Android App. Even after deleting the old media info file from Google Drive and requesting the Join Android App to create a new one, it doesn't update the media information. Connecting to the Join Android App via local network also gives outdated media information.
 - The Join Google Chrome extension, the official Join Desktop app and the Join website register themselves as a Join device whenever they are opened. This means that, even after you have deleted them from within this application, they will be added again to your devices if you open the Join application that contained the deleted device.
+- Other Join devices don't contact this app via Local Network even if it's available and we tell them to do so. This probably is because the current Join Desktop app and Chrome extension don't support being contacted via Local Network, so they Join apps are hardcoded to avoid doing it. The Join website sometimes does contact this app via Local Network after receiving a Push from this app instructing it to do so.
+  - I tried registering this device with a different type, but it didn't work. My guess is that other device types (android_phone, for example) have a different registration workflow.
 
 ## Non implemented features
 
@@ -92,7 +94,6 @@ While the goal of this app is to shatter some of the limitations the other Join 
 - Send custom commands
 - EventGhost or Node-RED integration
 - Menu with notifications from other devices
-- HTTP server available in Local Network to be able to communicate with this Join app within a Local Network.
 - Other features not present in all of the non-Android Join applications (exposing PC file system remotely, sending status updates, sending notifications to other devices, etc)
 
 ## Special thanks
