@@ -11,7 +11,7 @@ export type Data<T> = {
   records: T[]
 } & GenericResponse
 
-const devicesTypes = {
+const _devicesTypes = {
   android_phone: 1,
   android_tablet: 2,
   chrome_browser: 3,
@@ -27,7 +27,7 @@ const devicesTypes = {
   ip: 13,
   mqtt: 14,
 } as const
-type DeviceTypes = typeof devicesTypes
+type DeviceTypes = typeof _devicesTypes
 
 export type DeviceInfo = {
   id: string
@@ -151,7 +151,7 @@ type PushWrapper = {
   push: Push
 }
 
-const respondFileType = {
+const _respondFileType = {
   screenshot: 1,
   video: 2,
   sms_threads: 3,
@@ -160,13 +160,13 @@ const respondFileType = {
   // NOTE: there doesn't seem to be a type for 6 (?
   media_infos: 7,
 } as const
-const responseType = {
+const _responseType = {
   push: 0,
   file: 1,
 } as const
 
-export type ResponseFileType = typeof respondFileType
-export type ResponseType = typeof responseType
+export type ResponseFileType = typeof _respondFileType
+export type ResponseType = typeof _responseType
 
 export type NotificationClear = {
   requestNotification: {
@@ -207,17 +207,6 @@ export type Status = {
   request: boolean
   status: DeviceStatus
 }
-
-const respondFileTypes = {
-  screenshot: 1,
-  video: 2,
-  sms_threads: 3,
-  sms_conversation: 4,
-  notifications: 5,
-  // NOTE: there doesn't seem to be a type for 6 (?
-  media_infos: 7,
-} as const
-export type RespondFileTypes = typeof respondFileType
 
 export type RespondFile = {
   responseFile: {

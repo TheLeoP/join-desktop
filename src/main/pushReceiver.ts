@@ -1,4 +1,4 @@
-import PushReceiver from '@eneris/push-receiver'
+import { PushReceiver } from '@eneris/push-receiver'
 import * as fs from 'node:fs'
 import { promises as afs } from 'node:fs'
 import { MessageEnvelope } from '@eneris/push-receiver/dist/types'
@@ -16,7 +16,6 @@ import type {
   FileInfo,
   LocationInfo,
 } from '../preload/types'
-import { setClipboard, testLocalAddress } from './actions'
 import {
   scriptsDir,
   devicesFile,
@@ -30,10 +29,17 @@ import {
   persistentIdsFile,
   credentialsFile,
 } from './consts'
-import { drive, getContactsNonLocal, getSmsNonLocal, getSmsChatsNonLocal } from './google'
+import {
+  drive,
+  getContactsNonLocal,
+  getSmsNonLocal,
+  getSmsChatsNonLocal,
+  getCachedDevicesInfo,
+} from './google'
 import { notificationImage, batteryOkImage, batteryLowImage } from './images'
-import { getCachedDevicesInfo, state } from './state'
+import { state } from './state'
 import { mapReplacer } from './utils'
+import { setClipboard, testLocalAddress } from './popup'
 
 const notifications = new Map<string, Notification>()
 
@@ -425,7 +431,7 @@ export async function startPushReceiver(win: BrowserWindow, onReady: () => Promi
       projectId: 'join-external-gcm',
       storageBucket: 'join-external-gcm.appspot.com',
     },
-    ...(state.credentials ? { cretendials: state.credentials } : {}),
+    credentials: state.credentials,
   })
   instance.onReady(onReady)
 

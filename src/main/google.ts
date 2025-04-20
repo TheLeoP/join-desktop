@@ -1,10 +1,10 @@
 import { google } from 'googleapis'
 import { promises as afs } from 'node:fs'
 import * as http from 'node:http'
-import { getCachedDevicesInfo, state } from './state'
+import { state } from './state'
 import { BrowserWindow, shell } from 'electron'
-import { mediaRequests, responseFileTypes, tokenFile } from './consts'
-import type { ContactInfo, SmsInfo, Push } from '../preload/types'
+import { joinUrl, mediaRequests, responseFileTypes, tokenFile } from './consts'
+import type { ContactInfo, SmsInfo, Push, DeviceInfo, Data } from '../preload/types'
 
 const joinAppId = '596310809542-giumrib7hohfiftljqmj7eaio3kl21ek.apps.googleusercontent.com'
 const joinAppSecret = 'NTA9UbFpNhaIP74B_lpxGgvR'
@@ -296,4 +296,31 @@ export async function logInWithGoogle(win: BrowserWindow) {
   await afs.writeFile(tokenFile, JSON.stringify(tokens), 'utf-8')
 
   win.webContents.send('on-log-in')
+}
+
+let cachedDevicesInfo: DeviceInfo[]
+export async function getDevicesInfo() {
+  const token = await oauth2Client.getAccessToken()
+  const res = await fetch(
+    `${joinUrl}/registration/v1/listDevices`,
+
+    {
+      headers: {
+        Authorization: `Bearer ${token.token}`,
+      },
+    },
+  )
+  const parsedRes = (await res.json()) as Data<DeviceInfo>
+  // TODO: toast in frontend with errors? Notifications?
+  if (!parsedRes.success) throw new Error(parsedRes.errorMessage)
+
+  const devicesInfo = parsedRes.records
+  cachedDevicesInfo = devicesInfo
+  return devicesInfo
+}
+
+export async function getCachedDevicesInfo() {
+  if (cachedDevicesInfo) return cachedDevicesInfo
+
+  return await getDevicesInfo()
 }

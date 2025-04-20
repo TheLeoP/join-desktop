@@ -17,16 +17,29 @@ import type {
   SmsResponse,
   Settings,
 } from '../preload/types'
-import { actions, Actions, fcmPush, smsSend, call, testLocalAddress } from './actions'
-import { createPopup, applyShortcuts } from './popup'
-import { getCachedDevicesInfo, state } from './state'
 import {
+  createPopup,
+  applyShortcuts,
+  Actions,
+  actions,
+  fcmPush,
+  smsSend,
+  call,
+  testLocalAddress,
+} from './popup'
+import { state } from './state'
+import {
+  deviceDirNonLocal,
+  dirNonLocal,
   drive,
   fcm,
+  getCachedDevicesInfo,
   getContactsNonLocal,
+  getDevicesInfo,
   getMediaInfoNonLocal,
   getPushHistoryNonLocal,
   getSmsNonLocal,
+  joinDirNonLocal,
   jwtClient,
   logInWithGoogle,
   mediaActionNonLocal,
@@ -50,7 +63,7 @@ import {
 import { mapReplacer, mapReviver } from './utils'
 import { registerDevice, renameDevice, deleteDevice } from './joinApi'
 import { start } from './server'
-import { startPushReceiver } from './push-receiver'
+import { startPushReceiver } from './pushReceiver'
 
 let shortcuts: Map<string, keyof Actions>
 
@@ -84,13 +97,55 @@ function createWindow(tray: Tray) {
     },
   })
 
-  m.handle('register-device', (_, name) => {
+  m.handle('register-device', async (_, name) => {
     if (!state.credentials) throw new Error('There are no credentials')
-    return registerDevice(name, state.credentials, win)
+    await registerDevice(name, state.credentials, win)
+    // NOTE: update cache after regstering this device
+    await getDevicesInfo()
   })
-  m.handle('start-push-receiver', async () => {
+  m.handle('start-http-server', async () => {
+    if (!state.thisDeviceId) throw new Error('thisDeviceId is undefined')
+
     const address = await start(win)
-    // TODO: create address file in google drive
+    const addresses = {
+      senderId: state.thisDeviceId,
+      // NOTE: Join apps seem to asume that the url will have a trailing `/`
+      secureServerAddress: address + '/',
+    }
+
+    const addressesFileName = `serveraddresses=:=${state.thisDeviceId}`
+    const addressesFiles = await drive.files.list({
+      q: `name = '${addressesFileName}' and trashed = false`,
+    })
+    const files = addressesFiles.data.files
+    // TODO: this kind of errors are misleading, change the text
+    if (!files) throw new Error(`No files with the name ${addressesFileName}`)
+
+    const addressesFile = files[0]
+    if (addressesFile && addressesFile.id) {
+      await drive.files.update({
+        fileId: addressesFile.id,
+        media: {
+          mimeType: 'application/json',
+          body: JSON.stringify(addresses),
+        },
+      })
+    } else if (!addressesFile) {
+      const joinDirId = await joinDirNonLocal()
+      const deviceDirId = await deviceDirNonLocal(state.thisDeviceId, joinDirId)
+      const settingsDirId = await dirNonLocal('Settings Files', [deviceDirId])
+      await drive.files.create({
+        requestBody: {
+          name: addressesFileName,
+          parents: [settingsDirId],
+        },
+        media: {
+          mimeType: 'application/json',
+          body: JSON.stringify(addresses),
+        },
+      })
+    }
+
     // TODO: handle GCMLocalNetworkTestRequest
 
     const devicesInfo = await getCachedDevicesInfo()
@@ -106,12 +161,13 @@ function createWindow(tray: Tray) {
           type: 'GCMLocalNetworkRequest',
           json: JSON.stringify({
             type: 'GCMLocalNetworkRequest',
-            senderId: state.thisDeviceId,
-            // NOTE: Join apps seem to asume that the url will have a trailing `/`
-            secureServerAddress: address + '/',
+            ...addresses,
           }),
         })
       })
+  })
+  m.handle('start-push-receiver', async () => {
+    const devicesInfo = await getCachedDevicesInfo()
 
     startPushReceiver(win, async () => {
       if (!devicesInfo) return

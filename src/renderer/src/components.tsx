@@ -41,8 +41,9 @@ export function JoinProvider({ children }: { children: ReactNode }) {
 
   const [deviceId, setDeviceId] = useState<string | null>(null)
   useEffect(() => {
-    const removeListener = window.api.onDeviceId((id) => {
+    const removeListener = window.api.onDeviceId(async (id) => {
       setDeviceId(id)
+      if (id) await window.api.startHttpServer()
     })
 
     return () => removeListener()

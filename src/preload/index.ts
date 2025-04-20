@@ -10,6 +10,7 @@ export const api = {
   getRemoteUrl: (deviceId: string, path: string) => r.invoke('get-remote-url', deviceId, path),
 
   startPushReceiver: () => r.invoke('start-push-receiver'),
+  startHttpServer: () => r.invoke('start-http-server'),
   registerDevice: (name: string) => r.invoke('register-device', name),
   renameDevice: (deviceId: string, name: string) => r.invoke('rename-device', deviceId, name),
   deleteDevice: (deviceId: string) => r.invoke('delete-device', deviceId),
