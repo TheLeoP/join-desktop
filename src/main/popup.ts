@@ -191,7 +191,7 @@ export async function push(deviceId: string, regId2: string, data: Push) {
     q: `name = '${pushesFileName}' and trashed = false`,
   })
   const files = pushesFiles.data.files
-  if (!files) throw new Error(`No files with the name ${pushesFileName}`)
+  if (!files) throw new Error(`\`files\` is undefined for the name ${pushesFileName}`)
 
   let pushesFile = files[0]
 

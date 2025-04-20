@@ -98,10 +98,10 @@ export async function getContactsNonLocal(deviceId: string) {
     q: `name = '${contactsFileName}' and trashed = false`,
   })
   const files = response.data.files
-  if (!files) throw new Error(`No files with the name ${contactsFileName}`)
+  if (!files) throw new Error(`\`files\` is undefined for the name ${contactsFileName}`)
 
   const fileInfo = files[0]
-  if (!fileInfo) throw new Error(`No files with the name ${contactsFileName}`)
+  if (!fileInfo) throw new Error(`\`files\` is undefined for the name ${contactsFileName}`)
   if (!fileInfo.id)
     throw new Error(`Contacts file for deviceId ${deviceId} has no defined id on Google Drive`)
 
@@ -124,10 +124,10 @@ export async function getSmsNonLocal(deviceId: string) {
     q: `name = '${smssFileName}' and trashed = false`,
   })
   const files = response.data.files
-  if (!files) throw new Error(`No files with the name ${smssFileName}`)
+  if (!files) throw new Error(`\`files\` is undefined for the name ${smssFileName}`)
 
   const fileInfo = files[0]
-  if (!fileInfo) throw new Error(`No files with the name ${smssFileName}`)
+  if (!fileInfo) throw new Error(`\`files\` is undefined for the name ${smssFileName}`)
   if (!fileInfo.id)
     throw new Error(`Smss file for deviceId ${deviceId} has no defined id on Google Drive`)
 
@@ -150,10 +150,10 @@ export async function getSmsChatsNonLocal(deviceId: string, address: string) {
     q: `name = '${smsFileName}' and trashed = false`,
   })
   const files = smsFiles.data.files
-  if (!files) throw new Error(`No files with the name ${smsFileName}`)
+  if (!files) throw new Error(`\`files\` is undefined for the name ${smsFileName}`)
 
   const smsFile = files[0]
-  if (!smsFile) throw new Error(`No files with the name ${smsFileName}`)
+  if (!smsFile) throw new Error(`\`files\` is undefined for the name ${smsFileName}`)
   if (!smsFile.id)
     throw new Error(`Smss file for deviceId ${deviceId} has no defined id on Google Drive`)
 
@@ -176,10 +176,10 @@ export async function getPushHistoryNonLocal(deviceId: string) {
     q: `name = '${pushesFileName}' and trashed = false`,
   })
   const files = pushesFiles.data.files
-  if (!files) throw new Error(`No files with the name ${pushesFileName}`)
+  if (!files) throw new Error(`\`files\` is undefined for the name ${pushesFileName}`)
 
   const pushesFile = files[0]
-  if (!pushesFile) throw new Error(`No files with the name ${pushesFileName}`)
+  if (!pushesFile) throw new Error(`\`files\` is undefined for the name ${pushesFileName}`)
   if (!pushesFile.id)
     throw new Error(`Smss file for deviceId ${deviceId} has no defined id on Google Drive`)
 

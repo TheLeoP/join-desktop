@@ -118,8 +118,7 @@ function createWindow(tray: Tray) {
       q: `name = '${addressesFileName}' and trashed = false`,
     })
     const files = addressesFiles.data.files
-    // TODO: this kind of errors are misleading, change the text
-    if (!files) throw new Error(`No files with the name ${addressesFileName}`)
+    if (!files) throw new Error(`\`files\` is undefined for the name ${addressesFileName}`)
 
     const addressesFile = files[0]
     if (addressesFile && addressesFile.id) {
