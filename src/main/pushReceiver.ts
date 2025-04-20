@@ -423,6 +423,8 @@ export const handleNotification = async (
 }
 
 export async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void>) {
+  if (!state.credentials) throw new Error('Credentials is null')
+
   const persistentIds = await new Promise<string[]>((res, rej) => {
     fs.readFile(persistentIdsFile, 'utf-8', (err, content) => {
       if (err && err.code == 'ENOENT') return res([])
