@@ -20,7 +20,6 @@ export async function registerDevice(name: string, credentials: Credentials, win
       regId: credentials.fcm.token,
       regId2: credentials.fcm.token,
       deviceName: name,
-      // TODO: see if registering as an Android phone, other devices try to contact us via local network
       deviceType: devicesTypes.firefox,
     }),
   })

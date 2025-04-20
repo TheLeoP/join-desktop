@@ -22,7 +22,6 @@ import {
   applyShortcuts,
   Actions,
   actions,
-  fcmPush,
   smsSend,
   call,
   testLocalAddress,
@@ -174,16 +173,6 @@ function createWindow(tray: Tray) {
 
     startPushReceiver(win, async () => {
       if (!devicesInfo) return
-
-      // TODO: if this code path if followed, devices on local network seem to
-      // work fine, but the local Network isn't shown. Why?
-      const isThisDeviceRegistered = devicesInfo.some(
-        (device) => device.deviceId === state.thisDeviceId,
-      )
-      if (!isThisDeviceRegistered) {
-        win.webContents.send('on-device-id', null)
-        return
-      }
 
       state.devices.forEach((_, deviceId) => {
         const info = devicesInfo.find((info) => info.deviceId === deviceId)

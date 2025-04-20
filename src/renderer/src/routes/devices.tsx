@@ -317,6 +317,7 @@ function Device({
           History
         </Link>
 
+        {/* TODO: this is throwing some kind of error when opened */}
         <AlertDialog>
           <AlertDialogTrigger className="cursor-pointer bg-red-500 text-xl text-white hover:bg-red-600 active:bg-red-700">
             Delete
