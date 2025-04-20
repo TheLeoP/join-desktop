@@ -56,7 +56,6 @@ import {
   devicesTypes,
   fileRequests,
   folderRequests,
-  responseFileTypes,
   settingsFile,
   shortcutsFile,
   smsChatRequests,
@@ -65,7 +64,7 @@ import {
 } from './consts'
 import { mapReplacer, mapReviver } from './utils'
 import { registerDevice, renameDevice, deleteDevice } from './joinApi'
-import { start } from './server'
+import { start, stop } from './server'
 import { startPushReceiver } from './pushReceiver'
 
 let shortcuts: Map<string, keyof Actions>
@@ -103,8 +102,16 @@ function createWindow(tray: Tray) {
   m.handle('register-device', async (_, name) => {
     if (!state.credentials) throw new Error('There are no credentials')
     await registerDevice(name, state.credentials, win)
-    // NOTE: update cache after regstering this device
+    // NOTE: update cache after registering this device
     await getDevicesInfo()
+  })
+  m.handle('delete-device', async (_, deviceId: string) => {
+    await deleteDevice(deviceId, win)
+    // NOTE: update cache after deleting this device
+    await getDevicesInfo()
+  })
+  m.handle('stop-http-server', async () => {
+    await stop()
   })
   m.handle('start-http-server', async () => {
     if (!state.thisDeviceId) throw new Error('thisDeviceId is undefined')
@@ -417,9 +424,6 @@ app.whenReady().then(() => {
 
   m.handle('rename-device', async (_, deviceId: string, name: string) => {
     await renameDevice(deviceId, name)
-  })
-  m.handle('delete-device', async (_, deviceId: string) => {
-    await deleteDevice(deviceId)
   })
   m.handle('get-access-token', async () => (await oauth2Client.getAccessToken()).token)
   m.handle('media', async (_, deviceId, regId2) => {

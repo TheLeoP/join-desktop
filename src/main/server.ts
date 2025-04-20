@@ -1,4 +1,4 @@
-import Fastify, { FastifyReply, FastifyRequest } from 'fastify'
+import Fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import cors from '@fastify/cors'
 import auth from '@fastify/auth'
 import bearerAuthPlugin from '@fastify/bearer-auth'
@@ -13,11 +13,20 @@ declare module 'fastify' {
   }
 }
 
-const fastify = Fastify({
-  logger: true,
-  https: {
-    // TODO: accept this certificate on frontend
-    cert: `-----BEGIN CERTIFICATE-----
+let currentFastify: FastifyInstance
+async function checkTokenInfo(token: string | undefined) {
+  if (!token) return false
+
+  const info = await oauth2.tokeninfo({ oauth_token: token })
+  return !!(info.data.expires_in && info.data.expires_in > 0)
+}
+
+async function config(win: BrowserWindow) {
+  const fastify = Fastify({
+    logger: true,
+    https: {
+      // TODO: accept this certificate on frontend
+      cert: `-----BEGIN CERTIFICATE-----
 MIIDCTCCAfGgAwIBAgIUFCWNSTUhoYVBoN0Mvreh4pGpkCIwDQYJKoZIhvcNAQEL
 BQAwFDESMBAGA1UEAwwJbG9jYWxob3N0MB4XDTI1MDQxOTE5MzQwMloXDTI1MDUx
 OTE5MzQwMlowFDESMBAGA1UEAwwJbG9jYWxob3N0MIIBIjANBgkqhkiG9w0BAQEF
@@ -36,7 +45,7 @@ bb66jlpyppnZvZLNPTcW63w9KLIJ3s3iozdfnK1HPLylfiR8BClmZlemlrkw7MQk
 VH4qDu6cnLr+kbpU3UXOXfzaaYtSS2Ato+kbtBylPr4E/UwEiHIJaDRkzIaTjiQb
 ut3hJCBnf1l8Xwj/gw==
 -----END CERTIFICATE-----`,
-    key: `-----BEGIN PRIVATE KEY-----
+      key: `-----BEGIN PRIVATE KEY-----
 MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCGe5iNJtUiiYxi
 3f8opm/gizC99P8T6Nk7gV8ZFZ9kuTvce3PutoJDA4/DPoC9+DY0fH/+e1f/78X0
 LQwXK0DfmOJ5tT+7eUDFOp2gCDrPIKlSAm8BK/BD9S6rx9Pyx17jbguI7MGdO0oV
@@ -64,36 +73,29 @@ P5/IZ7AzYJDyohlDqaBK/dWVh2GkzHdDSHxPLxCE3wfQhvBuWw2gj9lZa7D13QPb
 U7ez5s6I/FhDi+Fmn/7NMHHrCPUJYcH+icKHNNffW9lq6J01QOk6ut9uIYubgVxv
 lQP0yPLNeHqObxDmNGeRqA==
 -----END PRIVATE KEY-----`,
-  },
-})
-async function checkTokenInfo(token: string | undefined) {
-  if (!token) return false
+    },
+  })
+  await fastify.register(cors)
+  fastify.decorate('verifyTokenInSearchParams', async (req, _rep) => {
+    // @ts-ignore: I can't type this correctly
+    const { token } = req.query
+    const isValid = await checkTokenInfo(token)
+    if (!isValid) throw new Error('token is invalid')
+  })
+  await fastify.register(auth)
+  await fastify.register(bearerAuthPlugin, {
+    keys: new Set<string>(),
+    auth: async (key, _req) => {
+      return await checkTokenInfo(key)
+    },
+    addHook: false,
+  })
+  if (!fastify.verifyBearerAuth) throw new Error('verifyBearerAuth not defined')
+  fastify.addHook(
+    'preHandler',
+    fastify.auth([fastify.verifyBearerAuth, fastify.verifyTokenInSearchParams]),
+  )
 
-  const info = await oauth2.tokeninfo({ oauth_token: token })
-  return !!(info.data.expires_in && info.data.expires_in > 0)
-}
-await fastify.register(cors)
-fastify.decorate('verifyTokenInSearchParams', async (req, _rep) => {
-  // @ts-ignore: I can't type this correctly
-  const { token } = req.query
-  const isValid = await checkTokenInfo(token)
-  if (!isValid) throw new Error('token is invalid')
-})
-await fastify.register(auth)
-await fastify.register(bearerAuthPlugin, {
-  keys: new Set<string>(),
-  auth: async (key, _req) => {
-    return await checkTokenInfo(key)
-  },
-  addHook: false,
-})
-if (!fastify.verifyBearerAuth) throw new Error('verifyBearerAuth not defined')
-fastify.addHook(
-  'preHandler',
-  fastify.auth([fastify.verifyBearerAuth, fastify.verifyTokenInSearchParams]),
-)
-
-export async function start(win: BrowserWindow) {
   fastify.post(
     '/gcm',
     {
@@ -126,11 +128,20 @@ export async function start(win: BrowserWindow) {
   fastify.get('/acceptcertificate', async function handler(_req, _rep) {
     return 'Everything done'
   })
+  currentFastify = fastify
+  return fastify
+}
 
+export async function start(win: BrowserWindow) {
+  const fastify = await config(win)
   try {
     return await fastify.listen({ port: 0, host: '0.0.0.0' })
   } catch (err) {
     fastify.log.error(err)
     return
   }
+}
+
+export async function stop() {
+  await currentFastify.close()
 }

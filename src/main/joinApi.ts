@@ -20,6 +20,7 @@ export async function registerDevice(name: string, credentials: Credentials, win
       regId: credentials.fcm.token,
       regId2: credentials.fcm.token,
       deviceName: name,
+      // TODO: see if registering as an Android phone, other devices try to contact us via local network
       deviceType: devicesTypes.firefox,
     }),
   })
@@ -50,7 +51,7 @@ export async function renameDevice(deviceId: string, name: string) {
   if (!response.success) throw new Error(response.errorMessage)
 }
 
-export async function deleteDevice(deviceId: string) {
+export async function deleteDevice(deviceId: string, win: BrowserWindow) {
   const token = await oauth2Client.getAccessToken()
 
   const res = await fetch(`${joinUrl}/registration/v1/unregisterDevice`, {
@@ -65,4 +66,10 @@ export async function deleteDevice(deviceId: string) {
   })
   const response = (await res.json()) as GenericResponse
   if (!response.success) throw new Error(response.errorMessage)
+
+  if (deviceId === state.thisDeviceId) {
+    state.thisDeviceId = null
+    win.webContents.send('on-device-id', state.thisDeviceId)
+    await afs.rm(deviceIdFile)
+  }
 }

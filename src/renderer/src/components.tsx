@@ -44,6 +44,7 @@ export function JoinProvider({ children }: { children: ReactNode }) {
     const removeListener = window.api.onDeviceId(async (id) => {
       setDeviceId(id)
       if (id) await window.api.startHttpServer()
+      else await window.api.stopHttpServer()
     })
 
     return () => removeListener()

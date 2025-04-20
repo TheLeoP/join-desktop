@@ -11,6 +11,7 @@ export const api = {
 
   startPushReceiver: () => r.invoke('start-push-receiver'),
   startHttpServer: () => r.invoke('start-http-server'),
+  stopHttpServer: () => r.invoke('stop-http-server'),
   registerDevice: (name: string) => r.invoke('register-device', name),
   renameDevice: (deviceId: string, name: string) => r.invoke('rename-device', deviceId, name),
   deleteDevice: (deviceId: string) => r.invoke('delete-device', deviceId),
