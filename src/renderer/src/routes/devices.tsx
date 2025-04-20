@@ -23,7 +23,7 @@ import {
 import { queryOptions, UseMutateFunction, useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import debounce from 'lodash.debounce'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type JSX } from 'react';
 import { MediaAction, MediaInfo, DeviceInfo, Data } from 'src/preload/types'
 
 export const Route = createFileRoute('/devices')({
@@ -317,7 +317,6 @@ function Device({
           History
         </Link>
 
-        {/* TODO: this is throwing some kind of error when opened */}
         <AlertDialog>
           <AlertDialogTrigger className="cursor-pointer bg-red-500 text-xl text-white hover:bg-red-600 active:bg-red-700">
             Delete
