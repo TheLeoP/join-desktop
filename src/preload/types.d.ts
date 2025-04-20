@@ -100,7 +100,7 @@ export type PushType =
   | 'GCMPush'
   | 'GCMNotificationClear'
   | 'GCMLocalNetworkRequest'
-  | 'GCMLocalNetworkTestRequest' // TODO: do I need to handle this?
+  | 'GCMLocalNetworkTestRequest'
   | 'GCMDeviceNotOnLocalNetwork'
   | 'GCMStatus'
   | 'GCMRespondFile'
@@ -182,6 +182,12 @@ export type LocalNetworkRequest = {
   senderId: string
   serverAddress: string | undefined // http Includes trailling `/`
   webSocketServerAddress: string | undefined // Includes trailling `/`
+}
+
+export type LocalNetworkTestRequest = {
+  senderId: string
+  // TODO: add this to other similar types for completion's sake?
+  type: string
 }
 
 export type DeviceNotOnLocalNetworkRequest = {

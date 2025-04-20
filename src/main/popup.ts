@@ -16,7 +16,7 @@ import { basename, join } from 'path'
 import joinIcon from '../../resources/join.png?asset'
 import type { DeviceInfo, DeviceTypes, GenericResponse, Push } from '../preload/types'
 import { state } from './state'
-import { devicesFile, responseType, devicesTypes } from './consts'
+import { devicesFile, responseType, devicesTypes, responseFileTypes } from './consts'
 import {
   oauth2Client,
   fcm,
@@ -272,6 +272,7 @@ export async function testLocalAddress(id: string, url: string, win: BrowserWind
   req.write(body)
   req.end()
 
+  // TODO: add a timeout here. Sometimes the Android's app http server is just hanged up.
   return new Promise<boolean>((res, _rej) => {
     req.on('response', async () => {
       if (!state.devices.has(id)) {
@@ -432,6 +433,55 @@ async function UploadFileNonLocal(filename: string, mimeType: string, body: fs.R
   })
 
   return `https://www.googleapis.com/drive/v3/files/${file.data.id}/download`
+}
+
+export async function requestContactsAndLastSmSCreation(deviceId: string, regId2: string) {
+  fcmPush(deviceId, regId2, {
+    type: 'GCMRequestFile',
+    json: JSON.stringify({
+      type: 'GCMRequestFile',
+      requestFile: {
+        requestType: responseFileTypes.sms_threads,
+        senderId: state.thisDeviceId,
+        deviceIds: [deviceId],
+      },
+      senderId: state.thisDeviceId,
+    }),
+  })
+}
+
+export async function requestSmsChatCreationOrUpdate(
+  deviceId: string,
+  regId2: string,
+  address: string,
+) {
+  fcmPush(deviceId, regId2, {
+    type: 'GCMRequestFile',
+    json: JSON.stringify({
+      type: 'GCMRequestFile',
+      requestFile: {
+        requestType: responseFileTypes.sms_conversation,
+        payload: address,
+        senderId: state.thisDeviceId,
+        deviceIds: [deviceId],
+      },
+      senderId: state.thisDeviceId,
+    }),
+  })
+}
+
+export async function requestLocalNetworkTest(deviceId: string, regId2: string) {
+  if (!state.thisDeviceId) throw new Error('thisDeviceId is undefined')
+  if (!state.address) throw new Error('address is undefined')
+
+  fcmPush(deviceId, regId2, {
+    type: 'GCMLocalNetworkRequest',
+    json: JSON.stringify({
+      type: 'GCMLocalNetworkRequest',
+      senderId: state.thisDeviceId,
+      secureServerAddress: state.address,
+    }),
+  })
 }
 
 export const actions: Record<string, (popupWin: BrowserWindow) => Promise<void>> = {

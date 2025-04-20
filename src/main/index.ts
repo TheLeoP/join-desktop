@@ -26,6 +26,9 @@ import {
   smsSend,
   call,
   testLocalAddress,
+  requestContactsAndLastSmSCreation,
+  requestLocalNetworkTest,
+  requestSmsChatCreationOrUpdate,
 } from './popup'
 import { state } from './state'
 import {
@@ -106,11 +109,11 @@ function createWindow(tray: Tray) {
   m.handle('start-http-server', async () => {
     if (!state.thisDeviceId) throw new Error('thisDeviceId is undefined')
 
-    const address = await start(win)
+    // NOTE: Join apps seem to asume that the url will have a trailing `/`
+    state.address = (await start(win)) + '/'
     const addresses = {
       senderId: state.thisDeviceId,
-      // NOTE: Join apps seem to asume that the url will have a trailing `/`
-      secureServerAddress: address + '/',
+      secureServerAddress: state.address,
     }
 
     const addressesFileName = `serveraddresses=:=${state.thisDeviceId}`
@@ -145,25 +148,19 @@ function createWindow(tray: Tray) {
       })
     }
 
-    // TODO: handle GCMLocalNetworkTestRequest
-
     const devicesInfo = await getCachedDevicesInfo()
-    devicesInfo
-      .filter(
-        (device) =>
-          device.deviceId !== state.thisDeviceId &&
-          (device.deviceType === devicesTypes.android_phone ||
-            device.deviceType === devicesTypes.firefox),
-      )
-      .map((device) => {
-        fcmPush(device.deviceId, device.regId2, {
-          type: 'GCMLocalNetworkRequest',
-          json: JSON.stringify({
-            type: 'GCMLocalNetworkRequest',
-            ...addresses,
-          }),
-        })
-      })
+    await Promise.all(
+      devicesInfo
+        .filter(
+          (device) =>
+            device.deviceId !== state.thisDeviceId &&
+            (device.deviceType === devicesTypes.android_phone ||
+              device.deviceType === devicesTypes.firefox),
+        )
+        .map(async (device) => {
+          await requestLocalNetworkTest(device.deviceId, device.regId2)
+        }),
+    )
   })
   m.handle('start-push-receiver', async () => {
     const devicesInfo = await getCachedDevicesInfo()
@@ -171,7 +168,8 @@ function createWindow(tray: Tray) {
     startPushReceiver(win, async () => {
       if (!devicesInfo) return
 
-      // TODO: if this code path if followed, devices on local network seem to work fine, but the local Network isn't shown. Why?
+      // TODO: if this code path if followed, devices on local network seem to
+      // work fine, but the local Network isn't shown. Why?
       const isThisDeviceRegistered = devicesInfo.some(
         (device) => device.deviceId === state.thisDeviceId,
       )
@@ -186,11 +184,8 @@ function createWindow(tray: Tray) {
       })
       await afs.writeFile(devicesFile, JSON.stringify(state.devices, mapReplacer), 'utf-8')
 
-      // TODO: it seems like Android devices use this information to list if we
-      // are in a local network. Do they try to use the HTTP server or do they
-      // always use an FCM push? Maybe we need to lie and say that we are other
-      // kind of devices to make them try to use the HTTP server if we ever
-      // implement it
+      // NOTE: it seems like Android devices use this information to list if we
+      // are in a local network
       const resultsLocal = await Promise.all(
         devicesInfo
           .filter((info) => info.deviceId !== state.thisDeviceId)
@@ -403,37 +398,6 @@ function createWindow(tray: Tray) {
   } else {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
-}
-
-async function requestContactsAndLastSmSCreation(deviceId: string, regId2: string) {
-  fcmPush(deviceId, regId2, {
-    type: 'GCMRequestFile',
-    json: JSON.stringify({
-      type: 'GCMRequestFile',
-      requestFile: {
-        requestType: responseFileTypes.sms_threads,
-        senderId: state.thisDeviceId,
-        deviceIds: [deviceId],
-      },
-      senderId: state.thisDeviceId,
-    }),
-  })
-}
-
-async function requestSmsChatCreationOrUpdate(deviceId: string, regId2: string, address: string) {
-  fcmPush(deviceId, regId2, {
-    type: 'GCMRequestFile',
-    json: JSON.stringify({
-      type: 'GCMRequestFile',
-      requestFile: {
-        requestType: responseFileTypes.sms_conversation,
-        payload: address,
-        senderId: state.thisDeviceId,
-        deviceIds: [deviceId],
-      },
-      senderId: state.thisDeviceId,
-    }),
-  })
 }
 
 Menu.setApplicationMenu(null)

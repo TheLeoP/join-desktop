@@ -6,6 +6,7 @@ export const state: {
   devices: Map<string, { secureServerAddress?: string }>
   settings: Settings
   credentials: Credentials | undefined
+  address: string | undefined
 } = {
   devices: new Map(),
   settings: {
@@ -13,4 +14,5 @@ export const state: {
     scripts: new Map<string, string>(),
   },
   credentials: undefined,
+  address: undefined,
 }

@@ -15,6 +15,7 @@ import type {
   FolderInfo,
   FileInfo,
   LocationInfo,
+  LocalNetworkTestRequest,
 } from '../preload/types'
 import {
   scriptsDir,
@@ -39,7 +40,7 @@ import {
 import { notificationImage, batteryOkImage, batteryLowImage } from './images'
 import { state } from './state'
 import { mapReplacer } from './utils'
-import { setClipboard, testLocalAddress } from './popup'
+import { fcmPush, requestLocalNetworkTest, setClipboard, testLocalAddress } from './popup'
 
 const notifications = new Map<string, Notification>()
 
@@ -82,7 +83,6 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
         })
 
         const devicesInfo = await getCachedDevicesInfo()
-        if (!devicesInfo) return
 
         const receiver = devicesInfo.find((device) => device.deviceId === push.senderId)
         if (!receiver) return
@@ -347,6 +347,25 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
       const location = `${response.latitude},${response.longitude}`
       shell.openExternal(`https://www.google.com/maps?q=${location}&ll=${location}&z=17`)
 
+      break
+    }
+    case 'GCMLocalNetworkTestRequest': {
+      if (!state.address) {
+        new Notification({
+          title: 'Local Network Test Requested',
+          body: 'state.address is undefined. Nothing done.',
+        }).show()
+        return
+      }
+
+      const req = content as LocalNetworkTestRequest
+
+      const devicesInfo = await getCachedDevicesInfo()
+      const receiver = devicesInfo.find((device) => device.deviceId === req.senderId)
+      if (!receiver) return
+      if (!state.thisDeviceId) return
+
+      requestLocalNetworkTest(receiver.deviceId, receiver.regId2)
       break
     }
   }
