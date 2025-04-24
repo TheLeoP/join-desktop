@@ -217,7 +217,7 @@ function createWindow(tray: Tray) {
             ).data
 
             // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-            const text = await file.text()
+            const text = file.text ? await file.text() : file
             const localReq = JSON.parse(text) as LocalNetworkRequest
             const url = localReq.secureServerAddress
             const id = localReq.senderId

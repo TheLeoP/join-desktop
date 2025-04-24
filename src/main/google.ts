@@ -113,7 +113,7 @@ export async function getContactsNonLocal(deviceId: string) {
   ).data
 
   // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-  const text = await file.text()
+  const text = file.text ? await file.text() : file
   const contactsInfo = JSON.parse(text).contacts as ContactInfo[]
   return contactsInfo
 }
@@ -139,7 +139,7 @@ export async function getSmsNonLocal(deviceId: string) {
   ).data
 
   // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-  const text = await file.text()
+  const text = file.text ? await file.text() : file
   const smssThreadInfo = JSON.parse(text) as SmsInfo[]
   return smssThreadInfo
 }
@@ -165,7 +165,7 @@ export async function getSmsChatsNonLocal(deviceId: string, address: string) {
   ).data
 
   // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-  const text = await smsFileContent.text()
+  const text = smsFileContent.text ? await smsFileContent.text() : smsFileContent
   const smssChats = JSON.parse(text) as { number: string; smses: SmsInfo[] }
   return smssChats.smses
 }
@@ -190,10 +190,9 @@ export async function getPushHistoryNonLocal(deviceId: string) {
     })
   ).data
 
-  // TODO: why is this a string? And the other uses of `drive.files.get`
-  // aren't? Maybe because of the metadata
   // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-  const pushHistory = JSON.parse(pushesFileContent) as {
+  const text = pushesFileContent.text ? await pushesFileContent.text() : pushesFileContent
+  const pushHistory = JSON.parse(text) as {
     apiLevel: number
     deviceId: string
     deviceType: number

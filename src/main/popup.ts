@@ -224,7 +224,7 @@ export async function push(deviceId: string, regId2: string, data: Push) {
   ).data
 
   // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-  const text = await pushesFileContent.text()
+  const text = pushesFileContent.text ? await pushesFileContent.text() : pushesFileContent
   let pushHistory: {
     apiLevel: number
     deviceId: string

@@ -264,7 +264,7 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
           ).data
 
           // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-          const text = await file.text()
+          const text = file.text ? await file.text() : file
           let mediaInfo: MediaInfo
           try {
             mediaInfo = JSON.parse(text) as MediaInfo
