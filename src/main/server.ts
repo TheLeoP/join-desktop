@@ -80,6 +80,7 @@ lQP0yPLNeHqObxDmNGeRqA==
     // @ts-ignore: I can't type this correctly
     const { token } = req.query
     const isValid = await checkTokenInfo(token)
+    // TODO: this is returning some JSON, how to change it's shape?
     if (!isValid) throw new Error('token is invalid')
   })
   await fastify.register(auth)

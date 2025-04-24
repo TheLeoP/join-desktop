@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
   deviceIdContext,
@@ -39,13 +39,36 @@ export function JoinProvider({ children }: { children: ReactNode }) {
     return () => removeListener()
   }, [])
 
+  const onOnlineCbs = useRef<(() => void)[] | null>(null)
+  if (onOnlineCbs.current === null) onOnlineCbs.current = []
+
+  useEffect(() => {
+    const onOnline = () => {
+      if (!onOnlineCbs.current) return
+      onOnlineCbs.current.forEach((cb) => cb())
+      onOnlineCbs.current.length = 0
+    }
+    window.addEventListener('online', onOnline)
+    return () => {
+      window.removeEventListener('online', onOnline)
+    }
+  }, [])
+
   const [deviceId, setDeviceId] = useState<string | null>(null)
   useEffect(() => {
     const removeListener = window.api.onDeviceId(async (id) => {
       setDeviceId(id)
-      // TODO: what to do if there is no internet connection?
       await window.api.stopHttpServer()
-      if (id) await window.api.startHttpServer()
+      if (!id) return
+
+      try {
+        await window.api.startHttpServer()
+      } catch (e) {
+        if (!onOnlineCbs.current) return
+        onOnlineCbs.current.push(async () => {
+          await window.api.startHttpServer()
+        })
+      }
     })
 
     return () => removeListener()

@@ -91,7 +91,7 @@ export async function deviceDirNonLocal(deviceId: string, joinDirId: string) {
   return await dirNonLocal(`from ${deviceName}`, [joinDirId])
 }
 
-// TODO: I should  handle the errors from this functions outside of them?
+// TODO: Should I  handle the errors from this functions outside it?
 export async function getContactsNonLocal(deviceId: string) {
   const contactsFileName = `contacts=:=${deviceId}`
   const response = await drive.files.list({
@@ -190,7 +190,8 @@ export async function getPushHistoryNonLocal(deviceId: string) {
     })
   ).data
 
-  // TODO: why is this a string? And the other uses of `drive.files.get` isn't?
+  // TODO: why is this a string? And the other uses of `drive.files.get`
+  // aren't? Maybe because of the metadata
   // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
   const pushHistory = JSON.parse(pushesFileContent) as {
     apiLevel: number
