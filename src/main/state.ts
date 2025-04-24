@@ -11,6 +11,7 @@ export const state: {
   devices: new Map(),
   settings: {
     autostart: true,
+    showOnStart: true,
     scripts: new Map<string, string>(),
   },
   thisDeviceId: null,

@@ -62,13 +62,13 @@ function RouteComponent() {
             Show on start
             <Switch
               className="ms-2"
-              checked={settings.autostart}
+              checked={settings.showOnStart}
               onCheckedChange={(checked) => {
                 setSettings((old) => {
                   if (!old) return old
                   return {
                     ...old,
-                    autostart: checked,
+                    showOnStart: checked,
                   }
                 })
               }}

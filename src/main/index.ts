@@ -66,8 +66,6 @@ import { registerDevice, renameDevice, deleteDevice } from './joinApi'
 import { start, stop } from './server'
 import { startPushReceiver } from './pushReceiver'
 
-let shortcuts: Map<string, keyof Actions>
-
 const joinAutoLauncher = new AutoLaunch({ name: 'join-desktop', isHidden: true })
 
 async function saveShortcuts(newShortcuts: Map<string, keyof Actions>) {
@@ -339,46 +337,19 @@ function createWindow(tray: Tray) {
     },
   ])
   win.on('hide', () => tray.setContextMenu(showMenu))
-  win.on('show', () => tray.setContextMenu(hideMenu))
+  win.on('show', () => {
+    tray.setContextMenu(hideMenu)
+  })
 
   win.on('ready-to-show', async () => {
-    // TODO: hide by default and make it configurable
-    win.show()
+    if (state.settings.showOnStart) win.show()
+    else tray.setContextMenu(showMenu)
 
-    try {
-      const content = await afs.readFile(credentialsFile, 'utf-8')
-      state.credentials = JSON.parse(content)
-    } catch {}
-    try {
-      const content = await afs.readFile(tokenFile, 'utf-8')
-      const tokens = JSON.parse(content)
-      oauth2Client.setCredentials(tokens)
-      win.webContents.send('on-log-in')
-    } catch {}
-    try {
-      const content = await afs.readFile(deviceIdFile, 'utf-8')
-      state.thisDeviceId = content
-      win.webContents.send('on-device-id', state.thisDeviceId)
-    } catch (e) {}
-    try {
-      const content = await afs.readFile(devicesFile, 'utf-8')
-      state.devices = JSON.parse(content, mapReviver)
-    } catch {}
-    createPopup()
-    try {
-      const content = await afs.readFile(shortcutsFile, 'utf-8')
-      shortcuts = JSON.parse(content, mapReviver)
-      applyShortcuts(shortcuts)
-    } catch {
-      shortcuts = new Map()
-    }
+    applyShortcuts(shortcuts)
+
+    if (isLoggedIn) win.webContents.send('on-log-in')
+    if (state.thisDeviceId) win.webContents.send('on-device-id', state.thisDeviceId)
     win.webContents.send('on-shortcuts', shortcuts)
-    // TODO: maybe read all of these files before ready-to-show, but send the UI a notification after ready-to-show
-    try {
-      const content = await afs.readFile(settingsFile, 'utf-8')
-      state.settings = JSON.parse(content, mapReviver)
-    } catch {}
-    applySettings(state.settings)
     win.webContents.send('on-settings', state.settings)
   })
 
@@ -395,6 +366,38 @@ function createWindow(tray: Tray) {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
 }
+
+try {
+  const content = await afs.readFile(credentialsFile, 'utf-8')
+  state.credentials = JSON.parse(content)
+} catch {}
+let isLoggedIn = false
+try {
+  const content = await afs.readFile(tokenFile, 'utf-8')
+  const tokens = JSON.parse(content)
+  oauth2Client.setCredentials(tokens)
+  isLoggedIn = true
+} catch {}
+try {
+  const content = await afs.readFile(deviceIdFile, 'utf-8')
+  state.thisDeviceId = content
+} catch (e) {}
+try {
+  const content = await afs.readFile(devicesFile, 'utf-8')
+  state.devices = JSON.parse(content, mapReviver)
+} catch {}
+let shortcuts: Map<string, keyof Actions>
+try {
+  const content = await afs.readFile(shortcutsFile, 'utf-8')
+  shortcuts = JSON.parse(content, mapReviver)
+} catch {
+  shortcuts = new Map()
+}
+try {
+  const content = await afs.readFile(settingsFile, 'utf-8')
+  state.settings = JSON.parse(content, mapReviver)
+} catch {}
+applySettings(state.settings)
 
 Menu.setApplicationMenu(null)
 app.whenReady().then(() => {
@@ -820,6 +823,7 @@ app.whenReady().then(() => {
   })
 
   createWindow(tray)
+  createPopup()
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

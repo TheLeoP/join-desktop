@@ -252,5 +252,6 @@ export type LocationInfo = {
 
 export type Settings = {
   autostart: boolean
+  showOnStart: boolean
   scripts: Map<string, string>
 }
