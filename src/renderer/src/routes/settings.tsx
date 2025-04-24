@@ -9,6 +9,10 @@ export const Route = createFileRoute('/settings')({
 function RouteComponent() {
   const [settings, setSettings] = useSettings()
 
+  if (!settings) {
+    return <div>Loading...</div>
+  }
+
   return (
     <form
       className="mt-1 flex flex-col items-center justify-center space-y-1"
@@ -43,7 +47,10 @@ function RouteComponent() {
               className="ms-2"
               checked={settings.autostart}
               onCheckedChange={(checked) => {
-                setSettings((old) => ({ ...old, autostart: checked }))
+                setSettings((old) => ({
+                  ...(old ? old : { scripts: new Map() }),
+                  autostart: checked,
+                }))
               }}
             ></Switch>
           </label>
@@ -87,9 +94,11 @@ function RouteComponent() {
                         className="m-1 cursor-pointer rounded-md bg-red-600 p-1 text-white hover:bg-red-700 active:bg-red-800"
                         onClick={(e) => {
                           e.preventDefault()
-                          setSettings((settings) => {
-                            settings.scripts.delete(command)
-                            return { ...settings }
+                          setSettings((old) => {
+                            if (!old) return old
+
+                            old.scripts.delete(command)
+                            return { ...old }
                           })
                         }}
                       >
@@ -107,7 +116,10 @@ function RouteComponent() {
             onClick={(e) => {
               e.preventDefault()
               // TODO: this only allows me to add one new scritp at a time
-              setSettings((old) => ({ ...old, scripts: old.scripts.set('', '') }))
+              setSettings((old) => ({
+                ...(old ? old : { autostart: true }),
+                scripts: (old?.scripts ?? new Map()).set('', ''),
+              }))
             }}
           >
             New script
