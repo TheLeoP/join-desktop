@@ -23,7 +23,7 @@ async function checkTokenInfo(token: string | undefined) {
 
 async function config(win: BrowserWindow) {
   const fastify = Fastify({
-    logger: true,
+    logger: false,
     https: {
       // TODO: accept this certificate on frontend
       cert: `-----BEGIN CERTIFICATE-----
