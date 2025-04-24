@@ -47,10 +47,30 @@ function RouteComponent() {
               className="ms-2"
               checked={settings.autostart}
               onCheckedChange={(checked) => {
-                setSettings((old) => ({
-                  ...(old ? old : { scripts: new Map() }),
-                  autostart: checked,
-                }))
+                setSettings((old) => {
+                  if (!old) return old
+
+                  return {
+                    ...old,
+                    autostart: checked,
+                  }
+                })
+              }}
+            ></Switch>
+          </label>
+          <label className="cursor-pointer text-xl">
+            Show on start
+            <Switch
+              className="ms-2"
+              checked={settings.autostart}
+              onCheckedChange={(checked) => {
+                setSettings((old) => {
+                  if (!old) return old
+                  return {
+                    ...old,
+                    autostart: checked,
+                  }
+                })
               }}
             ></Switch>
           </label>
@@ -116,10 +136,13 @@ function RouteComponent() {
             onClick={(e) => {
               e.preventDefault()
               // TODO: this only allows me to add one new scritp at a time
-              setSettings((old) => ({
-                ...(old ? old : { autostart: true }),
-                scripts: (old?.scripts ?? new Map()).set('', ''),
-              }))
+              setSettings((old) => {
+                if (!old) return old
+                return {
+                  ...old,
+                  scripts: old.scripts.set('', ''),
+                }
+              })
             }}
           >
             New script
