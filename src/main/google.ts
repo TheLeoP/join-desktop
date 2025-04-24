@@ -232,7 +232,7 @@ export async function getMediaInfoNonLocal(deviceId: string, regId2: string) {
     if (mediaRequest) mediaRequest(null)
 
     mediaRequests.set(deviceId, (mediaInfo) => {
-      if (mediaInfo === null) return rej(new Error('A new mediainfo request was created'))
+      if (mediaInfo === null) return rej(new Error('A new MediaInfo request was created'))
 
       res(mediaInfo)
     })

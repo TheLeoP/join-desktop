@@ -523,11 +523,14 @@ app.whenReady().then(() => {
         },
       })
 
-      return await new Promise((res, rej) => {
+      return await new Promise<FolderInfo>((res, rej) => {
         const request = folderRequests.get(path)
         if (request) request(null)
 
         folderRequests.set(path, (folderInfo) => {
+          if (folderInfo === null) {
+            return rej(new Error('A new FolderInfo request was created'))
+          }
           res(folderInfo)
         })
         setTimeout(
@@ -647,11 +650,13 @@ app.whenReady().then(() => {
       } catch (e) {
         await requestContactsAndLastSmSCreation(deviceId, regId2)
 
-        return await new Promise((res, rej) => {
+        return await new Promise<ContactInfo[]>((res, rej) => {
           const request = contactRequests.get(deviceId)
           if (request) request(null)
 
           contactRequests.set(deviceId, (contactInfo) => {
+            if (contactInfo === null) return rej(new Error('A new ContactInfo request was created'))
+
             res(contactInfo)
           })
           setTimeout(
@@ -712,11 +717,13 @@ app.whenReady().then(() => {
       } catch (e) {
         await requestContactsAndLastSmSCreation(deviceId, regId2)
 
-        return await new Promise((res, rej) => {
+        return await new Promise<SmsInfo[]>((res, rej) => {
           const request = smsRequests.get(deviceId)
           if (request) request(null)
 
           smsRequests.set(deviceId, (smsInfo) => {
+            if (smsInfo === null) return rej(new Error('A new SmsInfo request was created'))
+
             res(smsInfo)
           })
           setTimeout(
@@ -776,11 +783,13 @@ app.whenReady().then(() => {
       // before using it
       await requestSmsChatCreationOrUpdate(deviceId, regId2, address)
 
-      return await new Promise((res, rej) => {
+      return await new Promise<SmsInfo[]>((res, rej) => {
         const request = smsChatRequests.get(`${deviceId}${address}`)
         if (request) request(null)
 
         smsChatRequests.set(`${deviceId}${address}`, (smsChatInfo) => {
+          if (smsChatInfo === null) return rej(new Error('A new SmsChatInfo request was created'))
+
           res(smsChatInfo)
         })
         setTimeout(
