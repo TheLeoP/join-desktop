@@ -331,12 +331,6 @@ function Device({
               <AlertDialogAction
                 className="cursor-pointer"
                 onClick={() => {
-                  // TODO: when deleting current device, since thisDeviceId
-                  // isn't updated to null right away, the UI for registering
-                  // a device isn't shown until the app is started again
-                  // (currently, I'm checking that in the backend on startup,
-                  // but it's a better idea to do it here directly and remove
-                  // the outdated info righ away)
                   deleteDevice({ deviceId })
                 }}
               >
