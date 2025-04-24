@@ -4,7 +4,7 @@ import * as http from 'node:http'
 import { state } from './state'
 import { BrowserWindow, shell } from 'electron'
 import { joinUrl, mediaRequests, responseFileTypes, tokenFile } from './consts'
-import type { ContactInfo, SmsInfo, Push, DeviceInfo, Data } from '../preload/types'
+import type { ContactInfo, SmsInfo, Push, DeviceInfo, Data, MediaInfo } from '../preload/types'
 
 const joinAppId = '596310809542-giumrib7hohfiftljqmj7eaio3kl21ek.apps.googleusercontent.com'
 const joinAppSecret = 'NTA9UbFpNhaIP74B_lpxGgvR'
@@ -227,11 +227,13 @@ export async function getMediaInfoNonLocal(deviceId: string, regId2: string) {
     },
   })
 
-  return await new Promise((res, rej) => {
+  return await new Promise<MediaInfo>((res, rej) => {
     const mediaRequest = mediaRequests.get(deviceId)
     if (mediaRequest) mediaRequest(null)
 
     mediaRequests.set(deviceId, (mediaInfo) => {
+      if (mediaInfo === null) return rej(new Error('A new mediainfo request was created'))
+
       res(mediaInfo)
     })
     setTimeout(() => {
