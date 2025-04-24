@@ -43,8 +43,9 @@ export function JoinProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const removeListener = window.api.onDeviceId(async (id) => {
       setDeviceId(id)
+      // TODO: what to do if there is no internet connection?
+      await window.api.stopHttpServer()
       if (id) await window.api.startHttpServer()
-      else await window.api.stopHttpServer()
     })
 
     return () => removeListener()
