@@ -4,6 +4,7 @@ import {
   deviceIdContext,
   devicesOnLocalNetworkContext,
   isLoggedInContext,
+  queryClient,
   ReverseDeviceType,
   settingsContext,
   shortcutsContext,
@@ -44,6 +45,13 @@ export function JoinProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const onOnline = () => {
+      // NOTE: tanstack query always start as `online`. Starting the app
+      // offline and then triggering `online` won't invalidate (nor refecth)
+      // queries, because tanstack queries things the online status hasn't
+      // changed. So, we always manually invalidate all queries when `online`
+      // is triggered
+      queryClient.invalidateQueries()
+
       if (!onOnlineCbs.current) return
       onOnlineCbs.current.forEach((cb) => cb())
       onOnlineCbs.current.length = 0

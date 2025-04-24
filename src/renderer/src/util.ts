@@ -146,9 +146,6 @@ export const devicesQueryOptions = queryOptions<Data<DeviceInfo>>({
   queryKey: ['devices'],
   queryFn: async () => {
     const joinUrl = 'https://joinjoaomgcd.appspot.com/_ah/api'
-    // TODO: somehow handle this when there is no connection to avoid throwing
-    // an error. There may be data comming from the sync persistence layer
-    // anyway
     const token = await window.api.getAccessToken()
     const res = await fetch(`${joinUrl}/registration/v1/listDevices`, {
       headers: {
