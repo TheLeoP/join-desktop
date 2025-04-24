@@ -95,14 +95,14 @@ export async function selectDevice(
       res(device)
       win.hide()
       m.off('pop-up-selected', onSelected)
-      m.off('pop-up-selected', onClose)
+      m.off('pop-up-close', onClose)
     }
     m.on('pop-up-selected', onSelected)
     const onClose = (_: Electron.IpcMainEvent) => {
       res(undefined)
       win.hide()
       m.off('pop-up-selected', onSelected)
-      m.off('pop-up-selected', onClose)
+      m.off('pop-up-close', onClose)
     }
     m.on('pop-up-close', onClose)
 
