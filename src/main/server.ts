@@ -5,7 +5,7 @@ import bearerAuthPlugin from '@fastify/bearer-auth'
 import { oauth2 } from './google'
 import { BrowserWindow } from 'electron'
 import { handleGcm } from './pushReceiver'
-import { JoinData } from '../preload/types'
+import type { JoinData } from '../preload/types'
 
 declare module 'fastify' {
   export interface FastifyInstance {

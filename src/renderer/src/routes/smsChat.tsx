@@ -6,7 +6,7 @@ import { zodValidator } from '@tanstack/zod-adapter'
 import { PhotoOrChar } from '@renderer/components'
 import { useEffect, useRef, useState } from 'react'
 import * as svg from '@renderer/svgs'
-import { SmsInfo } from 'src/preload/types'
+import type { SmsInfo } from 'src/preload/types'
 import Linkify from 'linkify-react'
 
 const searchSchema = z.object({

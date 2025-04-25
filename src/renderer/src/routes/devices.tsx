@@ -24,7 +24,7 @@ import { queryOptions, UseMutateFunction, useMutation, useQuery } from '@tanstac
 import { createFileRoute, Link } from '@tanstack/react-router'
 import debounce from 'lodash.debounce'
 import { useEffect, useRef, useState, type JSX } from 'react'
-import { MediaAction, MediaInfo, DeviceInfo, Data } from 'src/preload/types'
+import type { MediaAction, MediaInfo, DeviceInfo, Data } from 'src/preload/types'
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/devices')({

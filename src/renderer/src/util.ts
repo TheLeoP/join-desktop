@@ -1,6 +1,6 @@
 import { QueryClient, queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { createContext, useContext } from 'react'
-import {
+import type {
   MediaAction,
   MediaInfo,
   DeviceInfo,
