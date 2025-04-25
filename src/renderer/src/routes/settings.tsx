@@ -1,6 +1,7 @@
 import { Switch } from '@renderer/components/ui/switch'
 import { useSettings } from '@renderer/util'
 import { createFileRoute } from '@tanstack/react-router'
+import { toast } from 'sonner'
 
 export const Route = createFileRoute('/settings')({
   component: RouteComponent,
@@ -33,7 +34,12 @@ function RouteComponent() {
         }
 
         const newSettings = { ...settings, scripts }
-        window.api.settingsSave(newSettings)
+
+        toast.promise(window.api.settingsSave(newSettings), {
+          loading: 'Saving settings',
+          success: 'Settings have been saved correctly',
+          error: 'There was an error while saving settings',
+        })
         setSettings(newSettings)
       }}
     >

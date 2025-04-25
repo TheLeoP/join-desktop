@@ -1,6 +1,7 @@
 import { useShortcuts } from '@renderer/util'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
+import { toast } from 'sonner'
 
 export const Route = createFileRoute('/shortcuts')({
   component: RouteComponent,
@@ -45,7 +46,13 @@ function RouteComponent() {
             shortcuts.set(currentShortcut, value)
           }
         }
-        await window.api.shortcutsSave(shortcuts)
+
+        toast.promise(window.api.shortcutsSave(shortcuts), {
+          loading: 'Saving shortcuts',
+          success: 'Shortcuts have been saved correctly',
+          error: 'There was an error while saving shortcuts',
+        })
+
         setShortcuts(shortcuts)
       }}
     >

@@ -1,3 +1,4 @@
+import { Toaster } from '@renderer/components/sonner'
 import { cn, buttonVariants } from '@renderer/lib/utils'
 import { useIsLoggedIn, useDeviceId } from '@renderer/util'
 import {
@@ -64,6 +65,7 @@ function Root() {
       )}
       <Outlet />
       <TanStackRouterDevtools />
+      <Toaster />
     </>
   )
 }
