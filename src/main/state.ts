@@ -1,3 +1,4 @@
+import { BrowserWindow } from 'electron'
 import type { Settings } from '../preload/types'
 import type { Credentials } from '@eneris/push-receiver/dist/types'
 
@@ -7,6 +8,7 @@ export const state: {
   settings: Settings
   credentials: Credentials | null
   address: string | null
+  win: BrowserWindow | null
 } = {
   devices: new Map(),
   settings: {
@@ -38,4 +40,5 @@ p
   thisDeviceId: null,
   credentials: null,
   address: null,
+  win: null,
 }

@@ -95,6 +95,7 @@ function createWindow(tray: Tray) {
       sandbox: false,
     },
   })
+  state.win = win
 
   m.handle('register-device', async (_, name) => {
     if (!state.credentials) throw new Error('There are no credentials')
@@ -259,7 +260,7 @@ function createWindow(tray: Tray) {
     logInWithGoogle(win)
   })
   m.on('call', (_, callnumber, deviceId, regId2) => call(deviceId, regId2, callnumber))
-  m.on(
+  m.handle(
     'open-remote-file',
     async (_, deviceId: string, regId2: string, path: string, fileName: string) => {
       const device = state.devices.get(deviceId)

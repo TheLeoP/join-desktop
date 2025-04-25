@@ -9,6 +9,7 @@ import { useDebounce } from 'use-debounce'
 import { zodValidator } from '@tanstack/zod-adapter'
 import { z } from 'zod'
 import type { FolderInfo } from 'src/preload/types'
+import { toast } from 'sonner'
 
 const searchSchema = z.object({
   regId2: z.string(),
@@ -135,8 +136,14 @@ function Directory({
           if (!item) return
           if (item.isFolder) return
 
-          window.api.openRemoteFile(deviceId, regId2, `${path}/${item.name}`, item.name)
-          // TODO: toast to show some kind of progress?
+          toast.promise(
+            window.api.openRemoteFile(deviceId, regId2, `${path}/${item.name}`, item.name),
+            {
+              loading: 'Opening remote file in browser',
+              success: 'Remote file has been opened in your default browser',
+              error: 'There was an error while openning remote file',
+            },
+          )
 
           break
         }

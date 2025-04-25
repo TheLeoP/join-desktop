@@ -13,7 +13,7 @@ import type {
 export const api = {
   logInWithGoogle: () => r.send('log-in-with-google'),
   openRemoteFile: (deviceId: string, regId2: string, path: string, fileName: string) =>
-    r.send('open-remote-file', deviceId, regId2, path, fileName),
+    r.invoke('open-remote-file', deviceId, regId2, path, fileName),
   getRemoteUrl: (deviceId: string, path: string) => r.invoke('get-remote-url', deviceId, path),
 
   startPushReceiver: () => r.invoke('start-push-receiver'),
@@ -103,6 +103,13 @@ export const api = {
     r.on('on-new-sms', f)
     return () => {
       r.off('on-new-sms', f)
+    }
+  },
+  onError: (cb: (message: string) => void) => {
+    const f = (_: Electron.IpcRendererEvent, message: string) => cb(message)
+    r.on('on-error', f)
+    return () => {
+      r.off('on-error', f)
     }
   },
 

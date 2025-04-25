@@ -1,3 +1,5 @@
+import { type BrowserWindow, Notification } from 'electron/main'
+
 export function mapReplacer(_key: unknown, value: unknown) {
   if (value instanceof Map) {
     return {
@@ -16,4 +18,12 @@ export function mapReviver(_key: unknown, value: unknown) {
     }
   }
   return value
+}
+
+export function error(message: string, win: BrowserWindow | null) {
+  if (win && win.isVisible()) {
+    win.webContents.send('on-error')
+  } else {
+    new Notification({ title: 'Error', body: message }).show()
+  }
 }

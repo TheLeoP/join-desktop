@@ -10,6 +10,7 @@ import {
   shortcutsContext,
 } from './util'
 import type { Settings, SmsInfo, DeviceInfo, Data } from 'src/preload/types'
+import { toast } from 'sonner'
 
 export function JoinProvider({ children }: { children: ReactNode }) {
   const [devicesOnLocalNetwork, setDevicesOnLocalNetwork] = useState<Record<string, boolean>>({})
@@ -129,6 +130,14 @@ export function JoinProvider({ children }: { children: ReactNode }) {
 
     return () => removeListener()
   }, [deviceId])
+
+  useEffect(() => {
+    const removeListener = window.api.onError((message) => {
+      toast.error(message)
+    })
+
+    return () => removeListener()
+  }, [])
 
   return (
     <devicesOnLocalNetworkContext.Provider value={devicesOnLocalNetwork}>

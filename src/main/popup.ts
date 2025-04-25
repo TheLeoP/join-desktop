@@ -28,7 +28,7 @@ import {
   getCachedDevicesInfo,
 } from './google'
 import { notificationImage } from './images'
-import { mapReplacer } from './utils'
+import { mapReplacer, error } from './utils'
 
 let popupWin: BrowserWindow
 
@@ -142,18 +142,19 @@ export async function fcmPush(deviceId: string, regId2: string, data: Record<str
           const received = body.join('')
           try {
             const parsedData = JSON.parse(received) as GenericResponse
-            // TODO: show some kind of error?
-            if (!parsedData.success) return rej(new Error(parsedData.errorMessage))
+
+            if (!parsedData.success && parsedData.errorMessage)
+              error(parsedData.errorMessage, state.win)
             res()
           } catch (e) {
-            // TODO: show some kind of error? x2
+            error(e?.toString() || 'An error occurred', state.win)
           }
         })
       })
       req.on('error', async (err: NodeJS.ErrnoException) => {
         if (err.code !== 'ECONNRESET' && err.code !== 'ECONNREFUSED') return rej(err)
         delete device.secureServerAddress
-        fcmPush(deviceId, regId2, data)
+        await fcmPush(deviceId, regId2, data)
       })
     })
   } else {
@@ -302,18 +303,18 @@ export async function testLocalAddress(id: string, url: string, win: BrowserWind
 }
 
 export async function setClipboard(deviceId: string, regId2: string, text: string) {
-  push(deviceId, regId2, {
+  await push(deviceId, regId2, {
     clipboard: text,
   })
 }
 export async function getClipboard(deviceId: string, regId2: string) {
-  push(deviceId, regId2, {
+  await push(deviceId, regId2, {
     clipboardget: true,
   })
 }
 
 export async function call(deviceId: string, regId2: string, callnumber: string) {
-  push(deviceId, regId2, {
+  await push(deviceId, regId2, {
     callnumber: callnumber,
   })
 }
@@ -324,7 +325,7 @@ export async function smsSend(
   smsnumber: string,
   smstext: string,
 ) {
-  push(deviceId, regId2, {
+  await push(deviceId, regId2, {
     // TODO: do I need to send the empty mms fields?
     responseType: responseType.push,
     smsnumber,
@@ -334,7 +335,7 @@ export async function smsSend(
 }
 
 export async function openUrl(deviceId: string, regId2: string, url: string) {
-  push(deviceId, regId2, {
+  await push(deviceId, regId2, {
     url,
   })
 }
@@ -397,19 +398,19 @@ export async function sendFile(deviceId: string, regId2: string, path: string) {
     // TODO: use a file-esque icon(?
     icon: notificationImage,
   }).show()
-  push(deviceId, regId2, {
+  await push(deviceId, regId2, {
     files: [fileUri],
   })
 }
 
 export async function ring(deviceId: string, regId2: string) {
-  push(deviceId, regId2, {
+  await push(deviceId, regId2, {
     find: true,
   })
 }
 
 export async function locate(deviceId: string, regId2: string) {
-  push(deviceId, regId2, {
+  await push(deviceId, regId2, {
     location: true,
   })
 }
@@ -437,7 +438,7 @@ async function UploadFileNonLocal(filename: string, mimeType: string, body: fs.R
 }
 
 export async function requestContactsAndLastSmSCreation(deviceId: string, regId2: string) {
-  fcmPush(deviceId, regId2, {
+  await fcmPush(deviceId, regId2, {
     type: 'GCMRequestFile',
     json: JSON.stringify({
       type: 'GCMRequestFile',
@@ -456,7 +457,7 @@ export async function requestSmsChatCreationOrUpdate(
   regId2: string,
   address: string,
 ) {
-  fcmPush(deviceId, regId2, {
+  await fcmPush(deviceId, regId2, {
     type: 'GCMRequestFile',
     json: JSON.stringify({
       type: 'GCMRequestFile',
@@ -475,7 +476,7 @@ export async function requestLocalNetworkTest(deviceId: string, regId2: string) 
   if (!state.thisDeviceId) throw new Error('thisDeviceId is undefined')
   if (!state.address) throw new Error('address is undefined')
 
-  fcmPush(deviceId, regId2, {
+  await fcmPush(deviceId, regId2, {
     type: 'GCMLocalNetworkRequest',
     json: JSON.stringify({
       type: 'GCMLocalNetworkRequest',
