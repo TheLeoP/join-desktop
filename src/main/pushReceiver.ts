@@ -386,6 +386,10 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
     }
     case 'GCMNewSmsReceived': {
       const info = content as NewSmsReceived
+      new Notification({
+        title: `SMS from ${info.name}`,
+        icon: notificationImage,
+      }).show()
       win.webContents.send('on-new-sms', info)
       break
     }
