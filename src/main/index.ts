@@ -314,8 +314,8 @@ function createWindow(tray: Tray) {
   })
   m.handle(
     'sms-send',
-    async (_, deviceId, smsnumber, regId2, smstext) =>
-      await smsSend(deviceId, smsnumber, regId2, smstext),
+    async (_, deviceId, regId2, smsnumber, smstext) =>
+      await smsSend(deviceId, regId2, smsnumber, smstext),
   )
 
   const showMenu = Menu.buildFromTemplate([
