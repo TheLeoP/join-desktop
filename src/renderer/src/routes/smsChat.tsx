@@ -58,7 +58,7 @@ function useSmsChat(deviceId: string, regId2: string, address: string, onLocalNe
   return useQuery(smsChatOptions(deviceId, regId2, address, onLocalNetwork))
 }
 
-function useSendSms(deviceId: string, regId2: string, smsnumber: string) {
+function useSmsSend(deviceId: string, regId2: string, smsnumber: string) {
   return useMutation<
     unknown,
     Error,
@@ -108,7 +108,7 @@ function RouteComponent() {
   }, [smsChat])
 
   const [message, setMessage] = useState<string>('')
-  const { mutate: sendSms } = useSendSms(deviceId, regId2, address)
+  const { mutate: smsSend } = useSmsSend(deviceId, regId2, address)
   const form = useRef<HTMLFormElement | null>(null)
 
   const messages = isPending ? (
@@ -171,7 +171,7 @@ function RouteComponent() {
           if (message === '' || !regId2) return
 
           // TODO:  refetch in success? too expensive? only local network?
-          sendSms({ smstext: message })
+          smsSend({ smstext: message })
           setMessage('')
         }}
       >
