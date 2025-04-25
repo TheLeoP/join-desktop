@@ -128,7 +128,7 @@ export function JoinProvider({ children }: { children: ReactNode }) {
     })
 
     return () => removeListener()
-  }, [])
+  }, [deviceId])
 
   return (
     <devicesOnLocalNetworkContext.Provider value={devicesOnLocalNetwork}>
