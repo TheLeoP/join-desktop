@@ -63,33 +63,33 @@ function useSmsChat(deviceId: string, regId2: string, address: string, onLocalNe
   return useQuery(smsChatOptions(deviceId, regId2, address, onLocalNetwork))
 }
 
-function useSendSms(deviceId: string, regId2: string, address: string) {
+function useSendSms(deviceId: string, regId2: string, smsnumber: string) {
   return useMutation<
     unknown,
     Error,
     {
-      smsmessage: string
+      smstext: string
     }
   >({
-    mutationFn: async ({ smsmessage }) => {
+    mutationFn: async ({ smstext }) => {
       if (!regId2) return
 
-      await window.api.smsSend(deviceId, regId2, address, smsmessage)
+      await window.api.smsSend(deviceId, regId2, smsnumber, smstext)
     },
-    onMutate: async ({ smsmessage }) => {
+    onMutate: async ({ smstext }) => {
       await queryClient.cancelQueries({
-        queryKey: ['smsChat', deviceId, regId2, address],
+        queryKey: ['smsChat', deviceId, regId2, smsnumber],
       })
 
-      queryClient.setQueryData(['smsChat', deviceId, regId2, address], (old: SmsInfo[]) => {
+      queryClient.setQueryData(['smsChat', deviceId, regId2, smsnumber], (old: SmsInfo[]) => {
         const newValue = [...old]
         newValue.push({
-          address: address,
+          address: smsnumber,
           date: Date.now(),
           id: (old[old.length - 1].id + 1).toString(),
           isMMS: false,
           received: false,
-          text: smsmessage,
+          text: smstext,
         })
         return newValue
       })
@@ -176,7 +176,7 @@ function RouteComponent() {
           if (message === '' || !regId2) return
 
           // TODO:  refetch in success? too expensive? only local network?
-          sendSms({ smsmessage: message })
+          sendSms({ smstext: message })
           setMessage('')
         }}
       >
