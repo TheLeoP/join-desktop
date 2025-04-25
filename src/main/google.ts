@@ -314,7 +314,10 @@ export async function getDevicesInfo() {
     },
   )
   const parsedRes = (await res.json()) as Data<DeviceInfo>
-  if (!parsedRes.success && parsedRes.errorMessage) return error(parsedRes.errorMessage, state.win)
+  if (!parsedRes.success && parsedRes.errorMessage) {
+    error(parsedRes.errorMessage, state.win)
+    return cachedDevicesInfo
+  }
 
   const devicesInfo = parsedRes.records
   cachedDevicesInfo = devicesInfo
