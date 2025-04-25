@@ -77,6 +77,12 @@ The remote file system interface doesn't work with the mouse. Instead it uses th
 
 Additionally, the UI previews the current selected item if it's an image and your remote Device is in reachable for this app through your local network.
 
+## Autostart
+
+This application can be configured to automatically start each time your PC is turned on (this is the default configuration). You can disable this behaviour in the `Settings` tab.
+
+NOTE: you need to manually start the application at least one time in order for the autostart to be configured for the future.
+
 ## Join intrinsic limitations
 
 While the goal of this app is to shatter some of the limitations the other Join implementations on PC had, there are limitations intrinsic to how Join works that cannot be fixed by this application. This is a non-exhaustive list of them:

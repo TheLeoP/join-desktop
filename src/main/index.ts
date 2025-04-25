@@ -77,7 +77,6 @@ async function saveSettings(newSettings: Settings) {
 }
 
 function applySettings(settings: Settings) {
-  // TODO: mention in README that the app needs to be opened at least once in order for autostart to work?
   if (settings.autostart) joinAutoLauncher.enable()
   else joinAutoLauncher.disable()
 }
