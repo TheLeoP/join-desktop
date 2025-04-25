@@ -5,6 +5,7 @@ import { state } from './state'
 import { BrowserWindow, shell } from 'electron'
 import { joinUrl, mediaRequests, responseFileTypes, tokenFile } from './consts'
 import type { ContactInfo, SmsInfo, Push, DeviceInfo, Data, MediaInfo } from '../preload/types'
+import { error } from './utils'
 
 const joinAppId = '596310809542-giumrib7hohfiftljqmj7eaio3kl21ek.apps.googleusercontent.com'
 const joinAppSecret = 'NTA9UbFpNhaIP74B_lpxGgvR'
@@ -313,8 +314,7 @@ export async function getDevicesInfo() {
     },
   )
   const parsedRes = (await res.json()) as Data<DeviceInfo>
-  // TODO: toast in frontend with errors? Notifications?
-  if (!parsedRes.success) throw new Error(parsedRes.errorMessage)
+  if (!parsedRes.success && parsedRes.errorMessage) return error(parsedRes.errorMessage, state.win)
 
   const devicesInfo = parsedRes.records
   cachedDevicesInfo = devicesInfo
