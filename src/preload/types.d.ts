@@ -74,6 +74,7 @@ export type PushType =
   | 'GCMRequestFile' // TODO: do I need to handle this?
   | 'GCMSmsSentResult'
   | 'GCMDeviceRegistered'
+  | 'GCMNewSmsReceived'
 
 export type JoinData = {
   json: string
@@ -159,6 +160,15 @@ export type SmsSentResult = {
 export type DeviceRegistered = {
   device: DeviceInfo
   deleted: boolean
+}
+
+export type NewSmsReceived = {
+  senderId: string
+  name: string
+  photo: string
+  number: string
+  text: string
+  // TODO: check full type with an actual notification
 }
 
 export type LocalNetworkTestRequest = {

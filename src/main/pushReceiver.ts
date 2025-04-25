@@ -17,6 +17,7 @@ import type {
   LocationInfo,
   LocalNetworkTestRequest,
   DeviceRegistered,
+  NewSmsReceived,
 } from '../preload/types'
 import {
   scriptsDir,
@@ -381,6 +382,11 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
       // TODO: add/remove each device instead of invalidating the whole thing?
       getDevicesInfo()
       win.webContents.send('on-device-registered', info)
+      break
+    }
+    case 'GCMNewSmsReceived': {
+      const info = content as NewSmsReceived
+      win.webContents.send('on-new-sms', info)
       break
     }
   }

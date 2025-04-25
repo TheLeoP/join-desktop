@@ -1,6 +1,13 @@
 import { contextBridge, ipcRenderer as r } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { DeviceInfo, DeviceRegistered, MediaAction, Push, Settings } from './types'
+import type {
+  DeviceInfo,
+  DeviceRegistered,
+  MediaAction,
+  NewSmsReceived,
+  Push,
+  Settings,
+} from './types'
 
 // Custom APIs for renderer
 export const api = {
@@ -89,6 +96,13 @@ export const api = {
     r.on('on-device-registered', f)
     return () => {
       r.off('on-device-registered', f)
+    }
+  },
+  onNewSms: (cb: (newsms: NewSmsReceived) => void) => {
+    const f = (_: Electron.IpcRendererEvent, newsms: NewSmsReceived) => cb(newsms)
+    r.on('on-new-sms', f)
+    return () => {
+      r.off('on-new-sms', f)
     }
   },
 

@@ -9,7 +9,7 @@ import {
   settingsContext,
   shortcutsContext,
 } from './util'
-import { Settings, type DeviceInfo } from 'src/preload/types'
+import type { Settings, SmsInfo, DeviceInfo, Data } from 'src/preload/types'
 
 export function JoinProvider({ children }: { children: ReactNode }) {
   const [devicesOnLocalNetwork, setDevicesOnLocalNetwork] = useState<Record<string, boolean>>({})
@@ -95,6 +95,36 @@ export function JoinProvider({ children }: { children: ReactNode }) {
     const removeListener = window.api.onDeviceRegistered((deviceRegistered) => {
       // TODO: add/remove each device instead of invalidating the whole thing?
       queryClient.invalidateQueries({ queryKey: ['devices'] })
+    })
+
+    return () => removeListener()
+  }, [])
+
+  useEffect(() => {
+    const removeListener = window.api.onNewSms(async (sms) => {
+      // TODO: test whether or not this actually works
+      const devices = queryClient.getQueryData<Data<DeviceInfo>>(['devices'])
+      if (!devices) return
+      const device = devices.records.find((device) => device.deviceId === deviceId)
+      if (!device) return
+      const regId2 = device.regId2
+
+      await queryClient.cancelQueries({
+        queryKey: ['smsChat', sms.senderId, regId2, sms.number],
+      })
+
+      queryClient.setQueryData(['smsChat', sms.senderId, regId2, sms.number], (old: SmsInfo[]) => {
+        const newValue = [...old]
+        newValue.push({
+          address: sms.number,
+          date: Date.now(),
+          id: (old[old.length - 1].id + 1).toString(),
+          isMMS: false,
+          received: false,
+          text: sms.text,
+        })
+        return newValue
+      })
     })
 
     return () => removeListener()
