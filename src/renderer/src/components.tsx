@@ -91,6 +91,15 @@ export function JoinProvider({ children }: { children: ReactNode }) {
     return () => removeListener()
   }, [])
 
+  useEffect(() => {
+    const removeListener = window.api.onDeviceRegistered((deviceRegistered) => {
+      // TODO: add/remove each device instead of invalidating the whole thing?
+      queryClient.invalidateQueries({ queryKey: ['devices'] })
+    })
+
+    return () => removeListener()
+  }, [])
+
   return (
     <devicesOnLocalNetworkContext.Provider value={devicesOnLocalNetwork}>
       <isLoggedInContext.Provider value={isLoggedIn}>

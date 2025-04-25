@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer as r } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { DeviceInfo, MediaAction, Push, Settings } from './types'
+import type { DeviceInfo, DeviceRegistered, MediaAction, Push, Settings } from './types'
 
 // Custom APIs for renderer
 export const api = {
@@ -81,6 +81,14 @@ export const api = {
     r.on('on-settings', f)
     return () => {
       r.off('on-settings', f)
+    }
+  },
+  onDeviceRegistered: (cb: (deviceregistered: DeviceRegistered) => void) => {
+    const f = (_: Electron.IpcRendererEvent, deviceregistered: DeviceRegistered) =>
+      cb(deviceregistered)
+    r.on('on-device-registered', f)
+    return () => {
+      r.off('on-device-registered', f)
     }
   },
 

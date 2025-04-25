@@ -16,6 +16,7 @@ import type {
   FileInfo,
   LocationInfo,
   LocalNetworkTestRequest,
+  DeviceRegistered,
 } from '../preload/types'
 import {
   scriptsDir,
@@ -36,6 +37,7 @@ import {
   getSmsNonLocal,
   getSmsChatsNonLocal,
   getCachedDevicesInfo,
+  getDevicesInfo,
 } from './google'
 import { notificationImage, batteryOkImage, batteryLowImage } from './images'
 import { state } from './state'
@@ -372,6 +374,13 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
       // NOTE: do nothing. `SmsSentResult` doesn't have any information about
       // the SMS it reffers to, so I can't validate/invalidate tanstack query
       // cache based on it
+      break
+    }
+    case 'GCMDeviceRegistered': {
+      const info = content as DeviceRegistered
+      // TODO: add/remove each device instead of invalidating the whole thing?
+      getDevicesInfo()
+      win.webContents.send('on-device-registered', info)
       break
     }
   }

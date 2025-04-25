@@ -73,6 +73,7 @@ export type PushType =
   | 'GCMLocation'
   | 'GCMRequestFile' // TODO: do I need to handle this?
   | 'GCMSmsSentResult'
+  | 'GCMDeviceRegistered'
 
 export type JoinData = {
   json: string
@@ -153,6 +154,11 @@ export type SmsSentResult = {
   forTasker: boolean
   requestId: 'SMS'
   success: boolean
+}
+
+export type DeviceRegistered = {
+  device: DeviceInfo
+  deleted: boolean
 }
 
 export type LocalNetworkTestRequest = {
