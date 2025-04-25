@@ -107,7 +107,7 @@ export function useSettings() {
   return settings
 }
 
-export function useMediaAction(deviceId: string, regId2: string, onLocalNetwork: boolean) {
+export function useMediaAction(deviceId: string, regId2: string) {
   return useMutation<
     unknown,
     Error,

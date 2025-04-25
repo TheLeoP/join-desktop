@@ -93,7 +93,7 @@ export function JoinProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    const removeListener = window.api.onDeviceRegistered((deviceRegistered) => {
+    const removeListener = window.api.onDeviceRegistered((_deviceRegistered) => {
       // TODO: add/remove each device instead of invalidating the whole thing?
       queryClient.invalidateQueries({ queryKey: ['devices'] })
     })
@@ -200,7 +200,7 @@ export function PopUp() {
     return () => {
       document.removeEventListener('keydown', f)
     }
-  }, [devices])
+  }, [devices, safeKeys])
 
   return (
     <div className="flex h-screen flex-wrap items-center justify-center p-1">

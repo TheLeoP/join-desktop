@@ -3,6 +3,7 @@ import { cn, buttonVariants } from '@renderer/lib/utils'
 import { useIsLoggedIn, useDeviceId } from '@renderer/util'
 import {
   createRootRoute,
+  ErrorComponentProps,
   Link,
   Outlet,
   useCanGoBack,
@@ -70,32 +71,34 @@ function Root() {
   )
 }
 
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
+  const router = useRouter()
+
+  return (
+    <div className="flex h-screen flex-col items-center justify-center">
+      <h1 className="text-4xl">Error:</h1>
+      <span className="text-2xl text-red-600">{error.message}</span>
+      <button
+        className={cn(buttonVariants(), 'text-xl')}
+        onClick={() => {
+          router.invalidate()
+        }}
+      >
+        Invalidate
+      </button>
+      <button
+        className={cn(buttonVariants(), 'text-xl')}
+        onClick={() => {
+          reset()
+        }}
+      >
+        retry
+      </button>
+    </div>
+  )
+}
+
 export const Route = createRootRoute({
   component: Root,
-  errorComponent: ({ error, reset }) => {
-    const router = useRouter()
-
-    return (
-      <div className="flex h-screen flex-col items-center justify-center">
-        <h1 className="text-4xl">Error:</h1>
-        <span className="text-2xl text-red-600">{error.message}</span>
-        <button
-          className={cn(buttonVariants(), 'text-xl')}
-          onClick={() => {
-            router.invalidate()
-          }}
-        >
-          Invalidate
-        </button>
-        <button
-          className={cn(buttonVariants(), 'text-xl')}
-          onClick={() => {
-            reset()
-          }}
-        >
-          retry
-        </button>
-      </div>
-    )
-  },
+  errorComponent: ErrorComponent,
 })

@@ -121,7 +121,7 @@ lQP0yPLNeHqObxDmNGeRqA==
         },
       },
     },
-    async function handler(req, rep) {
+    async function handler(req, _rep) {
       handleGcm(req.body as JoinData, win)
       return { success: true, userAuthError: false }
     },

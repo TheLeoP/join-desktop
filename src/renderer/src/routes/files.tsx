@@ -1,5 +1,5 @@
 import * as svg from '@renderer/svgs'
-import { formatBytes, queryClient, useOnLocalNetwork } from '@renderer/util'
+import { formatBytes, queryClient } from '@renderer/util'
 import { queryOptions, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { atom, useAtom, useSetAtom } from 'jotai'
@@ -216,7 +216,7 @@ const currentFileAtom = atom<null | string>(null)
 
 function RouteComponent() {
   // TODO: sometimes, when changing window (and query data is stale?) only the first directoy column in render and it's not the selected one
-  const { regId2, deviceId } = Route.useSearch()
+  const { deviceId } = Route.useSearch()
 
   const [paths, setPaths] = useAtom(pathsAtom)
   const [debouncedPaths] = useDebounce(paths, 250)
@@ -285,7 +285,7 @@ function RouteComponent() {
     return () => {
       document.removeEventListener('keydown', f)
     }
-  }, [paths, setPaths])
+  }, [paths, setPaths, setCurrentFile])
 
   const [dirsWidth, setDirsWidth] = useState(0)
   const scrollElement = useRef<HTMLDivElement | null>(null)
@@ -295,6 +295,7 @@ function RouteComponent() {
     estimateSize: () => dirsWidth / 3,
     horizontal: true,
   })
+  // TODO: avoid rendering new column with the same content of last column until `debouncedPaths` is updated
   const virtualCols = dirVirtualizer.getVirtualItems()
   useEffect(() => {
     dirVirtualizer.scrollToIndex(currentDir, { align: 'center' })
@@ -310,7 +311,7 @@ function RouteComponent() {
     f()
     window.addEventListener('resize', f)
     return () => window.removeEventListener('resize', f)
-  }, [])
+  }, [dirVirtualizer])
 
   return (
     <div className="flex h-[calc(100vh-45px)] w-full">
