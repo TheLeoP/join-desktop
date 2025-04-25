@@ -25,6 +25,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import debounce from 'lodash.debounce'
 import { useEffect, useRef, useState, type JSX } from 'react'
 import { MediaAction, MediaInfo, DeviceInfo, Data } from 'src/preload/types'
+import { toast } from 'sonner'
 
 export const Route = createFileRoute('/devices')({
   component: RouteComponent,
@@ -216,7 +217,13 @@ function Device({
     }
   >({
     mutationFn: async ({ deviceId, name }) => {
-      await window.api.renameDevice(deviceId, name)
+      const promise = window.api.renameDevice(deviceId, name)
+      toast.promise(promise, {
+        loading: `Renaming device '${deviceName}' to '${name}'`,
+        success: `Device succesfully renamed to '${name}'`,
+        error: `There was an error while renaming device '${deviceName}' to '${name}'`,
+      })
+      await promise
     },
     onMutate: async ({ deviceId, name }) => {
       await queryClient.cancelQueries({ queryKey: ['devices'] })
@@ -251,7 +258,13 @@ function Device({
     }
   >({
     mutationFn: async ({ deviceId }) => {
-      await window.api.deleteDevice(deviceId)
+      const promise = window.api.deleteDevice(deviceId)
+      toast.promise(promise, {
+        loading: `Deleting device '${deviceName}'`,
+        success: `Device '${deviceName}' succesfully deleted`,
+        error: `There was an error while deleting device '${deviceName}'`,
+      })
+      await promise
     },
     onMutate: async ({ deviceId }) => {
       await queryClient.cancelQueries({ queryKey: ['devices'] })
