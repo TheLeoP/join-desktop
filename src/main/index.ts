@@ -429,7 +429,7 @@ app.whenReady().then(() => {
         insecureHTTPParser: true,
       })
       req.end()
-      return new Promise((res, rej) => {
+      return new Promise<MediaInfo>((res, rej) => {
         req.on('response', (resp) => {
           resp.setEncoding('utf8')
           const body: string[] = []
