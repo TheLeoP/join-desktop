@@ -72,6 +72,7 @@ export type PushType =
   | 'GCMFile'
   | 'GCMLocation'
   | 'GCMRequestFile' // TODO: do I need to handle this?
+  | 'GCMSmsSentResult'
 
 export type JoinData = {
   json: string
@@ -146,6 +147,12 @@ export type LocalNetworkRequest = {
   senderId: string
   serverAddress: string | undefined // http Includes trailling `/`
   webSocketServerAddress: string | undefined // Includes trailling `/`
+}
+
+export type SmsSentResult = {
+  forTasker: boolean
+  requestId: 'SMS'
+  success: boolean
 }
 
 export type LocalNetworkTestRequest = {

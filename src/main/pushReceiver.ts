@@ -40,7 +40,7 @@ import {
 import { notificationImage, batteryOkImage, batteryLowImage } from './images'
 import { state } from './state'
 import { mapReplacer } from './utils'
-import { fcmPush, requestLocalNetworkTest, setClipboard, testLocalAddress } from './popup'
+import { requestLocalNetworkTest, setClipboard, testLocalAddress } from './popup'
 
 const notifications = new Map<string, Notification>()
 
@@ -366,6 +366,12 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
       if (!state.thisDeviceId) return
 
       requestLocalNetworkTest(receiver.deviceId, receiver.regId2)
+      break
+    }
+    case 'GCMSmsSentResult': {
+      // NOTE: do nothing. `SmsSentResult` doesn't have any information about
+      // the SMS it reffers to, so I can't validate/invalidate tanstack query
+      // cache based on it
       break
     }
   }
