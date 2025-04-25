@@ -41,8 +41,8 @@ function RouteComponent() {
         <div className="flex flex-col items-center rounded-md bg-orange-100 p-2">
           <h1 className="text-2xl font-bold">General</h1>
           <hr className="w-full" />
-          <label className="cursor-pointer text-xl">
-            Autostart
+          <label className="block w-full cursor-pointer text-xl">
+            <span className="">Autostart:</span>
             <Switch
               className="ms-2"
               checked={settings.autostart}
@@ -58,8 +58,8 @@ function RouteComponent() {
               }}
             ></Switch>
           </label>
-          <label className="cursor-pointer text-xl">
-            Show on start
+          <label className="block w-full cursor-pointer text-xl">
+            <span>Show on start:</span>
             <Switch
               className="ms-2"
               checked={settings.showOnStart}
@@ -73,6 +73,20 @@ function RouteComponent() {
                 })
               }}
             ></Switch>
+          </label>
+          <label className="block w-full cursor-pointer text-xl">
+            <span>Select device labels:</span>
+            <textarea
+              className="text-md min-h-50 w-full resize-none appearance-none rounded-md border bg-white px-3 py-2 leading-tight shadow focus:outline-none"
+              value={settings.safeKeys}
+              onChange={(e) => {
+                setSettings((old) => {
+                  if (!old) return old
+
+                  return { ...old, safeKeys: e.target.value }
+                })
+              }}
+            />
           </label>
         </div>
         <div className="flex flex-col items-center rounded-md bg-orange-100 p-2">

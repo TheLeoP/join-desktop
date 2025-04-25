@@ -116,35 +116,18 @@ export function PhotoOrChar({ photo, char }: { photo: string | undefined; char: 
   )
 }
 
-// TODO: make configurable
-const safeKeys = [
-  // home row
-  'a',
-  's',
-  'd',
-  'f',
-  'g',
-  'h',
-  'j',
-  'k',
-  'l',
-  // upper row
-  'q',
-  'w',
-  'e',
-  'r',
-  't',
-  'y',
-  'u',
-  'i',
-  'o',
-  'p',
-]
 export function PopUp() {
   const [devices, setDevices] = useState<DeviceInfo[]>([])
   useEffect(() => {
     const removeListener = window.api.onPopUpDevices((newDevices) => {
       setDevices(newDevices)
+    })
+    return () => removeListener()
+  }, [])
+  const [safeKeys, setSafeKeys] = useState<string[]>([])
+  useEffect(() => {
+    const removeListener = window.api.onPopUpSafeKeys((newSafeKeys) => {
+      setSafeKeys(newSafeKeys.split('\n'))
     })
     return () => removeListener()
   }, [])

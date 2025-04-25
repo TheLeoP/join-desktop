@@ -253,5 +253,6 @@ export type LocationInfo = {
 export type Settings = {
   autostart: boolean
   showOnStart: boolean
+  safeKeys: string
   scripts: Map<string, string>
 }

@@ -109,6 +109,7 @@ export async function selectDevice(
     let filteredDevices = devicesInfo.filter((device) => device.deviceId !== state.thisDeviceId)
     if (predicate) filteredDevices = filteredDevices.filter(predicate)
     win.webContents.send('on-pop-up-devices', filteredDevices)
+    win.webContents.send('on-pop-up-safe-keys', state.settings.safeKeys)
   })
 }
 

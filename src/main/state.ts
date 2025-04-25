@@ -10,6 +10,27 @@ export const state: {
 } = {
   devices: new Map(),
   settings: {
+    safeKeys: `a
+s
+d
+f
+g
+h
+j
+k
+l
+q
+w
+e
+r
+t
+y
+u
+i
+o
+p
+`,
+
     autostart: true,
     showOnStart: true,
     scripts: new Map<string, string>(),

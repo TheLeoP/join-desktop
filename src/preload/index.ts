@@ -91,6 +91,13 @@ export const api = {
       r.off('on-pop-up-devices', f)
     }
   },
+  onPopUpSafeKeys: (cb: (safekeys: string) => void) => {
+    const f = (_: Electron.IpcRendererEvent, safekeys: string) => cb(safekeys)
+    r.on('on-pop-up-safe-keys', f)
+    return () => {
+      r.off('on-pop-up-safe-keys', f)
+    }
+  },
   popUpSelected: (device: DeviceInfo) => r.send('pop-up-selected', device),
   popUpClose: () => r.send('pop-up-close'),
 }
