@@ -27,7 +27,7 @@ const _devicesTypes = {
   ip: 13,
   mqtt: 14,
 } as const
-type DeviceTypes = typeof _devicesTypes
+export type DeviceTypes = typeof _devicesTypes
 
 export type DeviceInfo = {
   id: string
@@ -78,7 +78,7 @@ export type JoinData = {
   type: PushType
 }
 
-type Push = {
+export type Push = {
   language?: string
   say?: string
   title?: string
@@ -111,7 +111,7 @@ type Push = {
   values?: string
   valuesArray?: string[]
 }
-type PushWrapper = {
+export type PushWrapper = {
   push: Push
 }
 
