@@ -87,7 +87,7 @@ function Volume({
 function mediaQueryOptions(deviceId: string, regId2: string, onLocalNetwork: boolean) {
   return queryOptions<MediaInfo>({
     staleTime: onLocalNetwork ? 0 : 60 * 1000,
-    queryKey: ['mediaInfo', deviceId, regId2, onLocalNetwork],
+    queryKey: ['mediaInfo', deviceId, regId2],
     queryFn: async () => {
       return await window.api.media(deviceId, regId2)
     },
@@ -102,10 +102,6 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
     isPending,
     isError,
   } = useQuery(mediaQueryOptions(deviceId, regId2, onLocalNetwork))
-  useEffect(
-    () => void queryClient.invalidateQueries({ queryKey: ['mediaInfo', deviceId, regId2] }),
-    [deviceId, regId2, onLocalNetwork],
-  )
 
   const { mutate: mediaAction } = useMediaAction(deviceId, regId2, onLocalNetwork)
 

@@ -119,23 +119,20 @@ export function useMediaAction(deviceId: string, regId2: string, onLocalNetwork:
       await window.api.mediaAction(deviceId, regId2, action)
     },
     onMutate: async ({ action }) => {
-      await queryClient.cancelQueries({ queryKey: ['mediaInfo', deviceId, regId2, onLocalNetwork] })
+      await queryClient.cancelQueries({ queryKey: ['mediaInfo', deviceId, regId2] })
 
-      queryClient.setQueryData(
-        ['mediaInfo', deviceId, regId2, onLocalNetwork],
-        (old: MediaInfo) => {
-          const newValue = { ...old }
-          const currentInfo = newValue.mediaInfosForClients.find(
-            (info) => info.packageName === action.mediaAppPackage,
-          )
-          if (currentInfo && action.play) {
-            currentInfo.playing = true
-          } else if (currentInfo && action.pause) {
-            currentInfo.playing = false
-          }
-          return newValue
-        },
-      )
+      queryClient.setQueryData(['mediaInfo', deviceId, regId2], (old: MediaInfo) => {
+        const newValue = { ...old }
+        const currentInfo = newValue.mediaInfosForClients.find(
+          (info) => info.packageName === action.mediaAppPackage,
+        )
+        if (currentInfo && action.play) {
+          currentInfo.playing = true
+        } else if (currentInfo && action.pause) {
+          currentInfo.playing = false
+        }
+        return newValue
+      })
     },
     // NOTE: can't simply invalidate and refetch the query because Join (the
     // mobile app) won't deliver updated information
@@ -173,14 +170,9 @@ export function formatBytes(bytes: number, decimals = 2) {
 }
 
 export function contactsQueryOptions(deviceId: string, regId2: string, onLocalNetwork: boolean) {
-  return queryOptions<
-    ContactInfo[],
-    Error,
-    ContactInfo[],
-    readonly ['contacts', string, string, boolean]
-  >({
+  return queryOptions<ContactInfo[], Error, ContactInfo[], readonly ['contacts', string, string]>({
     staleTime: onLocalNetwork ? 0 : 60 * 1000,
-    queryKey: ['contacts', deviceId, regId2, onLocalNetwork],
+    queryKey: ['contacts', deviceId, regId2],
     queryFn: async ({ queryKey }) => {
       const [_, deviceId, regId2] = queryKey
       return await window.api.contacts(deviceId, regId2)
@@ -192,9 +184,9 @@ export function useContacts(deviceId: string, regId2: string, onLocalNetwork: bo
 }
 
 export function smsQueryOptions(deviceId: string, regId2: string, onLocalNetwork: boolean) {
-  return queryOptions<SmsInfo[], Error, SmsInfo[], readonly ['sms', string, string, boolean]>({
+  return queryOptions<SmsInfo[], Error, SmsInfo[], readonly ['sms', string, string]>({
     staleTime: onLocalNetwork ? 0 : 60 * 1000,
-    queryKey: ['sms', deviceId, regId2, onLocalNetwork],
+    queryKey: ['sms', deviceId, regId2],
     queryFn: async ({ queryKey }) => {
       const [_, deviceId, regId2] = queryKey
       return await window.api.sms(deviceId, regId2)

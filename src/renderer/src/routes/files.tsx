@@ -35,14 +35,9 @@ function remotePathQueryOptions(
   path: string,
   onLocalNetwork: boolean,
 ) {
-  return queryOptions<
-    FolderInfo,
-    Error,
-    FolderInfo,
-    readonly ['folders', string, string, string, boolean]
-  >({
+  return queryOptions<FolderInfo, Error, FolderInfo, readonly ['folders', string, string, string]>({
     staleTime: onLocalNetwork ? 0 : 60 * 1000,
-    queryKey: ['folders', deviceId, regId2, path, onLocalNetwork],
+    queryKey: ['folders', deviceId, regId2, path],
     queryFn: async ({ queryKey }) => {
       const [_, deviceId, regId2, path] = queryKey
       return await window.api.folders(deviceId, regId2, path)

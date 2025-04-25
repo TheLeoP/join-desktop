@@ -44,14 +44,9 @@ function smsChatOptions(
   address: string,
   onLocalNetwork: boolean,
 ) {
-  return queryOptions<
-    SmsInfo[],
-    Error,
-    SmsInfo[],
-    readonly ['smsChat', string, string, string, boolean]
-  >({
+  return queryOptions<SmsInfo[], Error, SmsInfo[], readonly ['smsChat', string, string, string]>({
     staleTime: onLocalNetwork ? 0 : 60 * 1000,
-    queryKey: ['smsChat', deviceId, regId2, address, onLocalNetwork],
+    queryKey: ['smsChat', deviceId, regId2, address],
     queryFn: async ({ queryKey }) => {
       const [_, deviceId, regId2] = queryKey
       return await window.api.smsChat(deviceId, regId2, address)
