@@ -500,7 +500,6 @@ app.whenReady().then(() => {
           // NOTE: don't request folders remotely if local fails because it may
           // return so many items that the service will only be receiving
           // folder related pushes for a while
-          // TODO: disable remote folders on frontend unless on local network? give some kind of warning?
           rej(err)
         })
       })

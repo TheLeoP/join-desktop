@@ -91,6 +91,7 @@ While the goal of this app is to shatter some of the limitations the other Join 
 - The Join Google Chrome extension, the official Join Desktop app and the Join website register themselves as a Join device whenever they are opened. This means that, even after you have deleted them from within this application, they will be added again to your devices if you open the Join application that contained the deleted device.
 - Other Join devices don't contact this app via Local Network even if it's available and we tell them to do so. This probably is because the current Join Desktop app and Chrome extension don't support being contacted via Local Network, so they Join apps are hardcoded to avoid doing it. The Join website sometimes does contact this app via Local Network after receiving a Push from this app instructing it to do so.
   - I tried registering this device with a different type, but it didn't work. My guess is that other device types (android_phone, for example) have a different registration workflow.
+- Remotely navigating the file system of one of your Join Android devices can be really slowly. The push system used by Join has a limit on the information it can transmit at once. This means that, for large directories, it'll need to split the push with all the directory information into multiple pushes. This will take several seconds (depending on the number of files in the directory) and will delay all your other pushes.
 
 ## Non implemented features
 
