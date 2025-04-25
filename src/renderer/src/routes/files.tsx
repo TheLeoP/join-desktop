@@ -163,7 +163,7 @@ function Directory({
   })
   const items = rowVirtualizer.getVirtualItems()
   useEffect(() => {
-    rowVirtualizer.scrollToIndex(current)
+    rowVirtualizer.scrollToIndex(current, { align: 'center' })
   }, [current, rowVirtualizer])
 
   if (!path) {
