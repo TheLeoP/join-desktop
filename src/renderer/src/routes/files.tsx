@@ -216,7 +216,7 @@ const currentFileAtom = atom<null | string>(null)
 
 function RouteComponent() {
   // TODO: sometimes, when changing window (and query data is stale?) only the first directoy column in render and it's not the selected one
-  const { deviceId } = Route.useSearch()
+  const { deviceId, onLocalNetwork } = Route.useSearch()
 
   const [paths, setPaths] = useAtom(pathsAtom)
   const [debouncedPaths] = useDebounce(paths, 250)
@@ -312,6 +312,25 @@ function RouteComponent() {
     window.addEventListener('resize', f)
     return () => window.removeEventListener('resize', f)
   }, [dirVirtualizer])
+
+  const [shouldLoad, setShouldLoad] = useState(onLocalNetwork)
+
+  if (!shouldLoad) {
+    return (
+      <div className="flex h-[calc(100vh-45px)] flex-col items-center justify-center space-y-5">
+        <h1 className="text-4xl font-bold">Warning</h1>
+        <h2 className="text-2xl">
+          This device is not in your local network, accessing its file system may be extremely slow
+        </h2>
+        <button
+          onClick={() => setShouldLoad(true)}
+          className="cursor-pointer rounded-md bg-red-500 p-2 text-xl text-white hover:bg-red-600 active:bg-red-700"
+        >
+          I understand. Access it anyway
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-[calc(100vh-45px)] w-full">
