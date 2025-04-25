@@ -135,13 +135,13 @@ export async function fcmPush(deviceId: string, regId2: string, data: Record<str
       req.on('response', async (resp) => {
         resp.setEncoding('utf8')
         const body: string[] = []
-        resp.on('data', (data) => {
-          body.push(data)
+        resp.on('data', (partial) => {
+          body.push(partial)
         })
         resp.on('end', () => {
-          const data = body.join('')
+          const received = body.join('')
           try {
-            const parsedData = JSON.parse(data) as GenericResponse
+            const parsedData = JSON.parse(received) as GenericResponse
             // TODO: show some kind of error?
             if (!parsedData.success) return rej(new Error(parsedData.errorMessage))
             res()
