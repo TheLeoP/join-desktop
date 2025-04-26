@@ -23,7 +23,6 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.1",
     "@electron-toolkit/utils": "^4.0.0",
-    "@eneris/push-receiver": "^4.3.0",
     "@fastify/auth": "^5.0.2",
     "@fastify/bearer-auth": "^10.1.1",
     "@fastify/cors": "^11.0.1",
@@ -38,6 +37,7 @@
     "@tanstack/react-router": "^1.112.13",
     "@tanstack/react-virtual": "^3.13.4",
     "@tanstack/zod-adapter": "^1.114.27",
+    "@theleop/push-receiver": "^4.3.5",
     "@types/auto-launch": "^5.0.5",
     "auto-launch": "^5.0.6",
     "class-variance-authority": "^0.7.1",

@@ -64,7 +64,7 @@ import {
 import { mapReplacer, mapReviver } from './utils'
 import { registerDevice, renameDevice, deleteDevice } from './joinApi'
 import { start, stop } from './server'
-import { startPushReceiver } from './pushReceiver'
+import { startPushReceiver, stopPushReceiver } from './pushReceiver'
 
 const joinAutoLauncher = new AutoLaunch({ name: 'join-desktop', isHidden: true })
 
@@ -165,6 +165,9 @@ function createWindow(tray: Tray) {
           await requestLocalNetworkTest(device.deviceId, device.regId2)
         }),
     )
+  })
+  m.handle('stop-push-receiver', async () => {
+    stopPushReceiver()
   })
   m.handle('start-push-receiver', async () => {
     const devicesInfo = await getCachedDevicesInfo()

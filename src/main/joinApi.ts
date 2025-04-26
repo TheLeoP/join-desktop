@@ -4,7 +4,7 @@ import type { GenericResponse } from '../preload/types'
 import { joinUrl, deviceIdFile, devicesTypes } from './consts'
 import { oauth2Client } from './google'
 import { state } from './state'
-import { Credentials } from '@eneris/push-receiver/dist/types'
+import { Credentials } from '@theleop/push-receiver/dist/types'
 
 export async function registerDevice(name: string, credentials: Credentials, win: BrowserWindow) {
   const token = await oauth2Client.getAccessToken()

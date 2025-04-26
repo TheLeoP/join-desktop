@@ -28,6 +28,7 @@ export function JoinProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const removeListener = window.api.onLogIn(async () => {
       setIsLoggedIn(true)
+      window.api.stopPushReceiver()
       await window.api.startPushReceiver()
     })
     return () => removeListener()

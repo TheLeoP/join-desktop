@@ -1,7 +1,7 @@
-import { PushReceiver } from '@eneris/push-receiver'
+import { PushReceiver } from '@theleop/push-receiver'
 import * as fs from 'node:fs'
 import { promises as afs } from 'node:fs'
-import { MessageEnvelope } from '@eneris/push-receiver/dist/types'
+import { MessageEnvelope } from '@theleop/push-receiver/dist/types'
 import { BrowserWindow, clipboard, shell, Notification } from 'electron'
 import type {
   JoinData,
@@ -447,6 +447,14 @@ export const handleNotification = async (
   await afs.writeFile(persistentIdsFile, JSON.stringify(persistentIds), 'utf-8')
 }
 
+let instance: PushReceiver | undefined
+export function stopPushReceiver() {
+  if (!instance) return
+
+  instance.destroy()
+  instance = undefined
+}
+
 export async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void>) {
   if (!state.credentials) throw new Error('Credentials is null')
 
@@ -465,20 +473,22 @@ export async function startPushReceiver(win: BrowserWindow, onReady: () => Promi
     })
   })
 
-  const instance = new PushReceiver({
-    debug: false,
-    persistentIds: persistentIds,
-    firebase: {
-      apiKey: 'AIzaSyBeI64VSoGCs20sXOwRG_kuDirugdScDIk',
-      appId: '1:737484412860:web:5ddce9f690528241167db9',
-      authDomain: 'join-external-gcm.firebaseapp.com',
-      databaseURL: 'https://join-external-gcm.firebaseio.com',
-      messagingSenderId: '737484412860',
-      projectId: 'join-external-gcm',
-      storageBucket: 'join-external-gcm.appspot.com',
-    },
-    credentials: state.credentials,
-  })
+  if (!instance) {
+    instance = new PushReceiver({
+      debug: false,
+      persistentIds: persistentIds,
+      firebase: {
+        apiKey: 'AIzaSyBeI64VSoGCs20sXOwRG_kuDirugdScDIk',
+        appId: '1:737484412860:web:5ddce9f690528241167db9',
+        authDomain: 'join-external-gcm.firebaseapp.com',
+        databaseURL: 'https://join-external-gcm.firebaseio.com',
+        messagingSenderId: '737484412860',
+        projectId: 'join-external-gcm',
+        storageBucket: 'join-external-gcm.appspot.com',
+      },
+      credentials: state.credentials,
+    })
+  }
   instance.onReady(onReady)
 
   instance.onCredentialsChanged(async ({ oldCredentials: _oldCredentials, newCredentials }) => {

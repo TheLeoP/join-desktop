@@ -1,6 +1,6 @@
 import { BrowserWindow } from 'electron'
 import type { Settings } from '../preload/types'
-import type { Credentials } from '@eneris/push-receiver/dist/types'
+import type { Credentials } from '@theleop/push-receiver/dist/types'
 
 export const state: {
   thisDeviceId: string | null

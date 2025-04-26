@@ -17,6 +17,7 @@ export const api = {
   getRemoteUrl: (deviceId: string, path: string) => r.invoke('get-remote-url', deviceId, path),
 
   startPushReceiver: () => r.invoke('start-push-receiver'),
+  stopPushReceiver: () => r.invoke('stop-push-receiver'),
   startHttpServer: () => r.invoke('start-http-server'),
   stopHttpServer: () => r.invoke('stop-http-server'),
   registerDevice: (name: string) => r.invoke('register-device', name),
