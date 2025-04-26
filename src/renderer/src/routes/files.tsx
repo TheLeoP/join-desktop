@@ -215,7 +215,8 @@ const pathsAtom = atom([''])
 const currentFileAtom = atom<null | string>(null)
 
 function RouteComponent() {
-  // TODO: sometimes, when changing window (and query data is stale?) only the first directoy column in render and it's not the selected one
+  // TODO: sometimes, when changing window (and query data is stale?) only the
+  // first directoy column in render and it's not the selected one
   const { deviceId, onLocalNetwork } = Route.useSearch()
 
   const [paths, setPaths] = useAtom(pathsAtom)
@@ -295,7 +296,8 @@ function RouteComponent() {
     estimateSize: () => dirsWidth / 3,
     horizontal: true,
   })
-  // TODO: avoid rendering new column with the same content of last column until `debouncedPaths` is updated
+  // TODO: avoid rendering new column with the same content of last column
+  // until `debouncedPaths` is updated
   const virtualCols = dirVirtualizer.getVirtualItems()
   useEffect(() => {
     dirVirtualizer.scrollToIndex(currentDir, { align: 'center' })
@@ -317,7 +319,7 @@ function RouteComponent() {
 
   if (!shouldLoad) {
     return (
-      <div className="flex h-[calc(100vh-45px)] flex-col items-center justify-center space-y-5">
+      <div className="flex h-[calc(100vh-45px)] flex-col items-center justify-center space-y-2">
         <h1 className="text-4xl font-bold">Warning</h1>
         <h2 className="text-2xl">
           This device is not in your local network, accessing its file system may be extremely slow

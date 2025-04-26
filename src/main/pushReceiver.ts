@@ -272,7 +272,7 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
           try {
             mediaInfo = JSON.parse(text) as MediaInfo
           } catch (e) {
-            // TODO: some kind of error message
+            error(e?.toString() || 'An error occurred', win)
             return
           }
           response.request.deviceIds.forEach((deviceId) => {
@@ -466,7 +466,7 @@ export async function startPushReceiver(win: BrowserWindow, onReady: () => Promi
         try {
           res(JSON.parse(content))
         } catch (e) {
-          // TODO: some kind of error message
+          error(e?.toString() || 'An error occurred', win)
           res([])
         }
       }

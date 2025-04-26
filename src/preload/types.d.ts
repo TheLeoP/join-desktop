@@ -37,7 +37,7 @@ export type DeviceInfo = {
   deviceId: string
   deviceName: string
   deviceType: DeviceTypes[keyof DeviceTypes]
-  apiLevel: number // TODO: enum?
+  apiLevel: number
   hasTasker: boolean
 }
 
@@ -71,7 +71,7 @@ export type PushType =
   | 'GCMFolder'
   | 'GCMFile'
   | 'GCMLocation'
-  | 'GCMRequestFile' // TODO: do I need to handle this?
+  | 'GCMRequestFile'
   | 'GCMSmsSentResult'
   | 'GCMDeviceRegistered'
   | 'GCMNewSmsReceived'
@@ -110,7 +110,7 @@ export type Push = {
   responseType?: ResponseType[keyof ResponseType]
   smsnumber?: string
   smstext?: string
-  requestId?: 'SMS' | 'batteryevent' // TODO: what other cases are there?
+  requestId?: 'SMS' | 'batteryevent'
   values?: string
   valuesArray?: string[]
 }

@@ -43,7 +43,6 @@ function Root() {
       {isLoggedIn && (
         <>
           <div className="flex gap-2 p-2">
-            {/* TODO: maybe show all buttons and a selector for avilable devices */}
             <button
               className="cursor-pointer text-xl"
               onClick={() => router.history.back()}
