@@ -113,6 +113,9 @@ export function useMediaAction(deviceId: string, regId2: string) {
     Error,
     {
       action: MediaAction
+    },
+    {
+      previousMediaInfo: MediaInfo
     }
   >({
     mutationFn: async ({ action }) => {
@@ -121,21 +124,42 @@ export function useMediaAction(deviceId: string, regId2: string) {
     onMutate: async ({ action }) => {
       await queryClient.cancelQueries({ queryKey: ['mediaInfo', deviceId, regId2] })
 
+      const previousMediaInfo = queryClient.getQueryData([
+        'mediaInfo',
+        deviceId,
+        regId2,
+      ]) as MediaInfo
+
       queryClient.setQueryData(['mediaInfo', deviceId, regId2], (old: MediaInfo) => {
         const newValue = { ...old }
         const currentInfo = newValue.mediaInfosForClients.find(
           (info) => info.packageName === action.mediaAppPackage,
         )
-        if (currentInfo && action.play) {
+        if (!currentInfo) return newValue
+
+        currentInfo.date = Date.now()
+        if (action.play) {
           currentInfo.playing = true
-        } else if (currentInfo && action.pause) {
+        } else if (action.pause) {
           currentInfo.playing = false
         }
         return newValue
       })
+
+      return { previousMediaInfo }
     },
-    // NOTE: can't simply invalidate and refetch the query because Join (the
-    // mobile app) won't deliver updated information
+    onError: (_err, _mediaAction, context) => {
+      if (!context) return
+
+      queryClient.setQueryData(['mediaInfo', deviceId, regId2], context.previousMediaInfo)
+    },
+    onSettled: () => {
+      // NOTE: the Join Android app needs time to update the information, so don't invalidate right away
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['mediaInfo', deviceId, regId2] })
+      }, 1000)
+      // TODO: make this time configurable
+    },
   })
 }
 

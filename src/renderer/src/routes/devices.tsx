@@ -246,7 +246,9 @@ function Device({
 
       queryClient.setQueryData(['devices'], context.previousDevices)
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['devices'] }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['devices'] })
+    },
   })
   const { mutate: deleteDevice } = useMutation<
     unknown,
