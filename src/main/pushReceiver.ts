@@ -42,7 +42,7 @@ import {
 } from './google'
 import { notificationImage, batteryOkImage, batteryLowImage } from './images'
 import { state } from './state'
-import { mapReplacer } from './utils'
+import { error, mapReplacer } from './utils'
 import { requestLocalNetworkTest, setClipboard, testLocalAddress } from './popup'
 
 const notifications = new Map<string, Notification>()
@@ -54,7 +54,7 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
   try {
     content = JSON.parse(data.json)
   } catch (e) {
-    // TODO: some kind of error message
+    error(e?.toString() || 'An error occurred', win)
     return
   }
 
