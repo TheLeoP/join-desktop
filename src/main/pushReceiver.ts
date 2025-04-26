@@ -226,14 +226,14 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
       const status = statusWrapper.status
 
       let n: Notification | undefined
-      if (status.batteryPercentage === 100) {
+      if (status.batteryPercentage === 100 && status.charging) {
         n = new Notification({
           title: 'Battery charged',
           body: 'Battery at 100%',
           icon: batteryOkImage,
         })
       } else if (status.charging) {
-        // do nothing on purpose, there's no need to notify a user that
+        // NOTE: do nothing. There's no need to notify a user that
         // starting charging their device, that their device is being
         // charged
       } else if (status.batteryPercentage <= 30 && !status.charging) {
