@@ -274,8 +274,7 @@ export async function testLocalAddress(id: string, url: string, win: BrowserWind
   req.write(body)
   req.end()
 
-  // TODO: add a timeout here. Sometimes the Android's app http server is just hanged up.
-  return new Promise<boolean>((res, _rej) => {
+  return new Promise<boolean>((res) => {
     req.on('response', async () => {
       if (!state.devices.has(id)) {
         state.devices.set(id, { secureServerAddress: url })
@@ -299,6 +298,10 @@ export async function testLocalAddress(id: string, url: string, win: BrowserWind
 
       res(false)
     })
+    setTimeout(() => {
+      // NOTE: timeout in case the https server of the Android app doesn't send a response
+      res(false)
+    }, 60 * 1000)
   })
 }
 
