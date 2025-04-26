@@ -46,8 +46,8 @@ function LogIn() {
           <div className="flex w-full max-w-xs flex-col space-y-2 rounded-md bg-orange-200 p-10 shadow-md">
             <label>
               <p className="text-2xl font-bold">Device name</p>
-              {/* TODO: autofocus */}
               <input
+                autoFocus
                 placeholder="PC"
                 className="w-full appearance-none border px-3 py-2 leading-tight shadow focus:outline-none"
                 type="text"
