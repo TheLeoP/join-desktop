@@ -139,9 +139,11 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
                   <b>Album:</b> {info.album}
                 </div>
               )}
-              <div>
-                <b>Artist:</b> {info.artist}
-              </div>
+              {info.artist && (
+                <div>
+                  <b>Artist:</b> {info.artist}
+                </div>
+              )}
               <div className="flex">
                 <button
                   className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700"
