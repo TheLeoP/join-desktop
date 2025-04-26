@@ -163,12 +163,13 @@ export type DeviceRegistered = {
 }
 
 export type NewSmsReceived = {
-  senderId: string
+  date: number
   name: string
-  photo: string
   number: string
+  photo: string
+  senderId: string
   text: string
-  // TODO: check full type with an actual notification
+  urgent: boolean
 }
 
 export type LocalNetworkTestRequest = {

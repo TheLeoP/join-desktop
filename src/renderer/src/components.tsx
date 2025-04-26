@@ -104,7 +104,6 @@ export function JoinProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const removeListener = window.api.onNewSms(async (sms) => {
-      // TODO: test whether or not this actually works
       const devices = queryClient.getQueryData<Data<DeviceInfo>>(['devices'])
       if (!devices) return
       const device = devices.records.find((device) => device.deviceId === deviceId)

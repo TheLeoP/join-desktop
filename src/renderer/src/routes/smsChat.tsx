@@ -64,6 +64,9 @@ function useSmsSend(deviceId: string, regId2: string, smsnumber: string) {
     Error,
     {
       smstext: string
+    },
+    {
+      previousSmsInfo: SmsInfo
     }
   >({
     mutationFn: async ({ smstext }) => {
@@ -75,6 +78,8 @@ function useSmsSend(deviceId: string, regId2: string, smsnumber: string) {
       await queryClient.cancelQueries({
         queryKey: ['smsChat', deviceId, regId2, smsnumber],
       })
+
+      const previousSmsInfo = queryClient.getQueryData(['smsChat', deviceId, regId2]) as SmsInfo
 
       queryClient.setQueryData(['smsChat', deviceId, regId2, smsnumber], (old: SmsInfo[]) => {
         const newValue = [...old]
@@ -88,6 +93,20 @@ function useSmsSend(deviceId: string, regId2: string, smsnumber: string) {
         })
         return newValue
       })
+
+      return { previousSmsInfo }
+    },
+    onError: (_err, _mediaAction, context) => {
+      if (!context) return
+
+      queryClient.setQueryData(['smsChat', deviceId, regId2, smsnumber], context.previousSmsInfo)
+    },
+    onSettled: () => {
+      // NOTE: the Join Android app needs time to update the information, so don't invalidate right away
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['smsChat', deviceId, regId2, smsnumber] })
+      }, 1000)
+      // TODO: make this time configurable
     },
   })
 }
