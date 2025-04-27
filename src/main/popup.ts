@@ -418,6 +418,24 @@ export async function locate(deviceId: string, regId2: string) {
   })
 }
 
+export async function playPause(deviceId: string, regId2: string) {
+  await push(deviceId, regId2, {
+    playpause: true,
+  })
+}
+
+export async function next(deviceId: string, regId2: string) {
+  await push(deviceId, regId2, {
+    next: true,
+  })
+}
+
+export async function back(deviceId: string, regId2: string) {
+  await push(deviceId, regId2, {
+    back: true,
+  })
+}
+
 async function UploadFileNonLocal(filename: string, mimeType: string, body: fs.ReadStream) {
   if (!state.thisDeviceId) throw new Error('thisDeviceId is undefined')
 
@@ -535,6 +553,45 @@ export const actions: Record<string, (popupWin: BrowserWindow) => Promise<void>>
     const device = await selectDevice(popupWin)
     if (!device) return
     locate(device.deviceId, device.regId2)
+  },
+  'toggle win': async (_popupWin: BrowserWindow) => {
+    if (!state.win) return
+
+    if (state.win.isVisible()) state.win.hide()
+    else state.win.show()
+  },
+  'play/pause': async (popupWin: BrowserWindow) => {
+    const device = await selectDevice(
+      popupWin,
+      (device) =>
+        device.deviceType === devicesTypes.android_phone ||
+        device.deviceType === devicesTypes.android_tablet,
+    )
+    if (!device) return
+
+    playPause(device.deviceId, device.regId2)
+  },
+  next: async (popupWin: BrowserWindow) => {
+    const device = await selectDevice(
+      popupWin,
+      (device) =>
+        device.deviceType === devicesTypes.android_phone ||
+        device.deviceType === devicesTypes.android_tablet,
+    )
+    if (!device) return
+
+    next(device.deviceId, device.regId2)
+  },
+  back: async (popupWin: BrowserWindow) => {
+    const device = await selectDevice(
+      popupWin,
+      (device) =>
+        device.deviceType === devicesTypes.android_phone ||
+        device.deviceType === devicesTypes.android_tablet,
+    )
+    if (!device) return
+
+    back(device.deviceId, device.regId2)
   },
 } as const
 export type Actions = typeof actions
