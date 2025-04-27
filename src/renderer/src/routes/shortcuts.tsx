@@ -56,7 +56,7 @@ function RouteComponent() {
         setShortcuts(shortcuts)
       }}
     >
-      <table className="w-1/3 text-2xl">
+      <table className="max-w-3/4 min-w-2/3 text-2xl">
         <thead className="bg-orange-200">
           <tr>
             <th>Keyboard shortcut</th>
