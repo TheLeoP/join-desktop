@@ -401,8 +401,10 @@ export const handleNotification = async (
   win: BrowserWindow,
   persistentIds: string[],
 ) => {
-  // TODO: remove
-  console.log('Notification received', notification)
+  // NOTE: only log incoming notifications in dev mode
+  if (process.env['ELECTRON_RENDERER_URL']) {
+    console.log('Notification received', notification)
+  }
 
   const rawData = notification.message.data
   if (
