@@ -392,7 +392,7 @@ export async function sendFile(deviceId: string, regId2: string, path: string) {
     })
   } else {
     const body = fs.createReadStream(path)
-    fileUri = await UploadFileNonLocal(filename, mimeType, body)
+    fileUri = await uploadFileNonLocal(filename, mimeType, body)
   }
 
   new Notification({
@@ -436,7 +436,7 @@ export async function back(deviceId: string, regId2: string) {
   })
 }
 
-async function UploadFileNonLocal(filename: string, mimeType: string, body: fs.ReadStream) {
+async function uploadFileNonLocal(filename: string, mimeType: string, body: fs.ReadStream) {
   if (!state.thisDeviceId) throw new Error('thisDeviceId is undefined')
 
   const joinDirId = await joinDirNonLocal()
@@ -455,7 +455,7 @@ async function UploadFileNonLocal(filename: string, mimeType: string, body: fs.R
     fields: 'id',
   })
 
-  return `https://www.googleapis.com/drive/v3/files/${file.data.id}/download`
+  return `https://drive.google.com/uc?export=download&id=${file.data.id}`
 }
 
 // NOTE this deletes the whole `SMS files` directory
