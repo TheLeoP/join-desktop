@@ -458,6 +458,7 @@ async function UploadFileNonLocal(filename: string, mimeType: string, body: fs.R
   return `https://www.googleapis.com/drive/v3/files/${file.data.id}/download`
 }
 
+// NOTE this deletes the whole `SMS files` directory
 export async function requestContactsAndLastSmSCreation(deviceId: string, regId2: string) {
   await fcmPush(deviceId, regId2, {
     type: 'GCMRequestFile',

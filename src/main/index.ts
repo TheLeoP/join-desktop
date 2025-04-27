@@ -40,6 +40,7 @@ import {
   getDevicesInfo,
   getMediaInfoNonLocal,
   getPushHistoryNonLocal,
+  getSmsChatsNonLocal,
   getSmsNonLocal,
   joinDirNonLocal,
   jwtClient,
@@ -649,8 +650,8 @@ app.whenReady().then(() => {
         })
       })
     } else {
-      // when the contacts file doesn't exists yet, we need to send a message to the device to create it
-      // TODO: the file won't be updated unless requested to. Add button to do so? Or do it always like on sms chats?
+      // NOTE: when the contacts file doesn't exists yet, we need to send
+      // a message to the device to create it
       try {
         const contactsInfo = await getContactsNonLocal(deviceId)
         return contactsInfo
@@ -784,29 +785,32 @@ app.whenReady().then(() => {
         })
       })
     } else {
-      // NOTE: there is no way of knowing if the conversation file on Google
-      // Drive is updated or not and the Join app doesn't seem to update it
-      // unless it's request to do so. So, we always ask it to update the file
-      // before using it
-      await requestSmsChatCreationOrUpdate(deviceId, regId2, address)
+      // NOTE: when the smsChat file doesn't exists yet, we need to send
+      // a message to the device to create it
+      try {
+        const smsChatInfo = await getSmsChatsNonLocal(deviceId, address)
+        return smsChatInfo
+      } catch (e) {
+        await requestSmsChatCreationOrUpdate(deviceId, regId2, address)
 
-      return await new Promise<SmsInfo[]>((res, rej) => {
-        const request = smsChatRequests.get(`${deviceId}${address}`)
-        if (request) request(null)
+        return await new Promise<SmsInfo[]>((res, rej) => {
+          const request = smsChatRequests.get(`${deviceId}${address}`)
+          if (request) request(null)
 
-        smsChatRequests.set(`${deviceId}${address}`, (smsChatInfo) => {
-          if (smsChatInfo === null) return rej(new Error('A new SmsChatInfo request was created'))
+          smsChatRequests.set(`${deviceId}${address}`, (smsChatInfo) => {
+            if (smsChatInfo === null) return rej(new Error('A new SmsChatInfo request was created'))
 
-          res(smsChatInfo)
+            res(smsChatInfo)
+          })
+          setTimeout(
+            () => {
+              smsChatRequests.delete(`${deviceId}${address}`)
+              rej(new Error('SmsChat request timed out'))
+            },
+            2 * 60 * 1000,
+          )
         })
-        setTimeout(
-          () => {
-            smsChatRequests.delete(`${deviceId}${address}`)
-            rej(new Error('SmsChat request timed out'))
-          },
-          2 * 60 * 1000,
-        )
-      })
+      }
     }
   })
   m.handle('actions', () => {
