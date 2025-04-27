@@ -106,7 +106,7 @@ export function JoinProvider({ children }: { children: ReactNode }) {
     const removeListener = window.api.onNewSms(async (sms) => {
       const devices = queryClient.getQueryData<Data<DeviceInfo>>(['devices'])
       if (!devices) return
-      const device = devices.records.find((device) => device.deviceId === deviceId)
+      const device = devices.records.find((device) => device.deviceId === sms.senderId)
       if (!device) return
       const regId2 = device.regId2
 
@@ -121,7 +121,7 @@ export function JoinProvider({ children }: { children: ReactNode }) {
           date: Date.now(),
           id: (old[old.length - 1].id + 1).toString(),
           isMMS: false,
-          received: false,
+          received: true,
           text: sms.text,
         })
         return newValue

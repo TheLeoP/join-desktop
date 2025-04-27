@@ -50,7 +50,8 @@ function Volume({
 }) {
   const [volume, setVolume] = useState(initialValue)
 
-  const { mutate: mediaAction } = useMediaAction(deviceId, regId2)
+  const onLocalNetwork = useOnLocalNetwork(deviceId)
+  const { mutate: mediaAction } = useMediaAction(deviceId, regId2, onLocalNetwork)
   const debouncedMediaAction = useRef<UseMutateFunction<
     unknown,
     Error,
@@ -103,7 +104,7 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
     isError,
   } = useQuery(mediaQueryOptions(deviceId, regId2, onLocalNetwork))
 
-  const { mutate: mediaAction } = useMediaAction(deviceId, regId2)
+  const { mutate: mediaAction } = useMediaAction(deviceId, regId2, onLocalNetwork)
 
   let info: JSX.Element
   if (isPending) {
@@ -125,6 +126,7 @@ function Media({ deviceId, regId2 }: { deviceId: string; regId2: string }) {
           .map((info) => (
             <div key={info.packageName} className="rounded-sm bg-orange-100 p-1">
               <h1 className="text-center text-xl underline">{info.appName}</h1>
+              {/* TODO: limit the height of this. */}
               {info.art && (
                 <div className="flex flex-col items-center">
                   <img

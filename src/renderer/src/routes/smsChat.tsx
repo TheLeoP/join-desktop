@@ -58,7 +58,7 @@ function useSmsChat(deviceId: string, regId2: string, address: string, onLocalNe
   return useQuery(smsChatOptions(deviceId, regId2, address, onLocalNetwork))
 }
 
-function useSmsSend(deviceId: string, regId2: string, smsnumber: string) {
+function useSmsSend(deviceId: string, regId2: string, smsnumber: string, onLocalNetwork: boolean) {
   return useMutation<
     unknown,
     Error,
@@ -103,9 +103,12 @@ function useSmsSend(deviceId: string, regId2: string, smsnumber: string) {
     },
     onSettled: () => {
       // NOTE: the Join Android app needs time to update the information, so don't invalidate right away
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['smsChat', deviceId, regId2, smsnumber] })
-      }, 1000)
+      setTimeout(
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['smsChat', deviceId, regId2, smsnumber] })
+        },
+        1000 * (onLocalNetwork ? 1 : 10),
+      )
       // TODO: make this time configurable
     },
   })
@@ -127,7 +130,7 @@ function RouteComponent() {
   }, [smsChat])
 
   const [message, setMessage] = useState<string>('')
-  const { mutate: smsSend } = useSmsSend(deviceId, regId2, address)
+  const { mutate: smsSend } = useSmsSend(deviceId, regId2, address, onLocalNetwork)
   const form = useRef<HTMLFormElement | null>(null)
 
   const messages = isPending ? (

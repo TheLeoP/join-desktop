@@ -107,7 +107,7 @@ export function useSettings() {
   return settings
 }
 
-export function useMediaAction(deviceId: string, regId2: string) {
+export function useMediaAction(deviceId: string, regId2: string, onLocalNetwork: boolean) {
   return useMutation<
     unknown,
     Error,
@@ -155,9 +155,12 @@ export function useMediaAction(deviceId: string, regId2: string) {
     },
     onSettled: () => {
       // NOTE: the Join Android app needs time to update the information, so don't invalidate right away
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['mediaInfo', deviceId, regId2] })
-      }, 1000)
+      setTimeout(
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['mediaInfo', deviceId, regId2] })
+        },
+        1000 * (onLocalNetwork ? 1 : 10),
+      )
       // TODO: make this time configurable
     },
   })
