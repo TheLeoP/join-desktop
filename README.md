@@ -6,10 +6,6 @@ A modern Desktop [Join](https://joaoapps.com/join/) application that works on Li
 
 I use Linux and recently stopped using Chrome. There was no Join extension for Firefox and the Desktop application required Chrome to work anyway. So, I wrote my own Desktop application.
 
-## Common Join errors fixed by this app
-
-- SMS, contacts and everything that uses a file on Google drive to send information while the remote device is not in the Local network only gets updated the first time the [Join website](https://joinjoaomgcd.appspot.com/)/official [Join Desktop](https://github.com/joaomgcd/JoinDesktop) is used. This app asks the remote device to always update those files before loading their content. This ensures that contacts/sms will always be up to date in join-desktop.
-
 ## Does it support all of Join features?
 
 No, the app is supported in an best effort basis. Most of the features have been reversed engineered from the [Join website](https://joinjoaomgcd.appspot.com/), the [Join Chrome](https://github.com/joaomgcd/JoinChrome) extension and the official [Join Desktop](https://github.com/joaomgcd/JoinDesktop) app.
