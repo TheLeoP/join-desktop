@@ -27,7 +27,6 @@ import { toast } from 'sonner'
 
 export const Route = createFileRoute('/devices')({
   component: RouteComponent,
-
   loader: async () => {
     queryClient.ensureQueryData(devicesQueryOptions)
   },

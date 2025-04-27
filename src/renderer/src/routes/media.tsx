@@ -1,4 +1,10 @@
-import { useMedia, useMediaAction } from '@renderer/util'
+import {
+  devicesQueryOptions,
+  mediaQueryOptions,
+  queryClient,
+  useMedia,
+  useMediaAction,
+} from '@renderer/util'
 import { UseMutateFunction } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { zodValidator } from '@tanstack/zod-adapter'
@@ -16,7 +22,14 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute('/media')({
   component: RouteComponent,
-  // TODO: add loader
+  loaderDeps: ({ search: { regId2, deviceId, onLocalNetwork } }) => ({
+    regId2,
+    deviceId,
+    onLocalNetwork,
+  }),
+  loader: async ({ deps: { regId2, deviceId, onLocalNetwork } }) => {
+    queryClient.ensureQueryData(mediaQueryOptions(deviceId, regId2, onLocalNetwork))
+  },
   validateSearch: zodValidator(searchSchema),
 })
 
