@@ -109,7 +109,6 @@ function useSmsSend(deviceId: string, regId2: string, smsnumber: string, onLocal
         },
         1000 * (onLocalNetwork ? 1 : 10),
       )
-      // TODO: make this time configurable
     },
   })
 }

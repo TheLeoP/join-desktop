@@ -233,7 +233,6 @@ export function useMediaAction(deviceId: string, regId2: string, onLocalNetwork:
         },
         1000 * (onLocalNetwork ? 1 : 10),
       )
-      // TODO: make this time configurable
     },
   })
 }
