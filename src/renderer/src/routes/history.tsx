@@ -1,3 +1,4 @@
+import { historyOptions, queryClient, useHistory } from '@renderer/util'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { zodValidator } from '@tanstack/zod-adapter'
@@ -11,24 +12,15 @@ const searchSchema = z.object({
 export const Route = createFileRoute('/history')({
   component: RouteComponent,
   loaderDeps: ({ search: { deviceId } }) => ({ deviceId }),
-  // TODO: add loader
+  loader: async ({ deps: { deviceId } }) => {
+    queryClient.ensureQueryData(historyOptions(deviceId))
+  },
   validateSearch: zodValidator(searchSchema),
 })
 
 function RouteComponent() {
   const { deviceId } = Route.useSearch()
-  const {
-    data: history,
-    isPending,
-    isError,
-    error,
-  } = useQuery({
-    queryFn: ({ queryKey }) => {
-      const [_, deviceId] = queryKey
-      return window.api.pushHistory(deviceId)
-    },
-    queryKey: ['pushHistory', deviceId],
-  })
+  const { data: history, isPending, isError, error } = useHistory(deviceId)
 
   const endOfList = useRef<HTMLDivElement | null>(null)
   useEffect(() => {

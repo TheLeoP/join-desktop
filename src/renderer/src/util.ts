@@ -237,3 +237,17 @@ export function useMediaAction(deviceId: string, regId2: string, onLocalNetwork:
     },
   })
 }
+
+export function historyOptions(deviceId: string) {
+  return queryOptions({
+    queryFn: ({ queryKey }) => {
+      const [_, deviceId] = queryKey
+      return window.api.pushHistory(deviceId)
+    },
+    queryKey: ['pushHistory', deviceId],
+  })
+}
+
+export function useHistory(deviceId: string) {
+  return useQuery(historyOptions(deviceId))
+}
