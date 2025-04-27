@@ -107,6 +107,78 @@ export function useSettings() {
   return settings
 }
 
+export const devicesQueryOptions = queryOptions<Data<DeviceInfo>>({
+  queryKey: ['devices'],
+  queryFn: async () => {
+    const joinUrl = 'https://joinjoaomgcd.appspot.com/_ah/api'
+    const token = await window.api.getAccessToken()
+    const res = await fetch(`${joinUrl}/registration/v1/listDevices`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    return await res.json()
+  },
+})
+
+export function useDevices() {
+  return useQuery(devicesQueryOptions)
+}
+
+export function formatBytes(bytes: number, decimals = 2) {
+  if (!+bytes) return '0 Bytes'
+
+  const k = 1000
+  const dm = decimals < 0 ? 0 : decimals
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+}
+
+export function contactsQueryOptions(deviceId: string, regId2: string, onLocalNetwork: boolean) {
+  return queryOptions<ContactInfo[], Error, ContactInfo[], readonly ['contacts', string, string]>({
+    staleTime: onLocalNetwork ? 0 : 60 * 1000,
+    queryKey: ['contacts', deviceId, regId2],
+    queryFn: async ({ queryKey }) => {
+      const [_, deviceId, regId2] = queryKey
+      return await window.api.contacts(deviceId, regId2)
+    },
+  })
+}
+export function useContacts(deviceId: string, regId2: string, onLocalNetwork: boolean) {
+  return useQuery(contactsQueryOptions(deviceId, regId2, onLocalNetwork))
+}
+
+export function smsQueryOptions(deviceId: string, regId2: string, onLocalNetwork: boolean) {
+  return queryOptions<SmsInfo[], Error, SmsInfo[], readonly ['sms', string, string]>({
+    staleTime: onLocalNetwork ? 0 : 60 * 1000,
+    queryKey: ['sms', deviceId, regId2],
+    queryFn: async ({ queryKey }) => {
+      const [_, deviceId, regId2] = queryKey
+      return await window.api.sms(deviceId, regId2)
+    },
+  })
+}
+export function useSms(deviceId: string, regId2: string, onLocalNetwork: boolean) {
+  return useQuery(smsQueryOptions(deviceId, regId2, onLocalNetwork))
+}
+
+export function mediaQueryOptions(deviceId: string, regId2: string, onLocalNetwork: boolean) {
+  return queryOptions<MediaInfo>({
+    staleTime: onLocalNetwork ? 0 : 60 * 1000,
+    queryKey: ['mediaInfo', deviceId, regId2],
+    queryFn: async () => {
+      return await window.api.media(deviceId, regId2)
+    },
+  })
+}
+
+export function useMedia(deviceId: string, regId2: string, onLocalNetwork: boolean) {
+  return useQuery(mediaQueryOptions(deviceId, regId2, onLocalNetwork))
+}
+
 export function useMediaAction(deviceId: string, regId2: string, onLocalNetwork: boolean) {
   return useMutation<
     unknown,
@@ -164,62 +236,4 @@ export function useMediaAction(deviceId: string, regId2: string, onLocalNetwork:
       // TODO: make this time configurable
     },
   })
-}
-
-export const devicesQueryOptions = queryOptions<Data<DeviceInfo>>({
-  queryKey: ['devices'],
-  queryFn: async () => {
-    const joinUrl = 'https://joinjoaomgcd.appspot.com/_ah/api'
-    const token = await window.api.getAccessToken()
-    const res = await fetch(`${joinUrl}/registration/v1/listDevices`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-    return await res.json()
-  },
-})
-
-export function useDevices() {
-  return useQuery(devicesQueryOptions)
-}
-
-export function formatBytes(bytes: number, decimals = 2) {
-  if (!+bytes) return '0 Bytes'
-
-  const k = 1000
-  const dm = decimals < 0 ? 0 : decimals
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
-
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
-}
-
-export function contactsQueryOptions(deviceId: string, regId2: string, onLocalNetwork: boolean) {
-  return queryOptions<ContactInfo[], Error, ContactInfo[], readonly ['contacts', string, string]>({
-    staleTime: onLocalNetwork ? 0 : 60 * 1000,
-    queryKey: ['contacts', deviceId, regId2],
-    queryFn: async ({ queryKey }) => {
-      const [_, deviceId, regId2] = queryKey
-      return await window.api.contacts(deviceId, regId2)
-    },
-  })
-}
-export function useContacts(deviceId: string, regId2: string, onLocalNetwork: boolean) {
-  return useQuery(contactsQueryOptions(deviceId, regId2, onLocalNetwork))
-}
-
-export function smsQueryOptions(deviceId: string, regId2: string, onLocalNetwork: boolean) {
-  return queryOptions<SmsInfo[], Error, SmsInfo[], readonly ['sms', string, string]>({
-    staleTime: onLocalNetwork ? 0 : 60 * 1000,
-    queryKey: ['sms', deviceId, regId2],
-    queryFn: async ({ queryKey }) => {
-      const [_, deviceId, regId2] = queryKey
-      return await window.api.sms(deviceId, regId2)
-    },
-  })
-}
-export function useSms(deviceId: string, regId2: string, onLocalNetwork: boolean) {
-  return useQuery(smsQueryOptions(deviceId, regId2, onLocalNetwork))
 }
