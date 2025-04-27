@@ -110,9 +110,13 @@ export type Push = {
   responseType?: ResponseType[keyof ResponseType]
   smsnumber?: string
   smstext?: string
-  requestId?: 'SMS' | 'batteryevent'
+  requestId?: 'SMS' | 'batteryevent' | string
   values?: string
   valuesArray?: string[]
+
+  commandName?: string
+  commandResponse?: string
+  dismissOnTouch?: boolean
 }
 export type PushWrapper = {
   push: Push

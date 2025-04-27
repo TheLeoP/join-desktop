@@ -43,7 +43,10 @@ import {
 import { notificationImage, batteryOkImage, batteryLowImage } from './images'
 import { state } from './state'
 import { error, mapReplacer } from './utils'
-import { requestLocalNetworkTest, setClipboard, testLocalAddress } from './popup'
+import { push, requestLocalNetworkTest, setClipboard, testLocalAddress } from './popup'
+import { exec } from 'node:child_process'
+import { promisify } from 'node:util'
+const aexec = promisify(exec)
 
 const notifications = new Map<string, Notification>()
 
@@ -61,50 +64,50 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
   let n: Notification | undefined
   switch (data.type) {
     case 'GCMPush': {
-      const push = (content as PushWrapper).push
+      const pushInfo = (content as PushWrapper).push
 
-      if (push.clipboard && push.clipboard !== 'Clipboard not set') {
-        clipboard.writeText(push.clipboard)
+      if (pushInfo.clipboard && pushInfo.clipboard !== 'Clipboard not set') {
+        clipboard.writeText(pushInfo.clipboard)
         n = new Notification({
           title: 'Clipboard set',
           icon: notificationImage,
         })
-      } else if (push.clipboard && push.clipboard === 'Clipboard not set') {
+      } else if (pushInfo.clipboard && pushInfo.clipboard === 'Clipboard not set') {
         const devicesInfo = await getCachedDevicesInfo()
         const deviceName = devicesInfo.find(
-          (device) => device.deviceId === push.senderId,
+          (device) => device.deviceId === pushInfo.senderId,
         )?.deviceName
         n = new Notification({
           title: `${deviceName}'s clipboard is empty`,
           icon: notificationImage,
         })
-      } else if (push.clipboardget) {
+      } else if (pushInfo.clipboardget) {
         n = new Notification({
           title: 'Clipboard requested',
-          body: push.url,
+          body: pushInfo.url,
           icon: notificationImage,
         })
 
         const devicesInfo = await getCachedDevicesInfo()
 
-        const receiver = devicesInfo.find((device) => device.deviceId === push.senderId)
+        const receiver = devicesInfo.find((device) => device.deviceId === pushInfo.senderId)
         if (!receiver) return
 
         setClipboard(receiver.deviceId, receiver.regId2, clipboard.readText())
-      } else if (push.url) {
-        shell.openExternal(push.url)
+      } else if (pushInfo.url) {
+        shell.openExternal(pushInfo.url)
         n = new Notification({
           title: 'Openning url',
-          body: push.url,
+          body: pushInfo.url,
           icon: notificationImage,
         })
-      } else if (push.files && push.files.length > 0) {
+      } else if (pushInfo.files && pushInfo.files.length > 0) {
         n = new Notification({
           title: 'Received files',
           body: 'Openning now...',
           icon: notificationImage,
         })
-        push.files
+        pushInfo.files
           .filter((file) => file.startsWith('https://'))
           .forEach((file) => {
             const url = new URL(file)
@@ -124,30 +127,30 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
               shell.openExternal(file)
             }
           })
-      } else if (push.location) {
+      } else if (pushInfo.location) {
         // doesn't work in Electron because it needs a Google API_KEY with location API access
         // see https://github.com/electron/electron/pull/22034
         n = new Notification({
           title: 'Location Requested not supported',
           icon: notificationImage,
         })
-      } else if (push.say) {
-        win.webContents.send('on-speak', push.say, push.language)
+      } else if (pushInfo.say) {
+        win.webContents.send('on-speak', pushInfo.say, pushInfo.language)
         n = new Notification({
-          title: `Saying Out Loud${push.language ? ` with language ${push.language}` : ''}`,
-          body: push.say,
+          title: `Saying Out Loud${pushInfo.language ? ` with language ${pushInfo.language}` : ''}`,
+          body: pushInfo.say,
           icon: notificationImage,
         })
-      } else if (push.title) {
+      } else if (pushInfo.title) {
         n = new Notification({
-          title: push.title,
-          body: push.text,
+          title: pushInfo.title,
+          body: pushInfo.text,
           icon: notificationImage,
         })
-      } else if (push.text && push.text !== undefined && push.values !== undefined) {
+      } else if (pushInfo.text && pushInfo.text !== undefined && pushInfo.values !== undefined) {
         const key = state.settings.scripts
           .keys()
-          .find((command) => new RegExp(command).test(push.text as string))
+          .find((command) => new RegExp(command).test(pushInfo.text as string))
 
         let ok = false
         if (key) {
@@ -155,14 +158,33 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
           try {
             const module = await import(scriptsDir + '/' + scriptName)
             const script = module.default as (values: string, valuesArray: string[]) => void
-            script(push.values, push.valuesArray as string[])
+            script(pushInfo.values, pushInfo.valuesArray as string[])
             ok = true
           } catch (e) {}
         }
         n = new Notification({
-          title: `Command received: ${push.text}`,
+          title: `Command received: ${pushInfo.text}`,
           body: ok ? 'Script executed correctly' : 'No script found, nothing was done',
         })
+      } else if (pushInfo.commandLine && pushInfo.text) {
+        n = new Notification({
+          title: `Command line received.${pushInfo.commandName ? ` Name: ${pushInfo.commandName}` : ''}`,
+          body: pushInfo.text,
+          icon: notificationImage,
+        })
+
+        const result = await aexec(pushInfo.text)
+        if (pushInfo.commandResponse) {
+          const command = `${pushInfo.commandResponse}=:=${result.stdout.trim()}`
+          const receiver = (await getCachedDevicesInfo()).find(
+            (device) => device.deviceId === pushInfo.senderId,
+          )
+          if (receiver) {
+            push(receiver.deviceId, receiver.regId2, {
+              text: command,
+            })
+          }
+        }
       } else {
         // TODO: do something else?
         n = new Notification({
@@ -175,10 +197,10 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
       if (n) {
         n.show()
       }
-      if (n && push.id) {
-        notifications.set(push.id, n)
+      if (n && pushInfo.id) {
+        notifications.set(pushInfo.id, n)
         n.on('close', () => {
-          if (push.id) notifications.delete(push.id)
+          if (pushInfo.id) notifications.delete(pushInfo.id)
         })
       }
       break
