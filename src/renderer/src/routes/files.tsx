@@ -291,17 +291,15 @@ function RouteComponent() {
   const [dirsWidth, setDirsWidth] = useState(0)
   const scrollElement = useRef<HTMLDivElement | null>(null)
   const dirVirtualizer = useVirtualizer({
-    count: paths.length,
+    count: debouncedPaths.length,
     getScrollElement: () => scrollElement.current,
     estimateSize: () => dirsWidth / 3,
     horizontal: true,
   })
-  // TODO: avoid rendering new column with the same content of last column
-  // until `debouncedPaths` is updated
   const virtualCols = dirVirtualizer.getVirtualItems()
   useEffect(() => {
     dirVirtualizer.scrollToIndex(currentDir, { align: 'center' })
-  }, [currentDir, dirVirtualizer, paths])
+  }, [currentDir, dirVirtualizer, debouncedPaths])
   useLayoutEffect(() => {
     const f = () => {
       if (!scrollElement.current) return
