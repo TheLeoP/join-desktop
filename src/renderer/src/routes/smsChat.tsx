@@ -192,7 +192,6 @@ function RouteComponent() {
           e.preventDefault()
           if (message === '' || !regId2) return
 
-          // TODO:  refetch in success? too expensive? only local network?
           smsSend({ smstext: message })
           setMessage('')
         }}

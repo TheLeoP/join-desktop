@@ -100,7 +100,6 @@ function RouteComponent() {
               className="flex w-[calc(25%-4px)] flex-col space-y-1 rounded-sm bg-orange-100 p-1"
             >
               <h1 className="text-center text-xl underline">{info.appName}</h1>
-              {/* TODO: limit the height of this. */}
               {info.art && (
                 <img
                   className="h-60 object-scale-down"
