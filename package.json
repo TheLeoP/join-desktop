@@ -1,9 +1,9 @@
 {
   "name": "join-desktop",
-  "version": "1.0.1",
-  "description": "An Electron application with React and TypeScript",
+  "version": "1.0.2",
+  "description": "A modern Desktop Join application that works on Linux, MacOS and Linux, and doesn't requires Google Chrome to work.",
   "main": "./out/main/index.mjs",
-  "author": "example.com",
+  "author": "Luis Calle (https://github.com/TheLeoP)",
   "homepage": "https://electron-vite.org",
   "scripts": {
     "format": "prettier --write .",
