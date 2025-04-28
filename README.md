@@ -27,6 +27,8 @@ Note: there is no guarantee that any feature will be implemented in the future. 
   - Connect to other Join devices via Local network
   - Status notifications from Android devices (battery low, charging, charged)
   - Command line commands
+- Notifications
+  - Receive and clean notifications manages by Join
 - Media/contacts/calls/SMS/file access on remote Android devices.
 - Push history on all devices
 - Rename/delete devices
