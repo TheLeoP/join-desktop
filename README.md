@@ -1,6 +1,6 @@
 # join-desktop
 
-A modern Desktop [Join](https://joaoapps.com/join/) application that works on Linux, MacOS and Linux. It doesn't requires Google Chrome to work (It only needs any browser to be installed so you can login into your Google account the first time you open the app).
+A modern Desktop [Join](https://joaoapps.com/join/) application that works on Windows, MacOS and Linux. It doesn't requires Google Chrome to work (It only needs any browser to be installed so you can login into your Google account the first time you open the app).
 
 ## Why?
 
