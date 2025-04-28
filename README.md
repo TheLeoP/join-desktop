@@ -8,7 +8,7 @@ I use Linux and recently stopped using Chrome. There was no Join extension for F
 
 ## Does it support all of Join features?
 
-No, the app is supported in an best effort basis. Most of the features have been reversed engineered from the [Join website](https://joinjoaomgcd.appspot.com/), the [Join Chrome](https://github.com/joaomgcd/JoinChrome) extension and the official [Join Desktop](https://github.com/joaomgcd/JoinDesktop) app.
+No. The app is supported in an best effort basis. Most of the features have been reversed engineered from the [Join website](https://joinjoaomgcd.appspot.com/), the [Join Chrome](https://github.com/joaomgcd/JoinChrome) extension and the official [Join Desktop](https://github.com/joaomgcd/JoinDesktop) app.
 
 If there's a Join feature that the app doesn't support and you would like to use, please open an Issue with a Feature Request describing it.
 
