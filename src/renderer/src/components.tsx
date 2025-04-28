@@ -29,7 +29,7 @@ export function JoinProvider({ children }: { children: ReactNode }) {
     const removeListener = window.api.onLogIn(async () => {
       setIsLoggedIn(true)
       window.api.stopPushReceiver()
-      // TODO: check if fails and retry when theres internet connection?
+      // NOTE: the push-receiver package already handles retrying to connect on its own
       await window.api.startPushReceiver()
     })
     return () => removeListener()
