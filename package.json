@@ -18,7 +18,7 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "publish:win": "npm run build && electron-builder --win --publish always",
     "publish:mac": "electron-vite build && electron-builder --mac --publish always",
-    "publish:linux": "electron-vite build && electron-builder --linux --publish always -c.snap.publish=github"
+    "publish:linux": "electron-vite build && electron-builder --linux --publish always"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.1",
