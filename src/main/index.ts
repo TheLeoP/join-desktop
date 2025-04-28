@@ -817,8 +817,11 @@ app.whenReady().then(() => {
     return Object.keys(actions)
   })
   m.handle('push-history', async (_, deviceId: string) => {
-    // TODO: return empty history if file doesn't exist
-    return await getPushHistoryNonLocal(deviceId)
+    try {
+      return await getPushHistoryNonLocal(deviceId)
+    } catch (e) {
+      return []
+    }
   })
   m.handle('shortcuts-save', async (_, newShortcuts: Map<string, keyof Actions>) => {
     shortcuts = newShortcuts
