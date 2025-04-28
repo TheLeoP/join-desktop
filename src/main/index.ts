@@ -264,7 +264,7 @@ function createWindow(tray: Tray) {
   m.on('log-in-with-google', () => {
     logInWithGoogle(win)
   })
-  m.on('call', (_, callnumber, deviceId, regId2) => call(deviceId, regId2, callnumber))
+  m.on('call', (_, deviceId, regId2, callnumber) => call(deviceId, regId2, callnumber))
   m.handle(
     'open-remote-file',
     async (_, deviceId: string, regId2: string, path: string, fileName: string) => {
