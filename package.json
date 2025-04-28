@@ -1,6 +1,6 @@
 {
   "name": "join-desktop",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "A modern Desktop Join application that works on Linux, MacOS and Linux, and doesn't requires Google Chrome to work.",
   "main": "./out/main/index.mjs",
   "author": "Luis Calle (https://github.com/TheLeoP)",
@@ -16,9 +16,9 @@
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
-    "publish:win": "npm run build && electron-builder --win --publish onTag",
-    "publish:mac": "electron-vite build && electron-builder --mac --publish onTag",
-    "publish:linux": "electron-vite build && electron-builder --linux --publish onTag -c.snap.publish=github"
+    "publish:win": "npm run build && electron-builder --win --publish always",
+    "publish:mac": "electron-vite build && electron-builder --mac --publish always",
+    "publish:linux": "electron-vite build && electron-builder --linux --publish always -c.snap.publish=github"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.1",
