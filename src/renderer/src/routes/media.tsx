@@ -1,10 +1,4 @@
-import {
-  devicesQueryOptions,
-  mediaQueryOptions,
-  queryClient,
-  useMedia,
-  useMediaAction,
-} from '@renderer/util'
+import { mediaQueryOptions, queryClient, useMedia, useMediaAction } from '@renderer/util'
 import { UseMutateFunction } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { zodValidator } from '@tanstack/zod-adapter'
