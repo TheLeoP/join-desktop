@@ -62,6 +62,7 @@ export type MediaInfo = {
 
 export type PushType =
   | 'GCMPush'
+  | 'GCMNotification'
   | 'GCMNotificationClear'
   | 'GCMLocalNetworkRequest'
   | 'GCMLocalNetworkTestRequest'
@@ -276,6 +277,36 @@ export type LocationInfo = {
   forTasker: boolean
   latitude: number
   longitude: number
+}
+
+export type JoinNotificationWrapper = {
+  requestNotification: JoinNotification
+}
+export type JoinNotification = {
+  authToken: string
+  notifications: [
+    {
+      appIcon: string
+      statusBarIcon?: string
+      appName: 'Join'
+      appPackage: 'com.joaomgcd.join'
+      buttons: [
+        { actionId: 'HANG_UP'; icon: 'icons/close.png'; text: 'End Call' },
+        { actionId: 'TAKE_CALL'; icon: 'icons/phone_ongoing.png'; text: 'Answer' },
+      ]
+      date: number
+      id: '9beb5e27-5c92-41f8-8088-36eb19809a20'
+      priority: number
+      sound: boolean
+      text: 'Bebas (+593963529468)'
+      title: 'Incoming Call - 11:30:32'
+      vibration: number[]
+
+      image?: string
+    },
+  ]
+  deviceIds: string[]
+  senderId: string
 }
 
 export type Settings = {

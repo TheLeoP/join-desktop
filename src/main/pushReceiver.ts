@@ -2,7 +2,7 @@ import { PushReceiver } from '@theleop/push-receiver'
 import * as fs from 'node:fs'
 import { promises as afs } from 'node:fs'
 import { MessageEnvelope } from '@theleop/push-receiver/dist/types'
-import { BrowserWindow, clipboard, shell, Notification } from 'electron'
+import { BrowserWindow, clipboard, shell, Notification, nativeImage, NativeImage } from 'electron'
 import type {
   JoinData,
   PushWrapper,
@@ -18,6 +18,7 @@ import type {
   LocalNetworkTestRequest,
   DeviceRegistered,
   NewSmsReceived,
+  JoinNotificationWrapper,
 } from '../preload/types'
 import {
   scriptsDir,
@@ -40,7 +41,14 @@ import {
   getCachedDevicesInfo,
   getDevicesInfo,
 } from './google'
-import { notificationImage, batteryOkImage, batteryLowImage } from './images'
+import {
+  notificationImage,
+  batteryOkImage,
+  batteryLowImage,
+  phoneIncomingImage,
+  phoneOngoingImage,
+  phoneMissedImage,
+} from './images'
 import { state } from './state'
 import { error, mapReplacer } from './utils'
 import { push, requestLocalNetworkTest, setClipboard, testLocalAddress } from './popup'
@@ -202,6 +210,37 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
           if (pushInfo.id) notifications.delete(pushInfo.id)
         })
       }
+      break
+    }
+    case 'GCMNotification': {
+      const request = (content as JoinNotificationWrapper).requestNotification
+      request.notifications.forEach(async (notification) => {
+        const iconString: string | NativeImage =
+          notification.statusBarIcon ?? notification.image ?? notification.appIcon
+        let icon: NativeImage
+        if (iconString === 'icons/phone_incoming.png') {
+          icon = phoneIncomingImage
+        } else if (iconString === 'icons/phone_ongoing.png') {
+          icon = phoneOngoingImage
+        } else if (iconString === 'icons/phone_missed.png') {
+          icon = phoneMissedImage
+        } else if (iconString.startsWith('icons/')) {
+          icon = notificationImage
+        } else if (iconString.startsWith('http')) {
+          const res = await fetch(iconString)
+          const arraybuffer = await res.arrayBuffer()
+          const buffer = Buffer.from(arraybuffer)
+          icon = nativeImage.createFromBuffer(buffer)
+        } else {
+          icon = nativeImage.createFromDataURL(`data:image/png;base64,${iconString}`)
+        }
+
+        new Notification({
+          title: notification.title,
+          body: notification.text,
+          icon,
+        }).show()
+      })
       break
     }
     case 'GCMNotificationClear': {
