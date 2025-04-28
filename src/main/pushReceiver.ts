@@ -186,10 +186,9 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
           }
         }
       } else {
-        // TODO: do something else?
         n = new Notification({
-          title: 'Join',
-          body: 'Receive push',
+          title: 'Unknown push received',
+          body: `text: ${pushInfo.text}`,
           icon: notificationImage,
         })
       }
