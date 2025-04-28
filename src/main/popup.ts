@@ -29,6 +29,7 @@ import {
 } from './google'
 import { notificationImage } from './images'
 import { mapReplacer, error } from './utils'
+import { createHash } from 'crypto'
 
 let popupWin: BrowserWindow
 
@@ -391,8 +392,30 @@ export async function sendFile(deviceId: string, regId2: string, path: string) {
       })
     })
   } else {
-    const body = fs.createReadStream(path)
-    fileUri = await uploadFileNonLocal(filename, mimeType, body)
+    fileUri = await (async () => {
+      const result = await drive.files.list({
+        q: `name = '${filename}' and mimeType = '${mimeType}' and trashed = false`,
+      })
+      const files = result.data.files
+      if (!files) return await uploadFileNonLocal(filename, mimeType, path)
+
+      const file = files[0]
+      if (!file || !file.id) return await uploadFileNonLocal(filename, mimeType, path)
+      const { sha256Checksum } = (
+        await drive.files.get({
+          fileId: file.id as string,
+          fields: 'sha256Checksum',
+        })
+      ).data
+      if (!sha256Checksum) return await uploadFileNonLocal(filename, mimeType, path)
+
+      const content = await afs.readFile(path)
+      const hash = createHash('sha256').update(content).digest('hex')
+
+      if (hash !== sha256Checksum) return await uploadFileNonLocal(filename, mimeType, path)
+
+      return `https://drive.google.com/uc?export=download&id=${file.id}`
+    })()
   }
 
   new Notification({
@@ -436,13 +459,14 @@ export async function back(deviceId: string, regId2: string) {
   })
 }
 
-async function uploadFileNonLocal(filename: string, mimeType: string, body: fs.ReadStream) {
+async function uploadFileNonLocal(filename: string, mimeType: string, path: string) {
   if (!state.thisDeviceId) throw new Error('thisDeviceId is undefined')
+
+  const body = fs.createReadStream(path)
 
   const joinDirId = await joinDirNonLocal()
   const deviceDirId = await deviceDirNonLocal(state.thisDeviceId, joinDirId)
 
-  // TODO: check if file exists first?
   const file = await drive.files.create({
     requestBody: {
       name: filename,
@@ -454,6 +478,7 @@ async function uploadFileNonLocal(filename: string, mimeType: string, body: fs.R
     },
     fields: 'id',
   })
+  if (!file.data.id) throw new Error(`File ${filename} has no id`)
 
   return `https://drive.google.com/uc?export=download&id=${file.data.id}`
 }
