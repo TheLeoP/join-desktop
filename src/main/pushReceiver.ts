@@ -69,32 +69,31 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
     return
   }
 
-  let n: Notification | undefined
   switch (data.type) {
     case 'GCMPush': {
       const pushInfo = (content as PushWrapper).push
 
       if (pushInfo.clipboard && pushInfo.clipboard !== 'Clipboard not set') {
         clipboard.writeText(pushInfo.clipboard)
-        n = new Notification({
+        new Notification({
           title: 'Clipboard set',
           icon: notificationImage,
-        })
+        }).show()
       } else if (pushInfo.clipboard && pushInfo.clipboard === 'Clipboard not set') {
         const devicesInfo = await getCachedDevicesInfo()
         const deviceName = devicesInfo.find(
           (device) => device.deviceId === pushInfo.senderId,
         )?.deviceName
-        n = new Notification({
+        new Notification({
           title: `${deviceName}'s clipboard is empty`,
           icon: notificationImage,
-        })
+        }).show()
       } else if (pushInfo.clipboardget) {
-        n = new Notification({
+        new Notification({
           title: 'Clipboard requested',
           body: pushInfo.url,
           icon: notificationImage,
-        })
+        }).show()
 
         const devicesInfo = await getCachedDevicesInfo()
 
@@ -104,17 +103,17 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
         setClipboard(receiver.deviceId, receiver.regId2, clipboard.readText())
       } else if (pushInfo.url) {
         shell.openExternal(pushInfo.url)
-        n = new Notification({
+        new Notification({
           title: 'Openning url',
           body: pushInfo.url,
           icon: notificationImage,
-        })
+        }).show()
       } else if (pushInfo.files && pushInfo.files.length > 0) {
-        n = new Notification({
+        new Notification({
           title: 'Received files',
           body: 'Openning now...',
           icon: notificationImage,
-        })
+        }).show()
         pushInfo.files
           .filter((file) => file.startsWith('https://'))
           .forEach((file) => {
@@ -136,25 +135,26 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
             }
           })
       } else if (pushInfo.location) {
-        // doesn't work in Electron because it needs a Google API_KEY with location API access
+        // NOTE: doesn't work in Electron because it needs a Google API_KEY with location API access
         // see https://github.com/electron/electron/pull/22034
-        n = new Notification({
-          title: 'Location Requested not supported',
+        new Notification({
+          title: 'Location Requested',
+          body: 'Not supported',
           icon: notificationImage,
-        })
+        }).show()
       } else if (pushInfo.say) {
         win.webContents.send('on-speak', pushInfo.say, pushInfo.language)
-        n = new Notification({
+        new Notification({
           title: `Saying Out Loud${pushInfo.language ? ` with language ${pushInfo.language}` : ''}`,
           body: pushInfo.say,
           icon: notificationImage,
-        })
+        }).show()
       } else if (pushInfo.title) {
-        n = new Notification({
+        new Notification({
           title: pushInfo.title,
           body: pushInfo.text,
           icon: notificationImage,
-        })
+        }).show()
       } else if (pushInfo.text && pushInfo.text !== undefined && pushInfo.values !== undefined) {
         const key = state.settings.scripts
           .keys()
@@ -170,16 +170,16 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
             ok = true
           } catch (e) {}
         }
-        n = new Notification({
+        new Notification({
           title: `Command received: ${pushInfo.text}`,
           body: ok ? 'Script executed correctly' : 'No script found, nothing was done',
-        })
+        }).show()
       } else if (pushInfo.commandLine && pushInfo.text) {
-        n = new Notification({
+        new Notification({
           title: `Command line received.${pushInfo.commandName ? ` Name: ${pushInfo.commandName}` : ''}`,
           body: pushInfo.text,
           icon: notificationImage,
-        })
+        }).show()
 
         const result = await aexec(pushInfo.text)
         if (pushInfo.commandResponse) {
@@ -194,21 +194,11 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
           }
         }
       } else {
-        n = new Notification({
+        new Notification({
           title: 'Unknown push received',
           body: `text: ${pushInfo.text}`,
           icon: notificationImage,
-        })
-      }
-
-      if (n) {
-        n.show()
-      }
-      if (n && pushInfo.id) {
-        notifications.set(pushInfo.id, n)
-        n.on('close', () => {
-          if (pushInfo.id) notifications.delete(pushInfo.id)
-        })
+        }).show()
       }
       break
     }
@@ -235,27 +225,24 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
           icon = nativeImage.createFromDataURL(`data:image/png;base64,${iconString}`)
         }
 
-        new Notification({
+        const n = new Notification({
           title: notification.title,
           body: notification.text,
           icon,
-        }).show()
+        })
+        n.show()
+        notifications.set(notification.id, n)
+        n.on('close', () => {
+          notifications.delete(notification.id)
+        })
       })
       break
     }
     case 'GCMNotificationClear': {
-      // TODO: not all notification clear contain this information, like
-      //
-      //'{"requestNotification":{"deviceIds":["161358ee94
-      // 5e4623bb91d6394477ef24","1d308d8af00040029c680c31091922f6","b
-      // 0b34f7c345f4ffd882af69d9c4405ea","9396b8fc718447f9871b7578a90
-      // edf6e","f8378458d99c4f95a4d750322c2c1d66","049ec31c6bc4468d95
-      // 9c3461cccae932"],"requestId":"batteryevent","senderId":"54d62
-      // 6ca229342bc8ae47db6a87aa02b"}}'
       const req = (content as NotificationClear).requestNotification
-      if (!req.notificationId) break
+      if (!req.requestId) break
 
-      notifications.get(req.notificationId)?.close()
+      notifications.get(req.requestId)?.close()
       break
     }
     case 'GCMLocalNetworkRequest': {

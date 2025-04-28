@@ -142,10 +142,10 @@ export type ResponseType = typeof _responseType
 
 export type NotificationClear = {
   requestNotification: {
+    group: string
     deviceIds: string[]
-    requestId: string[]
-    senderId: string[]
-    notificationId: string | undefined
+    requestId: string
+    senderId: string
   }
 }
 
@@ -286,20 +286,28 @@ export type JoinNotification = {
   authToken: string
   notifications: [
     {
+      actionId?: string
+      color?: string
+      group?: string
+      lines?: string
+      // TODO: is this specific to a certain notification type?
+      messages?: {
+        sender: string
+        text: string
+      }[]
+
       appIcon: string
       statusBarIcon?: string
-      appName: 'Join'
-      appPackage: 'com.joaomgcd.join'
-      buttons: [
-        { actionId: 'HANG_UP'; icon: 'icons/close.png'; text: 'End Call' },
-        { actionId: 'TAKE_CALL'; icon: 'icons/phone_ongoing.png'; text: 'Answer' },
-      ]
+      appName: string
+      appPackage: string
+      buttons: { actionId: string; icon: string; text: string }[]
+
       date: number
-      id: '9beb5e27-5c92-41f8-8088-36eb19809a20'
+      id: string
       priority: number
       sound: boolean
-      text: 'Bebas (+593963529468)'
-      title: 'Incoming Call - 11:30:32'
+      text: string
+      title: string
       vibration: number[]
 
       image?: string
