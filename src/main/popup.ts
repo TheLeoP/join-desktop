@@ -153,7 +153,8 @@ export async function fcmPush(deviceId: string, regId2: string, data: Record<str
         })
       })
       req.on('error', async (err: NodeJS.ErrnoException) => {
-        if (err.code !== 'ECONNRESET' && err.code !== 'ECONNREFUSED') return rej(err)
+        if (err.code !== 'ECONNRESET' && err.code !== 'ECONNREFUSED' && err.code !== 'EHOSTUNREACH')
+          return rej(err)
         delete device.secureServerAddress
         await fcmPush(deviceId, regId2, data)
       })
