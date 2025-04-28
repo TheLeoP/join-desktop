@@ -16,6 +16,8 @@ Note: there is no guarantee that any feature will be implemented in the future. 
 
 ## Current features
 
+### Present in other Join apps
+
 - Listening on the background for Pushes from other devices:
   - Speak (only shows a notification, it doesn't actually speak, it requires a Google API_KEY)
   - Send and receive clipboard
@@ -24,12 +26,31 @@ Note: there is no guarantee that any feature will be implemented in the future. 
   - Receive and clean Notifications
   - Connect to other Join devices via Local network
   - Status notifications from Android devices (battery low, charging, charged)
+  - Command line commands
 - Media/contacts/calls/SMS/file access on remote Android devices.
 - Push history on all devices
 - Rename/delete devices
 - Global shortcuts
-  - Includes a picker to dynamically choose which device should be used for an action.
+- Send actions (pushes) to Join devices
+  - copy
+  - paste
+  - open url (from clipboard)
+  - call (from clipboard)
+  - send file
+  - ring
+  - locate
+  - play/pause
+  - next song/media
+  - back song/media
+
+### Custom features
+
 - Execute custom Javascript functions as a response to a Join action. Check [Custom scripts](#custom-scripts) for in-depth information.
+- Global shortcuts
+  - Includes a picker to dynamically choose which device should be used for an action.
+- Send files avoids uploading the same file multiple times to Google drive.
+- Actions for this app
+  - toggle win (show or hide the UI for this app)
 
 ## Custom scripts
 
@@ -90,7 +111,7 @@ While the goal of this app is to shatter some of the limitations the other Join 
 
 ## Non implemented features
 
-- Background clipboard sync
+- Background automatic clipboard sync
 - Speak and Location pushes are received but don't work as expected because of Electron limitations.
 - MMS support for messages.
 - Send custom commands
