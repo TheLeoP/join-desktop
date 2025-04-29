@@ -221,23 +221,22 @@ export async function push(deviceId: string, regId2: string, data: Push) {
     throw new Error(`Push history file for deviceId ${deviceId} has no defined id on Google Drive`)
 
   const pushesFileContent = (
-    await drive.files.get({
-      alt: 'media',
-      fileId: pushesFile.id,
-    })
+    await drive.files.get(
+      {
+        alt: 'media',
+        fileId: pushesFile.id,
+      },
+      { responseType: 'json' },
+    )
   ).data
 
-  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-  const text = pushesFileContent.text ? await pushesFileContent.text() : pushesFileContent
-  let pushHistory: {
+  let pushHistory = pushesFileContent as {
     apiLevel: number
     deviceId: string
     deviceType: DeviceTypes[keyof DeviceTypes]
     pushes: Push[]
   }
-  try {
-    pushHistory = JSON.parse(text)
-  } catch (e) {
+  if (!pushHistory) {
     const devicesInfo = await getCachedDevicesInfo()
 
     const deviceType = devicesInfo.find((device) => device.deviceId === deviceId)?.deviceType

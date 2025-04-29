@@ -216,15 +216,16 @@ function createWindow(tray: Tray) {
             if (!fileInfo || !fileInfo.id) return
 
             const file = (
-              await drive.files.get({
-                alt: 'media',
-                fileId: fileInfo.id,
-              })
+              await drive.files.get(
+                {
+                  alt: 'media',
+                  fileId: fileInfo.id,
+                },
+                { responseType: 'json' },
+              )
             ).data
 
-            // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-            const text = file.text ? await file.text() : file
-            const localReq = JSON.parse(text) as LocalNetworkRequest
+            const localReq = file as LocalNetworkRequest
             const url = localReq.secureServerAddress
             const id = localReq.senderId
             if (!url || !id) return

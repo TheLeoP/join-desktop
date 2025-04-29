@@ -307,19 +307,18 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
           if (!fileId) break
 
           const file = (
-            await drive.files.get({
-              alt: 'media',
-              fileId,
-            })
+            await drive.files.get(
+              {
+                alt: 'media',
+                fileId,
+              },
+              { responseType: 'json' },
+            )
           ).data
 
-          // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-          const text = file.text ? await file.text() : file
-          let mediaInfo: MediaInfo
-          try {
-            mediaInfo = JSON.parse(text) as MediaInfo
-          } catch (e) {
-            error(e?.toString() || 'An error occurred', win)
+          const mediaInfo = file as MediaInfo
+          if (!mediaInfo) {
+            error(`Couldn't parse MediaInfo from Google Drive with id ${fileId}`, win)
             return
           }
           response.request.deviceIds.forEach((deviceId) => {
@@ -505,8 +504,6 @@ export function stopPushReceiver() {
 }
 
 export async function startPushReceiver(win: BrowserWindow, onReady: () => Promise<void>) {
-  if (!state.credentials) throw new Error('Credentials is null')
-
   const persistentIds = await new Promise<string[]>((res, rej) => {
     fs.readFile(persistentIdsFile, 'utf-8', (err, content) => {
       if (err && err.code == 'ENOENT') return res([])

@@ -107,15 +107,16 @@ export async function getContactsNonLocal(deviceId: string) {
     throw new Error(`Contacts file for deviceId ${deviceId} has no defined id on Google Drive`)
 
   const file = (
-    await drive.files.get({
-      alt: 'media',
-      fileId: fileInfo.id,
-    })
+    await drive.files.get(
+      {
+        alt: 'media',
+        fileId: fileInfo.id,
+      },
+      { responseType: 'json' },
+    )
   ).data
 
-  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-  const text = file.text ? await file.text() : file
-  const contactsInfo = JSON.parse(text).contacts as ContactInfo[]
+  const contactsInfo = file as ContactInfo[]
   return contactsInfo
 }
 
@@ -133,15 +134,16 @@ export async function getSmsNonLocal(deviceId: string) {
     throw new Error(`Smss file for deviceId ${deviceId} has no defined id on Google Drive`)
 
   const file = (
-    await drive.files.get({
-      alt: 'media',
-      fileId: fileInfo.id,
-    })
+    await drive.files.get(
+      {
+        alt: 'media',
+        fileId: fileInfo.id,
+      },
+      { responseType: 'json' },
+    )
   ).data
 
-  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-  const text = file.text ? await file.text() : file
-  const smssThreadInfo = JSON.parse(text) as SmsInfo[]
+  const smssThreadInfo = file as SmsInfo[]
   return smssThreadInfo
 }
 
@@ -159,15 +161,16 @@ export async function getSmsChatsNonLocal(deviceId: string, address: string) {
     throw new Error(`Smss file for deviceId ${deviceId} has no defined id on Google Drive`)
 
   const smsFileContent = (
-    await drive.files.get({
-      alt: 'media',
-      fileId: smsFile.id,
-    })
+    await drive.files.get(
+      {
+        alt: 'media',
+        fileId: smsFile.id,
+      },
+      { responseType: 'json' },
+    )
   ).data
 
-  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-  const text = smsFileContent.text ? await smsFileContent.text() : smsFileContent
-  const smssChats = JSON.parse(text) as { number: string; smses: SmsInfo[] }
+  const smssChats = smsFileContent as { number: string; smses: SmsInfo[] }
   return smssChats.smses
 }
 
@@ -185,15 +188,16 @@ export async function getPushHistoryNonLocal(deviceId: string) {
     throw new Error(`Smss file for deviceId ${deviceId} has no defined id on Google Drive`)
 
   const pushesFileContent = (
-    await drive.files.get({
-      alt: 'media',
-      fileId: pushesFile.id,
-    })
+    await drive.files.get(
+      {
+        alt: 'media',
+        fileId: pushesFile.id,
+      },
+      { responseType: 'json' },
+    )
   ).data
 
-  // @ts-ignore: The google api has the incorrect type when using `alt: 'media'`
-  const text = pushesFileContent.text ? await pushesFileContent.text() : pushesFileContent
-  const pushHistory = JSON.parse(text) as {
+  const pushHistory = pushesFileContent as {
     apiLevel: number
     deviceId: string
     deviceType: number
