@@ -329,6 +329,10 @@ function createWindow(tray: Tray) {
       await smsSend(deviceId, regId2, smsnumber, smstext),
   )
 
+  const quit = () => {
+    app.quit()
+  }
+
   const showMenu = Menu.buildFromTemplate([
     {
       label: 'Open',
@@ -336,6 +340,11 @@ function createWindow(tray: Tray) {
       click: () => {
         win.show()
       },
+    },
+    {
+      label: 'Quit',
+      role: 'quit',
+      click: quit,
     },
   ])
   const hideMenu = Menu.buildFromTemplate([
@@ -345,6 +354,11 @@ function createWindow(tray: Tray) {
       click: () => {
         win.hide()
       },
+    },
+    {
+      label: 'Quit',
+      role: 'quit',
+      click: quit,
     },
   ])
   win.on('hide', () => tray.setContextMenu(showMenu))
