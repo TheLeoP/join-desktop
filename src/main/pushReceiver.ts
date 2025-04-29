@@ -532,7 +532,7 @@ export async function startPushReceiver(win: BrowserWindow, onReady: () => Promi
         projectId: 'join-external-gcm',
         storageBucket: 'join-external-gcm.appspot.com',
       },
-      credentials: state.credentials,
+      credentials: state.credentials ? state.credentials : undefined,
     })
   }
   instance.onReady(onReady)
