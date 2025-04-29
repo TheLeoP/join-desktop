@@ -434,6 +434,9 @@ Menu.setApplicationMenu(null)
 app.whenReady().then(() => {
   const tray = new Tray(joinIcon)
   tray.setToolTip('Join desktop app')
+  tray.on('click', () => {
+    tray.popUpContextMenu()
+  })
 
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
