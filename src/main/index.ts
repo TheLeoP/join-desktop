@@ -98,6 +98,10 @@ function createWindow(tray: Tray) {
     },
   })
   state.win = win
+  win.on('close', (e) => {
+    e.preventDefault()
+    win.hide()
+  })
 
   m.handle('register-device', async (_, name) => {
     if (!state.credentials) throw new Error('There are no credentials')
