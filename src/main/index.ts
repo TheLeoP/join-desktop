@@ -353,8 +353,10 @@ function createWindow(tray: Tray) {
   })
 
   win.on('ready-to-show', async () => {
-    if (state.settings.showOnStart) win.show()
-    else tray.setContextMenu(showMenu)
+    if (state.settings.showOnStart) {
+      win.maximize()
+      win.show()
+    } else tray.setContextMenu(showMenu)
 
     applyShortcuts(shortcuts)
 
