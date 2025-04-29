@@ -42,7 +42,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
         run: |
-          env
           sudo snap install snapcraft --classic
           npm run publish:linux
 
