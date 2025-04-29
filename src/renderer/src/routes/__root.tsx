@@ -40,7 +40,7 @@ function Root() {
 
   return (
     <>
-      {isLoggedIn && (
+      {isLoggedIn && deviceId && (
         <>
           <div className="flex gap-2 p-2">
             <button
