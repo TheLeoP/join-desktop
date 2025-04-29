@@ -361,7 +361,11 @@ function createWindow(tray: Tray) {
       click: quit,
     },
   ])
-  win.on('hide', () => tray.setContextMenu(showMenu))
+  win.on('hide', () => {
+    if (tray.isDestroyed()) return
+
+    return tray.setContextMenu(showMenu)
+  })
   win.on('show', () => {
     tray.setContextMenu(hideMenu)
   })
@@ -862,6 +866,10 @@ app.whenReady().then(() => {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow(tray)
+  })
+
+  app.on('before-quit', () => {
+    tray.destroy()
   })
 })
 
