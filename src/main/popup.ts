@@ -289,7 +289,7 @@ export async function testLocalAddress(id: string, url: string, win: BrowserWind
       res(true)
     })
     req.on('error', async () => {
-      if (!state.devices.has(id)) return
+      if (!state.devices.has(id)) return res(false)
 
       const device = state.devices.get(id)
 
