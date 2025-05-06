@@ -564,9 +564,8 @@ app.whenReady().then(() => {
         if (request) request(null)
 
         folderRequests.set(path, (folderInfo) => {
-          if (folderInfo === null) {
-            return rej(new Error('A new FolderInfo request was created'))
-          }
+          if (folderInfo === null) return rej(new Error('A new FolderInfo request was created'))
+
           res(folderInfo)
         })
         setTimeout(
