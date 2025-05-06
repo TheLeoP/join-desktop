@@ -500,7 +500,7 @@ let instance: PushReceiver | undefined
 export function stopPushReceiver() {
   if (!instance) return
 
-  instance.destroy()
+  instance.destroy(false)
   instance = undefined
 }
 
