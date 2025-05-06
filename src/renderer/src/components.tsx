@@ -29,8 +29,16 @@ export function JoinProvider({ children }: { children: ReactNode }) {
     const removeListener = window.api.onLogIn(async () => {
       setIsLoggedIn(true)
       window.api.stopPushReceiver()
-      // NOTE: the push-receiver package already handles retrying to connect on its own
-      await window.api.startPushReceiver()
+      try {
+        // NOTE: the push-receiver package already handles retrying to connect on its own
+        await window.api.startPushReceiver()
+      } catch (e) {
+        if (!onOnlineCbs.current) return
+        onOnlineCbs.current.push(async () => {
+          window.api.stopPushReceiver()
+          await window.api.startPushReceiver()
+        })
+      }
     })
     return () => removeListener()
   }, [])
@@ -50,13 +58,14 @@ export function JoinProvider({ children }: { children: ReactNode }) {
     const onOnline = () => {
       // NOTE: tanstack query always start as `online`. Starting the app
       // offline and then triggering `online` won't invalidate (nor refecth)
-      // queries, because tanstack queries things the online status hasn't
+      // queries, because tanstack queries thinks the online status hasn't
       // changed. So, we always manually invalidate all queries when `online`
       // is triggered
       queryClient.invalidateQueries()
 
       if (!onOnlineCbs.current) return
       onOnlineCbs.current.forEach((cb) => cb())
+      // TODO: do I always want to trigger this callbacks? (i.e. not only once)
       onOnlineCbs.current.length = 0
     }
     window.addEventListener('online', onOnline)
