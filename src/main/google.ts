@@ -4,7 +4,15 @@ import * as http from 'node:http'
 import { state } from './state'
 import { BrowserWindow, shell } from 'electron'
 import { joinUrl, mediaRequests, responseFileTypes, tokenFile } from './consts'
-import type { ContactInfo, SmsInfo, Push, DeviceInfo, Data, MediaInfo } from '../preload/types'
+import type {
+  ContactInfo,
+  SmsInfo,
+  Push,
+  DeviceInfo,
+  Data,
+  MediaInfo,
+  ContactInfoWrapper,
+} from '../preload/types'
 import { error } from './utils'
 
 const joinAppId = '596310809542-giumrib7hohfiftljqmj7eaio3kl21ek.apps.googleusercontent.com'
@@ -116,7 +124,7 @@ export async function getContactsNonLocal(deviceId: string) {
     )
   ).data
 
-  const contactsInfo = (file || []) as ContactInfo[]
+  const contactsInfo = (file as ContactInfoWrapper).contacts
   return contactsInfo
 }
 

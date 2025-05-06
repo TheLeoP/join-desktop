@@ -303,6 +303,7 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
       const response = (content as RespondFile).responseFile
       switch (response.request.requestType) {
         case responseFileTypes.media_infos: {
+          // TODO: there can be pushes without a previous request. Set cache in those cases
           const fileId = new URL(response.downloadUrl).searchParams.get('id')
           if (!fileId) break
 

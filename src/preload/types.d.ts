@@ -253,6 +253,10 @@ export type FileInfo = {
   url: string
 }
 
+export type ContactInfoWrapper = {
+  contacts: ContactInfo[]
+}
+
 export type ContactInfo = {
   name: string
   number: string
