@@ -116,7 +116,7 @@ export async function getContactsNonLocal(deviceId: string) {
     )
   ).data
 
-  const contactsInfo = file as ContactInfo[]
+  const contactsInfo = (file || []) as ContactInfo[]
   return contactsInfo
 }
 

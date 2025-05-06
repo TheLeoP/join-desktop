@@ -669,7 +669,7 @@ app.whenReady().then(() => {
             }
             if (!parsedData.success) return rej(parsedData.errorMessage)
 
-            const contactsInfo = parsedData.payload as ContactInfo[]
+            const contactsInfo = (parsedData.payload || []) as ContactInfo[]
             res(contactsInfo)
           })
         })
