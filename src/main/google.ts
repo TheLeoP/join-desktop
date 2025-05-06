@@ -5,7 +5,6 @@ import { state } from './state'
 import { BrowserWindow, shell } from 'electron'
 import { joinUrl, mediaRequests, responseFileTypes, tokenFile } from './consts'
 import type {
-  ContactInfo,
   SmsInfo,
   Push,
   DeviceInfo,
