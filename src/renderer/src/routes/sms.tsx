@@ -48,6 +48,14 @@ function RouteComponent() {
     return <div>Error: {errorContacts.message}</div>
   }
 
+  if (!contacts.find) {
+    return (
+      <div>
+        <pre>{JSON.stringify(contacts)}</pre>
+      </div>
+    )
+  }
+
   return (
     <div className="ms-1 flex flex-wrap space-y-1 space-x-1">
       {sms
