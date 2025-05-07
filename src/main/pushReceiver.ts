@@ -522,7 +522,8 @@ export async function startPushReceiver(win: BrowserWindow, onReady: () => Promi
 
   if (!instance) {
     instance = new PushReceiver({
-      debug: false,
+      // NOTE: enable debug only in dev mode
+      debug: !!process.env['ELECTRON_RENDERER_URL'],
       persistentIds: persistentIds,
       firebase: {
         apiKey: 'AIzaSyBeI64VSoGCs20sXOwRG_kuDirugdScDIk',
