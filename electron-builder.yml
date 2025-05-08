@@ -1,4 +1,4 @@
-appId: com.electron.app
+appId: com.github.theleop.join-desktop
 productName: join-desktop
 directories:
   buildResources: build
@@ -12,6 +12,7 @@ files:
 asarUnpack:
   - resources/**
 win:
+  icon: build/icon.ico
   executableName: join-desktop
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
@@ -19,25 +20,33 @@ nsis:
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
 mac:
+  identify: null
+  icon: build/icon.icns
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
-    - NSCameraUsageDescription: Application requests access to the device's camera.
-    - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
+  icon: build/icon.png
   target:
     - AppImage
     - snap
     - deb
-  maintainer: electronjs.org
-  category: Utility
+  maintainer: TheLeoP
+  category: Network
+  desktop:
+    entry:
+      StartupWMClass: com.github.theleop.join-desktop
 appImage:
   artifactName: ${name}-${version}.${ext}
+  description: A modern Desktop Join application that works on Linux, MacOS and Linux, and doesn't requires Google Chrome to work.,
+  category: Network
+flatpak:
+  description: A modern Desktop Join application that works on Linux, MacOS and Linux, and doesn't requires Google Chrome to work.,
+  category: Network
 npmRebuild: false
 publish:
-  provider: generic
-  url: https://example.com/auto-updates
+  provider: [github, snapStore]

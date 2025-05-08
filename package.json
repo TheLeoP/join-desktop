@@ -20,12 +20,6 @@
     "publish:mac": "electron-vite build && electron-builder --mac --publish always",
     "publish:linux": "electron-vite build && electron-builder --linux --publish always"
   },
-  "build": {
-    "snap": {
-      "publish": "github"
-    },
-    "publish": "github"
-  },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.1",
     "@electron-toolkit/utils": "^4.0.0",
