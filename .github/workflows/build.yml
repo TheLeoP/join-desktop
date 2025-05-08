@@ -43,6 +43,7 @@ jobs:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
         run: |
           sudo snap install snapcraft --classic
+          sudo snap install multipass --beta --classic
           npm run publish:linux
 
       - name: Build and release on Windows
