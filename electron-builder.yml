@@ -48,5 +48,4 @@ flatpak:
   description: A modern Desktop Join application that works on Linux, MacOS and Linux, and doesn't requires Google Chrome to work.,
   category: Network
 npmRebuild: false
-publish:
-  provider: [github, snapStore]
+publish: [github, snapStore]
