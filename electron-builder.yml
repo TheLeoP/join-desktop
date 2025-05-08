@@ -64,7 +64,7 @@ linux:
       StartupWMClass: com.github.theleop.join-desktop
 appImage:
   artifactName: ${name}-${version}-${arch}.${ext}
-  description: A modern Desktop Join application that works on Linux, MacOS and Linux, and doesn't requires Google Chrome to work.,
+  description: A modern Desktop Join application that works on Linux, MacOS and Linux, and does not requires Google Chrome to work.,
   category: Network
 npmRebuild: false
 publish:
