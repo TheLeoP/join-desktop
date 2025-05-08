@@ -14,7 +14,7 @@ asarUnpack:
 win:
   icon: build/icon.ico
   executableName: join-desktop
-  taget:
+  target:
     - target: nsis-web
       arch:
         - x64
