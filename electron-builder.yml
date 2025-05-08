@@ -14,11 +14,17 @@ asarUnpack:
 win:
   icon: build/icon.ico
   executableName: join-desktop
-nsis:
+  taget:
+    - target: nsis-web
+      arch:
+        - x64
+        - arm64
+nsisWeb:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+  runAfterFinish: false
 mac:
   identity: null
   icon: build/icon.icns
@@ -27,14 +33,37 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
   icon: build/icon.png
   target:
-    - AppImage
-    - snap
-    - deb
+    - target: AppImage
+      arch:
+        - x64
+        - arm64
+    - target: snap
+      arch:
+        - x64
+    - target: flatpak
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+        - arm64
+    - target: tar.gz
+      arch:
+        - x64
+        - arm64
+  publish:
+    - github
+    - snapStore
   maintainer: TheLeoP
   category: Network
   desktop:
@@ -48,4 +77,5 @@ flatpak:
   description: A modern Desktop Join application that works on Linux, MacOS and Linux, and doesn't requires Google Chrome to work.,
   category: Network
 npmRebuild: false
-publish: [github, snapStore]
+publish:
+  - github
