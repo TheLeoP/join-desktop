@@ -54,9 +54,7 @@ linux:
       arch:
         - x64
         - arm64
-  publish:
-    - github
-    - snapStore
+  publish: github
   maintainer: TheLeoP
   category: Network
   desktop:
@@ -70,6 +68,9 @@ appImage:
   artifactName: ${name}-${version}-${arch}.${ext}
   description: A modern Desktop Join application that works on Linux, MacOS and Linux, and does not requires Google Chrome to work.,
   category: Network
+snap:
+  publish:
+    - github
+    - snapStore
 npmRebuild: false
-publish:
-  - github
+publish: github
