@@ -46,7 +46,11 @@ function Volume({ max, initialValue, type }: { max: number; initialValue: number
 
   return (
     <div className="flex w-1/3 space-x-1">
-      <img className="float-left w-5" src={`./${type}.svg`} />
+      <img
+        className="float-left size-8 rounded-full bg-orange-100 p-1 dark:bg-orange-400"
+        src={`./${type}.svg`}
+      />
+
       <input
         className="w-2/3"
         type="range"
@@ -78,78 +82,80 @@ function RouteComponent() {
   }
 
   return (
-    <div className="flex w-full flex-wrap justify-center">
-      <Volume
-        initialValue={mediaInfo.extraInfo.mediaVolume}
-        max={mediaInfo.extraInfo.maxMediaVolume}
-        type="media"
-      />
+    <div className="h-[calc(100vh-45px)] w-full flex-wrap bg-white text-black dark:bg-neutral-800 dark:text-white">
+      <div className="flex flex-wrap justify-center space-y-1">
+        <Volume
+          initialValue={mediaInfo.extraInfo.mediaVolume}
+          max={mediaInfo.extraInfo.maxMediaVolume}
+          type="media"
+        />
 
-      <div className="flex w-full flex-wrap space-y-1 space-x-1">
-        {mediaInfo.mediaInfosForClients
-          .sort((a, b) => b.date - a.date)
-          .map((info) => (
-            <div
-              key={info.packageName}
-              className="flex w-[calc(25%-4px)] flex-col space-y-1 rounded-sm bg-orange-100 p-1"
-            >
-              <h1 className="text-center text-xl underline">{info.appName}</h1>
-              {info.art && (
-                <img
-                  className="h-60 object-scale-down"
-                  src={
-                    info.art?.startsWith('http') ? info.art : `data:image/png;base64,${info.art}`
-                  }
-                />
-              )}
+        <div className="flex w-full flex-wrap space-y-1 space-x-1">
+          {mediaInfo.mediaInfosForClients
+            .sort((a, b) => b.date - a.date)
+            .map((info) => (
+              <div
+                key={info.packageName}
+                className="flex w-[calc(25%-4px)] flex-col space-y-1 rounded-sm bg-orange-100 p-1 dark:bg-orange-400"
+              >
+                <h1 className="text-center text-xl underline">{info.appName}</h1>
+                {info.art && (
+                  <img
+                    className="h-60 object-scale-down"
+                    src={
+                      info.art?.startsWith('http') ? info.art : `data:image/png;base64,${info.art}`
+                    }
+                  />
+                )}
 
-              <div className="flex">
-                <button
-                  className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700"
-                  onClick={() => {
-                    mediaAction({
-                      action: { back: true, mediaAppPackage: info.packageName },
-                    })
-                  }}
-                >
-                  <svg.Previous />
-                </button>
+                <div className="flex">
+                  <button
+                    className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700"
+                    onClick={() => {
+                      mediaAction({
+                        action: { back: true, mediaAppPackage: info.packageName },
+                      })
+                    }}
+                  >
+                    <svg.Previous />
+                  </button>
 
-                <button
-                  className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700"
-                  onClick={() => {
-                    mediaAction({
-                      action: info.playing
-                        ? { pause: true, mediaAppPackage: info.packageName }
-                        : { play: true, mediaAppPackage: info.packageName },
-                    })
-                  }}
-                >
-                  {info.playing ? <svg.Pause /> : <svg.Play />}
-                </button>
-                <button
-                  className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700"
-                  onClick={() => {
-                    mediaAction({
-                      action: { next: true, mediaAppPackage: info.packageName },
-                    })
-                  }}
-                >
-                  <svg.Next />
-                </button>
-              </div>
+                  <button
+                    className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700"
+                    onClick={() => {
+                      mediaAction({
+                        action: info.playing
+                          ? { pause: true, mediaAppPackage: info.packageName }
+                          : { play: true, mediaAppPackage: info.packageName },
+                      })
+                    }}
+                  >
+                    {info.playing ? <svg.Pause /> : <svg.Play />}
+                  </button>
+                  <button
+                    className="m-auto cursor-pointer hover:fill-gray-500 active:fill-gray-700"
+                    onClick={() => {
+                      mediaAction({
+                        action: { next: true, mediaAppPackage: info.packageName },
+                      })
+                    }}
+                  >
+                    <svg.Next />
+                  </button>
+                </div>
 
-              <div className="truncate">
-                <b>Album:</b> {info.album}
+                <div className="truncate">
+                  <b>Album:</b> {info.album}
+                </div>
+                <div className="truncate">
+                  <b>Artist:</b> {info.artist}
+                </div>
+                <div className="truncate">
+                  <b>Track:</b> {info.track}
+                </div>
               </div>
-              <div className="truncate">
-                <b>Artist:</b> {info.artist}
-              </div>
-              <div className="truncate">
-                <b>Track:</b> {info.track}
-              </div>
-            </div>
-          ))}
+            ))}
+        </div>
       </div>
     </div>
   )

@@ -30,7 +30,7 @@ function RouteComponent() {
 
   return (
     <form
-      className="mt-1 flex flex-col items-center justify-center space-y-1"
+      className="flex h-[calc(100vh-45px)] flex-col items-center space-y-1 bg-white pt-1 text-black dark:bg-neutral-800 dark:text-white"
       onSubmit={async (e) => {
         e.preventDefault()
 
@@ -57,7 +57,7 @@ function RouteComponent() {
       }}
     >
       <table className="max-w-3/4 min-w-2/3 text-2xl">
-        <thead className="bg-orange-200">
+        <thead className="bg-orange-200 dark:bg-orange-400">
           <tr>
             <th>Keyboard shortcut</th>
             <th>Action</th>
@@ -106,11 +106,11 @@ function RouteComponent() {
         </tbody>
       </table>
       <div className="flex space-x-1">
-        <button className="cursor-pointer rounded-md bg-orange-200 p-4 text-2xl hover:bg-orange-300 active:bg-orange-400">
+        <button className="cursor-pointer rounded-md bg-orange-200 p-4 text-2xl hover:bg-orange-300 active:bg-orange-400 dark:bg-orange-500 dark:hover:bg-orange-600 dark:active:bg-orange-700">
           Save
         </button>
         <button
-          className="cursor-pointer rounded-md bg-orange-200 p-4 text-2xl hover:bg-orange-300 active:bg-orange-400"
+          className="cursor-pointer rounded-md bg-orange-200 p-4 text-2xl hover:bg-orange-300 active:bg-orange-400 dark:bg-orange-500 dark:hover:bg-orange-600 dark:active:bg-orange-700"
           onClick={(e) => {
             e.preventDefault()
             // TODO: this only allows me to add one new shortcut at a time

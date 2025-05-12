@@ -33,9 +33,9 @@ function RouteComponent() {
   }
 
   return (
-    <div className="ms-1 mt-1 flex h-[calc(100vh-49px)] flex-col space-y-1 space-x-1 overflow-y-auto">
+    <div className="flex h-[calc(100vh-45px)] flex-col space-y-1 space-x-1 overflow-y-auto bg-white ps-1 pt-1 text-white dark:bg-neutral-800 dark:text-white">
       {history.map((push, i) => (
-        <pre key={i} className="bg-orange-100 break-all whitespace-pre-wrap">
+        <pre key={i} className="bg-orange-100 break-all whitespace-pre-wrap dark:bg-orange-400">
           {JSON.stringify(push, null, 2)}
         </pre>
       ))}

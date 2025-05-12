@@ -41,29 +41,31 @@ function RouteComponent() {
   }
 
   return (
-    <div className="ms-1 flex flex-wrap space-y-1 space-x-1">
-      {contacts.map((contact) => (
-        <div
-          key={contact.number}
-          className="flex w-[calc(20%-4px)] items-center space-x-1 bg-orange-100"
-        >
-          <PhotoOrChar photo={contact.photo} char={contact.name.substring(0, 1)} />
-          <div className="flex w-2/5 flex-col justify-center">
-            <h2 className="truncate text-xl">{contact.name}</h2>
-            <h3 className="text-md">{contact.number}</h3>
-          </div>
-          <button
-            className="ms-auto rounded-md bg-orange-200 stroke-black hover:stroke-gray-500 active:stroke-gray-400"
-            onClick={() => {
-              if (!regId2) return
-
-              window.api.call(deviceId, regId2, contact.number)
-            }}
+    <div className="h-[calc(100vh-45px)] bg-white ps-1 pt-1 text-black dark:bg-neutral-800 dark:text-white">
+      <div className="flex flex-wrap space-y-1 space-x-1">
+        {contacts.map((contact) => (
+          <div
+            key={contact.number}
+            className="flex h-24 w-[calc(20%-4px)] items-center space-x-1 bg-orange-100 px-1 dark:bg-orange-400"
           >
-            <svg.Phone className="h-15 w-15" />
-          </button>
-        </div>
-      ))}
+            <PhotoOrChar photo={contact.photo} char={contact.name.substring(0, 1)} />
+            <div className="flex w-2/5 flex-col justify-center">
+              <h2 className="truncate text-xl">{contact.name}</h2>
+              <h3 className="text-md">{contact.number}</h3>
+            </div>
+            <button
+              className="ms-auto rounded-md bg-orange-200 stroke-black hover:stroke-gray-500 active:stroke-gray-400 dark:bg-orange-600 dark:hover:stroke-gray-200 dark:active:stroke-gray-100"
+              onClick={() => {
+                if (!regId2) return
+
+                window.api.call(deviceId, regId2, contact.number)
+              }}
+            >
+              <svg.Phone className="h-15 w-15" />
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

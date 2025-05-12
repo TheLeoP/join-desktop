@@ -42,7 +42,7 @@ function Root() {
     <>
       {isLoggedIn && deviceId && (
         <>
-          <div className="flex gap-2 p-2">
+          <div className="flex gap-2 bg-white p-2 text-black dark:bg-neutral-800 dark:text-white">
             <button
               className="cursor-pointer text-xl"
               onClick={() => router.history.back()}
@@ -60,7 +60,7 @@ function Root() {
               Settings
             </Link>
           </div>
-          <hr />
+          <hr className="border-black dark:border-white" />
         </>
       )}
       <Outlet />

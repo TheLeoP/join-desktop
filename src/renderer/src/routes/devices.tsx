@@ -134,7 +134,7 @@ function Device({
     <div className="flex w-60 flex-col items-center space-y-1">
       <img
         src={`./${ReverseDeviceType[deviceType]}.png`}
-        className="max-w-40 rounded-full bg-orange-300 p-2"
+        className="max-w-40 rounded-full bg-orange-300 p-2 dark:bg-orange-400"
       />
       <form
         className="flex items-center space-x-1"
@@ -158,7 +158,7 @@ function Device({
           <p className="flex w-1/4 items-center justify-center text-sm text-wrap">
             {thisDeviceId === deviceId ? ' (this device)' : undefined}
             {onLocalNetwork && (
-              <svg.LocalNetwork className="h-10 w-10 rounded-full bg-orange-300 fill-white p-1" />
+              <svg.LocalNetwork className="h-10 w-10 rounded-full bg-orange-300 fill-white p-1 dark:bg-orange-400" />
             )}
           </p>
         </h2>
@@ -168,13 +168,13 @@ function Device({
           to="/history"
           search={{ deviceId }}
           from="/devices"
-          className="w-full bg-orange-100 text-center text-xl hover:bg-orange-200"
+          className="w-full bg-orange-100 text-center text-xl hover:bg-orange-200 dark:bg-orange-500 dark:hover:bg-orange-600"
         >
           History
         </Link>
 
         <AlertDialog>
-          <AlertDialogTrigger className="cursor-pointer bg-red-500 text-xl text-white hover:bg-red-600 active:bg-red-700">
+          <AlertDialogTrigger className="cursor-pointer bg-red-500 text-xl text-white hover:bg-red-600 active:bg-red-700 dark:bg-red-800/90 dark:hover:bg-red-700/90">
             Delete
           </AlertDialogTrigger>
           <AlertDialogContent>
@@ -201,7 +201,7 @@ function Device({
               to="/files"
               search={{ regId2, deviceId, onLocalNetwork }}
               from="/devices"
-              className="w-full bg-orange-100 text-center text-xl hover:bg-orange-200"
+              className="w-full bg-orange-100 text-center text-xl hover:bg-orange-200 dark:bg-orange-500 dark:hover:bg-orange-600"
             >
               Files
             </Link>
@@ -209,7 +209,7 @@ function Device({
               to="/contacts"
               search={{ regId2, deviceId, onLocalNetwork }}
               from="/devices"
-              className="w-full bg-orange-100 text-center text-xl hover:bg-orange-200"
+              className="w-full bg-orange-100 text-center text-xl hover:bg-orange-200 dark:bg-orange-500 dark:hover:bg-orange-600"
             >
               Contacts
             </Link>
@@ -217,7 +217,7 @@ function Device({
               to="/sms"
               search={{ regId2, deviceId, onLocalNetwork }}
               from="/devices"
-              className="w-full bg-orange-100 text-center text-xl hover:bg-orange-200"
+              className="w-full bg-orange-100 text-center text-xl hover:bg-orange-200 dark:bg-orange-500 dark:hover:bg-orange-600"
             >
               SMS
             </Link>
@@ -225,7 +225,7 @@ function Device({
               to="/media"
               search={{ regId2, deviceId, onLocalNetwork }}
               from="/devices"
-              className="w-full bg-orange-100 text-center text-xl hover:bg-orange-200"
+              className="w-full bg-orange-100 text-center text-xl hover:bg-orange-200 dark:bg-orange-500 dark:hover:bg-orange-600"
             >
               Media
             </Link>
@@ -247,7 +247,7 @@ function RouteComponent() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-45px)] w-full flex-wrap justify-center space-x-1 p-2">
+    <div className="flex h-[calc(100vh-45px)] w-full flex-wrap justify-center space-x-1 bg-white p-2 text-black dark:bg-neutral-800 dark:text-white">
       {devices.records.map((device) => (
         <Device key={device.id} {...device} thisDeviceId={deviceId} />
       ))}

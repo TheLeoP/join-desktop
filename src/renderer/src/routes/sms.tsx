@@ -57,30 +57,34 @@ function RouteComponent() {
   }
 
   return (
-    <div className="ms-1 flex flex-wrap space-y-1 space-x-1">
-      {sms
-        .sort((a, b) => b.date - a.date)
-        .map((sms) => {
-          const contact = contacts.find((contact) => contact.number === sms.address)
+    <div className="h-[calc(100vh-45px)] bg-white ps-1 pt-1 text-black dark:bg-neutral-800 dark:text-white">
+      <div className="flex flex-wrap space-y-1 space-x-1">
+        {sms
+          .sort((a, b) => b.date - a.date)
+          .map((sms) => {
+            const contact = contacts.find((contact) => contact.number === sms.address)
 
-          return (
-            <Link
-              to="/smsChat"
-              from="/sms"
-              search={{ address: sms.address, regId2, deviceId, onLocalNetwork, contact }}
-              key={sms.id}
-              className="h-20 w-[calc(20%-4px)] items-center space-x-1 truncate bg-orange-100"
-            >
-              <div className="text-xl font-bold">{contact?.name ?? sms.address}</div>
-              {/* TODO: better date format */}
-              <div className="text-gray-400">{new Date(sms.date).toString()}</div>
-              <div className="text-wrap">
-                <span className="font-bold">{!sms.received && 'You: '}</span>
-                {sms.text}
-              </div>
-            </Link>
-          )
-        })}
+            return (
+              <Link
+                to="/smsChat"
+                from="/sms"
+                search={{ address: sms.address, regId2, deviceId, onLocalNetwork, contact }}
+                key={sms.id}
+                className="h-20 w-[calc(20%-4px)] items-center space-x-1 truncate bg-orange-100 px-1 dark:bg-orange-400"
+              >
+                <div className="text-xl font-bold">{contact?.name ?? sms.address}</div>
+                {/* TODO: better date format */}
+                <div className="text-gray-400 dark:text-gray-600/80">
+                  {new Date(sms.date).toString()}
+                </div>
+                <div className="text-wrap">
+                  <span className="font-bold">{!sms.received && 'You: '}</span>
+                  {sms.text}
+                </div>
+              </Link>
+            )
+          })}
+      </div>
     </div>
   )
 }

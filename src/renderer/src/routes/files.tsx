@@ -177,7 +177,7 @@ function Directory({
   return (
     <div
       data-active={active ? 'active' : undefined}
-      className="overflow-y-auto data-active:bg-yellow-200 data-active:p-1"
+      className="overflow-y-auto data-active:bg-yellow-200 data-active:p-1 dark:data-active:bg-yellow-400"
       ref={scrollElement}
       style={style}
     >
@@ -188,7 +188,7 @@ function Directory({
             <div
               key={virtualItem.key}
               data-active={virtualItem.index === current ? 'active' : undefined}
-              className="border-b bg-orange-300 data-active:bg-orange-400"
+              className="border-b bg-orange-300 data-active:bg-orange-400 dark:bg-orange-600 dark:data-active:bg-orange-500"
               style={{
                 position: 'absolute',
                 top: 0,
@@ -333,7 +333,7 @@ function RouteComponent() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-45px)] w-full">
+    <div className="flex h-[calc(100vh-45px)] w-full bg-white text-black dark:bg-neutral-800 dark:text-white">
       <div className="h-full w-3/4 overflow-x-auto" ref={scrollElement}>
         <div
           style={{

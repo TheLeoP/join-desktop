@@ -16,7 +16,7 @@ function RouteComponent() {
 
   return (
     <form
-      className="mt-1 flex flex-col items-center justify-center space-y-1"
+      className="flex h-[calc(100vh-45px)] flex-col items-center space-y-1 bg-white pt-1 text-black dark:bg-neutral-800 dark:text-white"
       onSubmit={(e) => {
         e.preventDefault()
 
@@ -44,7 +44,7 @@ function RouteComponent() {
       }}
     >
       <div className="min-w-200 space-y-1">
-        <div className="flex flex-col items-center rounded-md bg-orange-100 p-2">
+        <div className="flex flex-col items-center rounded-md bg-orange-100 p-2 dark:bg-orange-400">
           <h1 className="text-2xl font-bold">General</h1>
           <hr className="w-full" />
           <label className="block w-full cursor-pointer text-xl">
@@ -83,7 +83,7 @@ function RouteComponent() {
           <label className="block w-full cursor-pointer text-xl">
             <span>Select device labels:</span>
             <textarea
-              className="text-md min-h-50 w-full resize-none appearance-none rounded-md border bg-white px-3 py-2 leading-tight shadow focus:outline-none"
+              className="text-md min-h-50 w-full resize-none appearance-none rounded-md border bg-white px-3 py-2 leading-tight text-black shadow focus:outline-none dark:bg-neutral-800 dark:text-white"
               value={settings.safeKeys}
               onChange={(e) => {
                 setSettings((old) => {
@@ -95,12 +95,12 @@ function RouteComponent() {
             />
           </label>
         </div>
-        <div className="flex flex-col items-center rounded-md bg-orange-100 p-2">
+        <div className="flex flex-col items-center rounded-md bg-orange-100 p-2 dark:bg-orange-400">
           <h1 className="text-2xl font-bold">Scripts</h1>
           <hr className="w-full" />
 
-          <table className="w-full bg-white text-2xl">
-            <thead className="bg-orange-200">
+          <table className="w-full bg-white text-2xl text-black dark:bg-neutral-800 dark:text-white">
+            <thead className="bg-orange-200 dark:bg-orange-500">
               <tr>
                 <th>Command</th>
                 <th>Script</th>
@@ -152,7 +152,7 @@ function RouteComponent() {
           </table>
 
           <button
-            className="mt-1 cursor-pointer rounded-md bg-orange-200 p-4 text-2xl hover:bg-orange-300 active:bg-orange-400"
+            className="mt-1 cursor-pointer rounded-md bg-orange-200 p-4 text-2xl hover:bg-orange-300 active:bg-orange-400 dark:bg-orange-500 dark:hover:bg-orange-600 dark:active:bg-orange-700"
             onClick={(e) => {
               e.preventDefault()
               // TODO: this only allows me to add one new scritp at a time
@@ -169,7 +169,7 @@ function RouteComponent() {
           </button>
         </div>
       </div>
-      <button className="cursor-pointer rounded-md bg-orange-200 p-4 text-2xl hover:bg-orange-300 active:bg-orange-400">
+      <button className="cursor-pointer rounded-md bg-orange-200 p-4 text-2xl hover:bg-orange-300 active:bg-orange-400 dark:bg-orange-500 dark:hover:bg-orange-600 dark:active:bg-orange-700">
         Save
       </button>
     </form>
