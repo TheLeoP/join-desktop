@@ -33,6 +33,7 @@ Note: there is no guarantee that any feature will be implemented in the future. 
 - Push history on all devices
 - Rename/delete devices
 - Global shortcuts
+  - The syntax for the shortcuts is the one described in at [https://www.electronjs.org/docs/latest/api/accelerator](https://www.electronjs.org/docs/latest/api/accelerator)
 - Send actions (pushes) to Join devices
   - copy
   - paste
