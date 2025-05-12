@@ -349,7 +349,7 @@ function createWindow(tray: Tray) {
   ])
   const hideMenu = Menu.buildFromTemplate([
     {
-      label: 'Close',
+      label: 'Hide',
       role: 'hide',
       click: () => {
         win.hide()
