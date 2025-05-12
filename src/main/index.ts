@@ -80,7 +80,7 @@ async function saveSettings(newSettings: Settings) {
 }
 
 function applySettings(settings: Settings) {
-  if (settings.autostart) joinAutoLauncher.enable()
+  if (settings.autostart && !process.env['ELECTRON_RENDERER_URL']) joinAutoLauncher.enable()
   else joinAutoLauncher.disable()
 }
 
