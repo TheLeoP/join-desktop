@@ -86,7 +86,6 @@ function applySettings(settings: Settings) {
 
 function createWindow(tray: Tray) {
   const win = new BrowserWindow({
-    // TODO: how does this look in windows? Start maximized instead?
     width: 900,
     height: 670,
     show: false,

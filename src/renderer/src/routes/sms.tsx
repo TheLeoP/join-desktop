@@ -73,7 +73,6 @@ function RouteComponent() {
                 className="h-20 w-[calc(20%-4px)] items-center space-x-1 truncate bg-orange-100 px-1 dark:bg-orange-400"
               >
                 <div className="text-xl font-bold">{contact?.name ?? sms.address}</div>
-                {/* TODO: better date format */}
                 <div className="text-gray-400 dark:text-gray-600/80">
                   {new Date(sms.date).toString()}
                 </div>

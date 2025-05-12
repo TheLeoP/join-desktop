@@ -162,7 +162,6 @@ function RouteComponent() {
                     {message.text}
                   </Linkify>
                 </div>
-                {/* TODO: better date format */}
                 <div className="mt-2 text-xs text-gray-400">
                   {new Date(message.date).toString()}
                 </div>
