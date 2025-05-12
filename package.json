@@ -1,6 +1,6 @@
 {
   "name": "join-desktop",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "A modern Desktop Join application that works on Linux, MacOS and Linux, and does not requires Google Chrome to work.",
   "main": "./out/main/index.mjs",
   "author": "Luis Calle (https://github.com/TheLeoP)",
