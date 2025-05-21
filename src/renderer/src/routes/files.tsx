@@ -64,7 +64,7 @@ function Directory({
 
   const setPaths = useSetAtom(pathsAtom)
   const setCurrentFile = useSetAtom(currentFileAtom)
-  const [currentDir, setCurrentDir] = useAtom(currentDirAtom)
+  const [currentDir] = useAtom(currentDirAtom)
 
   const {
     data: foldersInfo,
