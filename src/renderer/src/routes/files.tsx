@@ -64,6 +64,7 @@ function Directory({
 
   const setPaths = useSetAtom(pathsAtom)
   const setCurrentFile = useSetAtom(currentFileAtom)
+  const [currentDir, setCurrentDir] = useAtom(currentDirAtom)
 
   const {
     data: foldersInfo,
@@ -185,10 +186,21 @@ function Directory({
         {items.map((virtualItem) => {
           const item = foldersInfo.files[virtualItem.index]
           return (
-            <div
+            <button
+              onClick={() => {
+                // TODO: allow even outside of current dir when below todos are solved
+                if (i === currentDir) {
+                  setCurrent(virtualItem.index)
+                }
+                // TODO: enable this when below todo is solved
+                // setCurrentDir(i)
+                // TODO: change paths as needed (like when doing arrowleft) to
+                // avoid wrong previews. Should paths be a derived value
+                // instead?
+              }}
               key={virtualItem.key}
               data-active={virtualItem.index === current ? 'active' : undefined}
-              className="border-b bg-orange-300 data-active:bg-orange-400 dark:bg-orange-600 dark:data-active:bg-orange-500"
+              className="cursor-pointer border-b bg-orange-300 data-active:bg-orange-400 dark:bg-orange-600 dark:data-active:bg-orange-500"
               style={{
                 position: 'absolute',
                 top: 0,
@@ -203,7 +215,7 @@ function Directory({
                 <span className="truncate">{item.name}</span>
               </div>
               {!item.isFolder && formatBytes(item.size)}
-            </div>
+            </button>
           )
         })}
       </div>
@@ -213,6 +225,7 @@ function Directory({
 
 const pathsAtom = atom([''])
 const currentFileAtom = atom<null | string>(null)
+const currentDirAtom = atom(0)
 
 function RouteComponent() {
   // TODO: sometimes, when changing window (and query data is stale?) only the
@@ -244,7 +257,7 @@ function RouteComponent() {
     getPreview()
   }, [previewPath, deviceId])
 
-  const [currentDir, setCurrentDir] = useState(0)
+  const [currentDir, setCurrentDir] = useAtom(currentDirAtom)
   useEffect(() => {
     const f = (e: KeyboardEvent) => {
       e.preventDefault()
