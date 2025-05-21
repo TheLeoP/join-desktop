@@ -5,6 +5,7 @@ import type {
   DeviceRegistered,
   MediaAction,
   NewSmsReceived,
+  NotificationMediaInfo,
   Push,
   Settings,
 } from './types'
@@ -104,6 +105,13 @@ export const api = {
     r.on('on-new-sms', f)
     return () => {
       r.off('on-new-sms', f)
+    }
+  },
+  onMediaInfo: (cb: (mediainfo: NotificationMediaInfo) => void) => {
+    const f = (_: Electron.IpcRendererEvent, mediainfo: NotificationMediaInfo) => cb(mediainfo)
+    r.on('on-media-info', f)
+    return () => {
+      r.off('on-media-info', f)
     }
   },
   onError: (cb: (message: string) => void) => {

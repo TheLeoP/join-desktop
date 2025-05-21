@@ -3,7 +3,7 @@ import { UseMutateFunction } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { zodValidator } from '@tanstack/zod-adapter'
 import debounce from 'lodash.debounce'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { MediaAction } from 'src/preload/types'
 import { z } from 'zod'
 import * as svg from '@renderer/svgs'
@@ -29,6 +29,9 @@ export const Route = createFileRoute('/media')({
 
 function Volume({ max, initialValue, type }: { max: number; initialValue: number; type: string }) {
   const [volume, setVolume] = useState(initialValue)
+  useEffect(() => {
+    setVolume(initialValue)
+  }, [initialValue])
 
   const { regId2, deviceId, onLocalNetwork } = Route.useSearch()
   const { mutate: mediaAction } = useMediaAction(deviceId, regId2, onLocalNetwork)

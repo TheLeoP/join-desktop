@@ -19,6 +19,7 @@ import type {
   DeviceRegistered,
   NewSmsReceived,
   JoinNotificationWrapper,
+  NotificationMediaInfo,
 } from '../preload/types'
 import {
   scriptsDir,
@@ -303,7 +304,6 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
       const response = (content as RespondFile).responseFile
       switch (response.request.requestType) {
         case responseFileTypes.media_infos: {
-          // TODO: there can be pushes without a previous request. Set cache in those cases
           const fileId = new URL(response.downloadUrl).searchParams.get('id')
           if (!fileId) break
 
@@ -438,6 +438,11 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
         icon: notificationImage,
       }).show()
       win.webContents.send('on-new-sms', info)
+      break
+    }
+    case 'GCMMediaInfo': {
+      const info = content as NotificationMediaInfo
+      win.webContents.send('on-media-info', info)
       break
     }
   }

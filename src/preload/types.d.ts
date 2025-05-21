@@ -76,6 +76,7 @@ export type PushType =
   | 'GCMSmsSentResult'
   | 'GCMDeviceRegistered'
   | 'GCMNewSmsReceived'
+  | 'GCMMediaInfo'
 
 export type JoinData = {
   json: string
@@ -319,6 +320,21 @@ export type JoinNotification = {
   ]
   deviceIds: string[]
   senderId: string
+}
+
+export type NotificationMediaInfo = {
+  appIcon: string
+  appName: string
+  art: string
+  artist: string
+  authToken: string
+  date: number
+  maxMediaVolume: number
+  mediaVolume: number
+  packageName: string
+  playing: boolean
+  senderId: string
+  track: string
 }
 
 export type Settings = {

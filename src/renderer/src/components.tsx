@@ -9,7 +9,7 @@ import {
   settingsContext,
   shortcutsContext,
 } from './util'
-import type { Settings, SmsInfo, DeviceInfo, Data } from 'src/preload/types'
+import type { Settings, SmsInfo, DeviceInfo, Data, MediaInfo } from 'src/preload/types'
 import { toast } from 'sonner'
 
 export function JoinProvider({ children }: { children: ReactNode }) {
@@ -148,6 +148,46 @@ export function JoinProvider({ children }: { children: ReactNode }) {
 
     return () => removeListener()
   }, [])
+
+  useEffect(() => {
+    // TODO: when this works, remove the refetch after media actions? this seems to do the same
+    const removeListener = window.api.onMediaInfo(async (mediaInfo) => {
+      const devices = queryClient.getQueryData<Data<DeviceInfo>>(['devices'])
+      if (!devices) return
+      const device = devices.records.find((device) => device.deviceId === mediaInfo.senderId)
+      if (!device) return
+      const regId2 = device.regId2
+
+      await queryClient.cancelQueries({
+        queryKey: ['mediaInfo', mediaInfo.senderId, regId2],
+      })
+
+      queryClient.setQueryData(['mediaInfo', mediaInfo.senderId, regId2], (old: MediaInfo) => {
+        const newValue = { ...old }
+        newValue.extraInfo = { ...newValue.extraInfo }
+        newValue.extraInfo.maxMediaVolume = mediaInfo.maxMediaVolume
+        newValue.extraInfo.mediaVolume = mediaInfo.mediaVolume
+
+        newValue.mediaInfosForClients = newValue.mediaInfosForClients.map((info) => {
+          if (info.packageName !== mediaInfo.packageName) return info
+
+          const newInfo = { ...info }
+
+          newInfo.art = mediaInfo.art
+          newInfo.artist = mediaInfo.artist
+          newInfo.date = mediaInfo.date
+          newInfo.track = mediaInfo.track
+          newInfo.playing = mediaInfo.playing
+
+          return newInfo
+        })
+
+        return newValue
+      })
+    })
+
+    return () => removeListener()
+  }, [deviceId])
 
   return (
     <devicesOnLocalNetworkContext.Provider value={devicesOnLocalNetwork}>
