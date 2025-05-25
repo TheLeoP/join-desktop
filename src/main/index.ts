@@ -28,7 +28,6 @@ import {
   requestContactsAndLastSmSCreation,
   requestLocalNetworkTest,
   requestSmsChatCreationOrUpdate,
-  closePopup,
 } from './popup'
 import { state } from './state'
 import {
