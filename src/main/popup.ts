@@ -77,6 +77,11 @@ export function createPopup() {
   }
 }
 
+export function closePopup() {
+  if (!popupWin) return
+  popupWin.close()
+}
+
 export async function selectDevice(
   win: BrowserWindow,
   predicate?: (device: DeviceInfo, index: number, array: DeviceInfo[]) => boolean,

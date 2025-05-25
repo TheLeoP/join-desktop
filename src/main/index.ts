@@ -28,6 +28,7 @@ import {
   requestContactsAndLastSmSCreation,
   requestLocalNetworkTest,
   requestSmsChatCreationOrUpdate,
+  closePopup,
 } from './popup'
 import { state } from './state'
 import {
@@ -97,7 +98,14 @@ function createWindow(tray: Tray) {
     },
   })
   state.win = win
+
+  let isQuitting = false
+  app.on('before-quit', () => {
+    isQuitting = true
+  })
   win.on('close', (e) => {
+    if (isQuitting) return
+
     e.preventDefault()
     win.hide()
   })
@@ -869,7 +877,10 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow(tray)
   })
 
-  app.on('before-quit', () => {
+  app.on('before-quit', async () => {
+    stopPushReceiver()
+    await stop()
+
     tray.destroy()
   })
 })
