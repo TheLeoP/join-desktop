@@ -49,6 +49,7 @@ function useRemotePath(deviceId: string, regId2: string, path: string, onLocalNe
   return useQuery(remotePathQueryOptions(deviceId, regId2, path, onLocalNetwork))
 }
 
+// TODO: overhaul the whole inner workings of directory/path state
 function Directory({
   path,
   active,
@@ -244,7 +245,7 @@ function RouteComponent() {
     async function getPreview() {
       if (!previewPath) return setPreview(null)
       if (
-        !/\.(png|jpg|jpeg|gif)$/.test(previewPath) &&
+        !/\.(png|jpg|jpeg|gif|webp)$/.test(previewPath) &&
         !/\.(mp4|avi|3gp|wmv|mov|mkv)$/.test(previewPath)
       )
         return setPreview(null)
@@ -254,8 +255,6 @@ function RouteComponent() {
     }
     getPreview()
   }, [previewPath, deviceId])
-  // __AUTO_GENERATED_PRINT_VAR_START__
-  console.log('RouteComponent previewPath:', previewPath) // __AUTO_GENERATED_PRINT_VAR_END__
 
   const [currentDir, setCurrentDir] = useAtom(currentDirAtom)
   useEffect(() => {
@@ -382,7 +381,7 @@ function RouteComponent() {
       <div className="w-1/4">
         {previewPath && debouncedPreview && (
           <>
-            {/\.(png|jpg|jpeg|gif)$/.test(previewPath) && <img src={debouncedPreview} />}
+            {/\.(png|jpg|jpeg|gif|webp)$/.test(previewPath) && <img src={debouncedPreview} />}
             {/\.(mp4|avi|3gp|wmv|mov|mkv)$/.test(previewPath) && (
               <video controls key={debouncedPreview}>
                 <source src={debouncedPreview} />
