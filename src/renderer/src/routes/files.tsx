@@ -244,10 +244,8 @@ function RouteComponent() {
     async function getPreview() {
       if (!previewPath) return setPreview(null)
       if (
-        !previewPath.endsWith('.png') &&
-        !previewPath.endsWith('.jpg') &&
-        !previewPath.endsWith('.jpeg') &&
-        !previewPath.endsWith('.gif')
+        !/\.(png|jpg|jpeg|gif)$/.test(previewPath) &&
+        !/\.(mp4|avi|3gp|wmv|mov|mkv)$/.test(previewPath)
       )
         return setPreview(null)
 
@@ -256,6 +254,8 @@ function RouteComponent() {
     }
     getPreview()
   }, [previewPath, deviceId])
+  // __AUTO_GENERATED_PRINT_VAR_START__
+  console.log('RouteComponent previewPath:', previewPath) // __AUTO_GENERATED_PRINT_VAR_END__
 
   const [currentDir, setCurrentDir] = useAtom(currentDirAtom)
   useEffect(() => {
@@ -379,8 +379,18 @@ function RouteComponent() {
           })}
         </div>
       </div>
-      {/* TODO: support more kind of previews? */}
-      <div className="w-1/4">{debouncedPreview && <img src={debouncedPreview} />}</div>
+      <div className="w-1/4">
+        {previewPath && debouncedPreview && (
+          <>
+            {/\.(png|jpg|jpeg|gif)$/.test(previewPath) && <img src={debouncedPreview} />}
+            {/\.(mp4|avi|3gp|wmv|mov|mkv)$/.test(previewPath) && (
+              <video controls key={debouncedPreview}>
+                <source src={debouncedPreview} />
+              </video>
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }
