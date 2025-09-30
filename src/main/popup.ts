@@ -524,6 +524,7 @@ export async function requestSmsChatCreationOrUpdate(
   })
 }
 
+// Ask other devices to try and connect to this device's HTTP server
 export async function requestLocalNetworkTest(deviceId: string, regId2: string) {
   if (!state.thisDeviceId) throw new Error('thisDeviceId is undefined')
   if (!state.address) throw new Error('address is undefined')

@@ -16,6 +16,7 @@ import type {
   FoldersResponse,
   SmsResponse,
   Settings,
+  DeviceInfo,
 } from '../preload/types'
 import {
   createPopup,
@@ -68,6 +69,7 @@ import { mapReplacer, mapReviver } from './utils'
 import { registerDevice, renameDevice, deleteDevice } from './joinApi'
 import { start, stop } from './server'
 import { startPushReceiver, stopPushReceiver } from './pushReceiver'
+import * as os from 'node:os'
 
 const joinAutoLauncher = new AutoLaunch({ name: 'join-desktop', isHidden: true })
 
@@ -82,6 +84,146 @@ async function saveSettings(newSettings: Settings) {
 function applySettings(settings: Settings) {
   if (settings.autostart && !process.env['ELECTRON_RENDERER_URL']) joinAutoLauncher.enable()
   else joinAutoLauncher.disable()
+}
+
+// NOTE: it seems like Android devices use this information to list if we are
+// in a local network
+async function testAddresses(devicesInfo: DeviceInfo[], win: BrowserWindow) {
+  const resultsLocal = await Promise.all(
+    devicesInfo
+      .filter((info) => info.deviceId !== state.thisDeviceId)
+      .map(async (info) => {
+        const localInfo = state.devices.get(info.deviceId)
+        if (!localInfo || !localInfo?.secureServerAddress) return { info, success: false }
+
+        const success = await testLocalAddress(info.deviceId, localInfo.secureServerAddress, win)
+        return { info, success }
+      }),
+  )
+  const resultsDrive = await Promise.all(
+    resultsLocal
+      .filter((result) => !result.success)
+      .map(async ({ info }) => {
+        const addressesFileName = `serveraddresses=:=${info.deviceId}`
+        const response = await drive.files.list({
+          q: `name = '${addressesFileName}' and trashed = false`,
+        })
+        const files = response.data.files
+        if (!files) return
+
+        const fileInfo = files[0]
+        if (!fileInfo || !fileInfo.id) return
+
+        const file = (
+          await drive.files.get(
+            {
+              alt: 'media',
+              fileId: fileInfo.id,
+            },
+            { responseType: 'json' },
+          )
+        ).data
+
+        const localReq = file as LocalNetworkRequest
+        const url = localReq.secureServerAddress
+        const id = localReq.senderId
+        if (!url || !id) return
+
+        const success = await testLocalAddress(id, url, win)
+        return { info, success }
+      }),
+  )
+  await Promise.all(
+    resultsDrive
+      .filter((result) => !!result)
+      .filter((result) => !result?.success)
+      .map(async ({ info }) => {
+        await fcm.projects.messages.send({
+          auth: jwtClient,
+          parent: 'projects/join-external-gcm',
+          requestBody: {
+            message: {
+              token: info.regId2,
+              android: {
+                priority: 'high',
+              },
+              data: {
+                type: 'GCMLocalNetworkTestRequest',
+                json: JSON.stringify({
+                  type: 'GCMLocalNetworkTestRequest',
+                  senderId: state.thisDeviceId,
+                }),
+              },
+            },
+          },
+        })
+      }),
+  )
+}
+
+function ipnumber(ip: string) {
+  const numbers = ip.split('.').map((digits) => +digits)
+  return (numbers[0] << 24) + (numbers[1] << 16) + (numbers[2] << 8) + numbers[3]
+}
+
+function startNetworkInterfaceChecking(win: BrowserWindow) {
+  let previousInterfaces = os.networkInterfaces()
+  setInterval(async () => {
+    const currentInterfaces = os.networkInterfaces()
+
+    const removedInterfaces = Object.entries(previousInterfaces).filter(([key]) => {
+      return !currentInterfaces[key]
+    })
+    for (const [, interfacesInfo] of removedInterfaces) {
+      if (!interfacesInfo) continue
+      interfacesInfo.forEach((info) => {
+        state.devices
+          .entries()
+          .filter(([, { secureServerAddress }]) => {
+            const mask = ipnumber(info.netmask)
+            return (
+              secureServerAddress &&
+              (ipnumber(secureServerAddress) & mask) === (ipnumber(info.address) & mask)
+            )
+          })
+          .forEach(([id, device]) => {
+            delete device?.secureServerAddress
+            win.webContents.send('on-local-network', id, false)
+          })
+      })
+    }
+
+    const newInterfaces = Object.entries(currentInterfaces).filter(([key]) => {
+      return !previousInterfaces[key]
+    })
+    for await (const [, interfacesInfo] of newInterfaces) {
+      if (!interfacesInfo) continue
+      for await (const info of interfacesInfo) {
+        const devicesInfo = await getCachedDevicesInfo()
+        const devicesInInterface = state.devices.entries().filter(([, { secureServerAddress }]) => {
+          const mask = ipnumber(info.netmask)
+          return (
+            secureServerAddress &&
+            (ipnumber(secureServerAddress) & mask) === (ipnumber(info.address) & mask)
+          )
+        })
+
+        const availableDevices = devicesInfo.filter(
+          (device) =>
+            device.deviceId !== state.thisDeviceId &&
+            (device.deviceType === devicesTypes.android_phone ||
+              device.deviceType === devicesTypes.firefox) &&
+            devicesInInterface.some(([id]) => device.deviceId === id),
+        )
+        await testAddresses(availableDevices, win)
+      }
+    }
+
+    if (newInterfaces || removedInterfaces) {
+      await afs.writeFile(devicesFile, JSON.stringify(state.devices, mapReplacer), 'utf-8')
+    }
+    previousInterfaces = currentInterfaces
+  }, 60 * 1000)
 }
 
 function createWindow(tray: Tray) {
@@ -194,82 +336,8 @@ function createWindow(tray: Tray) {
       })
       await afs.writeFile(devicesFile, JSON.stringify(state.devices, mapReplacer), 'utf-8')
 
-      // NOTE: it seems like Android devices use this information to list if we
-      // are in a local network
-      const resultsLocal = await Promise.all(
-        devicesInfo
-          .filter((info) => info.deviceId !== state.thisDeviceId)
-          .map(async (info) => {
-            const localInfo = state.devices.get(info.deviceId)
-            if (!localInfo || !localInfo?.secureServerAddress) return { info, success: false }
-
-            const success = await testLocalAddress(
-              info.deviceId,
-              localInfo.secureServerAddress,
-              win,
-            )
-            return { info, success }
-          }),
-      )
-      const resultsDrive = await Promise.all(
-        resultsLocal
-          .filter((result) => !result.success)
-          .map(async ({ info }) => {
-            const addressesFileName = `serveraddresses=:=${info.deviceId}`
-            const response = await drive.files.list({
-              q: `name = '${addressesFileName}' and trashed = false`,
-            })
-            const files = response.data.files
-            if (!files) return
-
-            const fileInfo = files[0]
-            if (!fileInfo || !fileInfo.id) return
-
-            const file = (
-              await drive.files.get(
-                {
-                  alt: 'media',
-                  fileId: fileInfo.id,
-                },
-                { responseType: 'json' },
-              )
-            ).data
-
-            const localReq = file as LocalNetworkRequest
-            const url = localReq.secureServerAddress
-            const id = localReq.senderId
-            if (!url || !id) return
-
-            const success = await testLocalAddress(id, url, win)
-            return { info, success }
-          }),
-      )
-      await Promise.all(
-        resultsDrive
-          .filter((result) => !!result)
-          .filter((result) => !result?.success)
-          .map(async ({ info }) => {
-            await fcm.projects.messages.send({
-              auth: jwtClient,
-              parent: 'projects/join-external-gcm',
-              requestBody: {
-                message: {
-                  token: info.regId2,
-                  android: {
-                    priority: 'high',
-                  },
-                  data: {
-                    type: 'GCMLocalNetworkTestRequest',
-                    json: JSON.stringify({
-                      type: 'GCMLocalNetworkTestRequest',
-                      senderId: state.thisDeviceId,
-                    }),
-                  },
-                },
-              },
-            })
-          }),
-      )
+      testAddresses(devicesInfo, win)
+      startNetworkInterfaceChecking(win)
     })
   })
   m.on('log-in-with-google', () => {

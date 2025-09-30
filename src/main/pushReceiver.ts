@@ -252,7 +252,7 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
       const id = localReq.senderId
       if (!url || !id) return
 
-      testLocalAddress(id, url, win)
+      await testLocalAddress(id, url, win)
 
       break
     }
@@ -527,8 +527,7 @@ export async function startPushReceiver(win: BrowserWindow, onReady: () => Promi
 
   if (!instance) {
     instance = new PushReceiver({
-      // NOTE: enable debug only in dev mode
-      debug: !!process.env['ELECTRON_RENDERER_URL'],
+      debug: false,
       persistentIds: persistentIds,
       firebase: {
         apiKey: 'AIzaSyBeI64VSoGCs20sXOwRG_kuDirugdScDIk',
