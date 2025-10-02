@@ -79,6 +79,7 @@ function Directory({
 
     if (!foldersInfo) return
     const item = foldersInfo.files[current]
+    if (!item) return
     if (!item.isFolder) {
       setPaths((oldPath) => {
         const newPaths = [...oldPath]
