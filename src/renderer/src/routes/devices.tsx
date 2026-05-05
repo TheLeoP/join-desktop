@@ -21,7 +21,7 @@ import {
 } from '@renderer/util'
 import { useMutation } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { DeviceInfo, Data } from '@preload/types'
 import { toast } from 'sonner'
 

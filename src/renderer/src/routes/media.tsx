@@ -26,25 +26,12 @@ export const Route = createFileRoute('/media')({
   validateSearch: searchSchema,
 })
 
-function Volume({ max, initialValue, type }: { max: number; initialValue: number; type: string }) {
-  const [volume, setVolume] = useState(initialValue)
-  useEffect(() => {
-    setVolume(initialValue)
-  }, [initialValue])
-
+function Volume({ max, volume, type }: { max: number; volume: number; type: string }) {
+  // TODO: check that the same is done everywhere, including the place you modified last commit (updating device name)
+  const [internalVolume, setInternalVolume] = useState<number | null>(null)
   const { regId2, deviceId, onLocalNetwork } = Route.useSearch()
   const { mutate: mediaAction } = useMediaAction(deviceId, regId2, onLocalNetwork)
-  const debouncedMediaAction = useRef<UseMutateFunction<
-    unknown,
-    Error,
-    {
-      action: MediaAction
-    },
-    unknown
-  > | null>(null)
-  if (debouncedMediaAction.current === null) {
-    debouncedMediaAction.current = debounce(mediaAction, 250)
-  }
+  const uiVolume = internalVolume ?? volume
 
   return (
     <div className="flex w-1/3 space-x-1">
@@ -58,15 +45,13 @@ function Volume({ max, initialValue, type }: { max: number; initialValue: number
         type="range"
         min={0}
         max={max}
-        value={volume}
+        value={uiVolume}
         onChange={(e) => {
-          setVolume(+e.target.value)
-          if (!debouncedMediaAction.current) return
-
-          debouncedMediaAction.current({ action: { mediaVolume: e.target.value } })
+          setInternalVolume(+e.target.value)
+          mediaAction({ action: { mediaVolume: e.target.value } })
         }}
       />
-      <span className="m-auto">{volume}</span>
+      <span className="m-auto">{uiVolume}</span>
     </div>
   )
 }
@@ -87,7 +72,7 @@ function RouteComponent() {
     <div className="h-[calc(100vh-45px)] w-full flex-wrap bg-white text-black dark:bg-neutral-800 dark:text-white">
       <div className="flex flex-wrap justify-center space-y-1">
         <Volume
-          initialValue={mediaInfo.extraInfo.mediaVolume}
+          volume={mediaInfo.extraInfo.mediaVolume}
           max={mediaInfo.extraInfo.maxMediaVolume}
           type="media"
         />

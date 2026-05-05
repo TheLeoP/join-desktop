@@ -204,17 +204,18 @@ export function useMediaAction(deviceId: string, regId2: string, onLocalNetwork:
 
       queryClient.setQueryData(['mediaInfo', deviceId, regId2], (old: MediaInfo) => {
         const newValue = { ...old }
+
+        if (action.mediaVolume && action.mediaVolume)
+          newValue.extraInfo.mediaVolume = +action.mediaVolume
+
         const currentInfo = newValue.mediaInfosForClients.find(
           (info) => info.packageName === action.mediaAppPackage,
         )
         if (!currentInfo) return newValue
 
         currentInfo.date = Date.now()
-        if (action.play) {
-          currentInfo.playing = true
-        } else if (action.pause) {
-          currentInfo.playing = false
-        }
+        if (action.play) currentInfo.playing = true
+        if (action.pause) currentInfo.playing = false
         return newValue
       })
 

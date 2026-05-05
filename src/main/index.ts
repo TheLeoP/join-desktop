@@ -17,6 +17,7 @@ import type {
   SmsResponse,
   Settings,
   DeviceInfo,
+  NotificationMediaInfo,
 } from '../preload/types'
 import {
   createPopup,
@@ -224,6 +225,47 @@ function startNetworkInterfaceChecking(win: BrowserWindow) {
     }
     previousInterfaces = currentInterfaces
   }, 60 * 1000)
+}
+
+async function getMediaInfo(
+  device: { secureServerAddress?: string },
+  deviceId: string,
+  regId2: string,
+) {
+  const url = device.secureServerAddress
+  const token = await oauth2Client.getAccessToken()
+  const req = https.request(`${url}media?token=${token.token}`, {
+    rejectUnauthorized: false,
+    insecureHTTPParser: true,
+  })
+  req.end()
+  return new Promise<MediaInfo>((res, rej) => {
+    req.on('response', (resp) => {
+      resp.setEncoding('utf8')
+      const body: string[] = []
+      resp.on('data', (data) => {
+        body.push(data)
+      })
+      resp.on('end', () => {
+        const data = body.join('')
+        let parsedData: GenericResponse
+        try {
+          parsedData = JSON.parse(data) as GenericResponse
+        } catch (e) {
+          return rej(e)
+        }
+        if (!parsedData.success) return rej(parsedData.errorMessage)
+        const mediaInfo = parsedData.payload as MediaInfo
+        res(mediaInfo)
+      })
+    })
+    req.on('error', async (err: NodeJS.ErrnoException) => {
+      if (err.code !== 'ECONNRESET' && err.code !== 'ECONNREFUSED') return rej(err)
+      delete device.secureServerAddress
+      const mediaInfo = await getMediaInfoNonLocal(deviceId, regId2)
+      res(mediaInfo)
+    })
+  })
 }
 
 function createWindow(tray: Tray) {
@@ -527,45 +569,21 @@ app.whenReady().then(() => {
   })
   m.handle('get-access-token', async () => (await oauth2Client.getAccessToken()).token)
   m.handle('media', async (_, deviceId, regId2) => {
-    const device = state.devices.get(deviceId)
-    if (device && device.secureServerAddress) {
-      const url = device.secureServerAddress
-      const token = await oauth2Client.getAccessToken()
-      const req = https.request(`${url}media?token=${token.token}`, {
-        rejectUnauthorized: false,
-        insecureHTTPParser: true,
-      })
-      req.end()
-      return new Promise<MediaInfo>((res, rej) => {
-        req.on('response', (resp) => {
-          resp.setEncoding('utf8')
-          const body: string[] = []
-          resp.on('data', (data) => {
-            body.push(data)
-          })
-          resp.on('end', () => {
-            const data = body.join('')
-            let parsedData: GenericResponse
-            try {
-              parsedData = JSON.parse(data) as GenericResponse
-            } catch (e) {
-              return rej(e)
-            }
-            if (!parsedData.success) return rej(parsedData.errorMessage)
-            const mediaInfo = parsedData.payload as MediaInfo
-            res(mediaInfo)
-          })
-        })
-        req.on('error', async (err: NodeJS.ErrnoException) => {
-          if (err.code !== 'ECONNRESET' && err.code !== 'ECONNREFUSED') return rej(err)
-          delete device.secureServerAddress
-          const mediaInfo = await getMediaInfoNonLocal(deviceId, regId2)
-          res(mediaInfo)
-        })
-      })
-    } else {
-      return await getMediaInfoNonLocal(deviceId, regId2)
+    const cache = state.cachedMediaInfo.get(deviceId)
+    if (cache && cache.valid) {
+      cache.valid = false
+      return cache.mediaInfo
     }
+
+    let mediaInfo: MediaInfo
+    const device = state.devices.get(deviceId)
+    if (!device || !device.secureServerAddress) {
+      mediaInfo = await getMediaInfoNonLocal(deviceId, regId2)
+    } else {
+      mediaInfo = await getMediaInfo(device, deviceId, regId2)
+    }
+    state.cachedMediaInfo.set(deviceId, { mediaInfo, valid: false })
+    return mediaInfo
   })
   m.handle('folders', async (_, deviceId, regId2, path) => {
     const device = state.devices.get(deviceId)

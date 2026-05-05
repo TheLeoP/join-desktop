@@ -1,5 +1,5 @@
 import { BrowserWindow } from 'electron'
-import type { Settings } from '../preload/types'
+import type { MediaInfo, Settings } from '../preload/types'
 import type { Credentials } from '@theleop/push-receiver/dist/types'
 
 export const state: {
@@ -9,6 +9,7 @@ export const state: {
   credentials: Credentials | null
   address: string | null
   win: BrowserWindow | null
+  cachedMediaInfo: Map<string, { mediaInfo: MediaInfo; valid: boolean }>
 } = {
   devices: new Map(),
   settings: {
@@ -41,4 +42,5 @@ p
   credentials: null,
   address: null,
   win: null,
+  cachedMediaInfo: new Map(),
 }

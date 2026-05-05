@@ -41,23 +41,25 @@ export type DeviceInfo = {
   hasTasker: boolean
 }
 
+export type MediaClientInfo = {
+  appIcon: string
+  appName: string
+  artist: string
+  date: number
+  packageName: string
+  playing: boolean
+  track: string
+
+  art?: string
+  album?: string
+}
+
 export type MediaInfo = {
   extraInfo: {
     maxMediaVolume: number
     mediaVolume: number
   }
-  mediaInfosForClients: {
-    appIcon: string
-    appName: string
-    artist: string
-    date: number
-    packageName: string
-    playing: boolean
-    track: string
-
-    art?: string
-    album?: string
-  }[]
+  mediaInfosForClients: MediaClientInfo[]
 }
 
 export type PushType =

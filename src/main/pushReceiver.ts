@@ -20,6 +20,7 @@ import type {
   NewSmsReceived,
   JoinNotificationWrapper,
   NotificationMediaInfo,
+  MediaClientInfo,
 } from '../preload/types'
 import {
   scriptsDir,
@@ -442,6 +443,24 @@ export async function handleGcm(data: JoinData, win: BrowserWindow) {
     }
     case 'GCMMediaInfo': {
       const info = content as NotificationMediaInfo
+      const cache = state.cachedMediaInfo.get(info.senderId)
+      if (!cache) return
+
+      cache.mediaInfo.extraInfo.maxMediaVolume = info.maxMediaVolume
+      cache.mediaInfo.extraInfo.mediaVolume = info.mediaVolume
+      const client =
+        cache.mediaInfo.mediaInfosForClients.find((m) => m.packageName == info.packageName) ??
+        ({} as MediaClientInfo)
+      client.appIcon = info.appIcon
+      client.appName = info.appName
+      client.artist = info.artist
+      client.date = info.date
+      client.packageName = info.packageName
+      client.playing = info.playing
+      client.track = info.track
+      client.art = info.art
+      cache.valid = true
+      state.cachedMediaInfo.set(info.senderId, cache)
       win.webContents.send('on-media-info', info)
       break
     }
