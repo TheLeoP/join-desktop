@@ -96,16 +96,16 @@ export async function selectDevice(
   const devicesInfo = await getCachedDevicesInfo()
 
   win.show()
-  return new Promise<DeviceInfo | undefined>((res) => {
+  return new Promise<[DeviceInfo, string] | []>((res) => {
     const onSelected = (_: Electron.IpcMainEvent, device: DeviceInfo) => {
-      res(device)
+      res([device, clipboard.readText()])
       win.hide()
       m.off('pop-up-selected', onSelected)
       m.off('pop-up-close', onClose)
     }
     m.on('pop-up-selected', onSelected)
     const onClose = (_: Electron.IpcMainEvent) => {
-      res(undefined)
+      res([])
       win.hide()
       m.off('pop-up-selected', onSelected)
       m.off('pop-up-close', onClose)
@@ -541,33 +541,46 @@ export async function requestLocalNetworkTest(deviceId: string, regId2: string) 
 
 export const actions: Record<string, (popupWin: BrowserWindow) => Promise<void>> = {
   copy: async (popupWin: BrowserWindow) => {
-    const device = await selectDevice(popupWin)
+    const res = await selectDevice(popupWin)
+    if (!res) return
+    const [device] = res
     if (!device) return
 
     getClipboard(device.deviceId, device.regId2)
   },
   paste: async (popupWin: BrowserWindow) => {
-    const device = await selectDevice(popupWin)
-    if (!device) return
-    setClipboard(device.deviceId, device.regId2, clipboard.readText())
+    const res = await selectDevice(popupWin)
+    if (!res) return
+    const [device, clipboardText] = res
+    if (!device || !clipboardText) return
+
+    setClipboard(device.deviceId, device.regId2, clipboardText)
   },
   'open url': async (popupWin: BrowserWindow) => {
-    const device = await selectDevice(popupWin)
-    if (!device) return
-    openUrl(device.deviceId, device.regId2, clipboard.readText())
+    const res = await selectDevice(popupWin)
+    if (!res) return
+    const [device, clipboardText] = res
+    if (!device || !clipboardText) return
+
+    openUrl(device.deviceId, device.regId2, clipboardText)
   },
   call: async (popupWin: BrowserWindow) => {
-    const device = await selectDevice(
+    const res = await selectDevice(
       popupWin,
       (device) =>
         device.deviceType === devicesTypes.android_phone ||
         device.deviceType === devicesTypes.android_tablet,
     )
-    if (!device) return
-    call(device.deviceId, device.regId2, clipboard.readText())
+    if (!res) return
+    const [device, clipboardText] = res
+    if (!device || !clipboardText) return
+
+    call(device.deviceId, device.regId2, clipboardText)
   },
   'send file': async (popupWin: BrowserWindow) => {
-    const device = await selectDevice(popupWin)
+    const res = await selectDevice(popupWin)
+    if (!res) return
+    const [device] = res
     if (!device) return
     const selected = await dialog.showOpenDialog(popupWin, {
       properties: ['openFile', 'multiSelections', 'showHiddenFiles', 'dontAddToRecent'],
@@ -577,12 +590,16 @@ export const actions: Record<string, (popupWin: BrowserWindow) => Promise<void>>
     selected.filePaths.forEach((path) => sendFile(device.deviceId, device.regId2, path))
   },
   ring: async (popupWin: BrowserWindow) => {
-    const device = await selectDevice(popupWin)
+    const res = await selectDevice(popupWin)
+    if (!res) return
+    const [device] = res
     if (!device) return
     ring(device.deviceId, device.regId2)
   },
   locate: async (popupWin: BrowserWindow) => {
-    const device = await selectDevice(popupWin)
+    const res = await selectDevice(popupWin)
+    if (!res) return
+    const [device] = res
     if (!device) return
     locate(device.deviceId, device.regId2)
   },
@@ -593,34 +610,40 @@ export const actions: Record<string, (popupWin: BrowserWindow) => Promise<void>>
     else state.win.show()
   },
   'play/pause': async (popupWin: BrowserWindow) => {
-    const device = await selectDevice(
+    const res = await selectDevice(
       popupWin,
       (device) =>
         device.deviceType === devicesTypes.android_phone ||
         device.deviceType === devicesTypes.android_tablet,
     )
+    if (!res) return
+    const [device] = res
     if (!device) return
 
     playPause(device.deviceId, device.regId2)
   },
   next: async (popupWin: BrowserWindow) => {
-    const device = await selectDevice(
+    const res = await selectDevice(
       popupWin,
       (device) =>
         device.deviceType === devicesTypes.android_phone ||
         device.deviceType === devicesTypes.android_tablet,
     )
+    if (!res) return
+    const [device] = res
     if (!device) return
 
     next(device.deviceId, device.regId2)
   },
   back: async (popupWin: BrowserWindow) => {
-    const device = await selectDevice(
+    const res = await selectDevice(
       popupWin,
       (device) =>
         device.deviceType === devicesTypes.android_phone ||
         device.deviceType === devicesTypes.android_tablet,
     )
+    if (!res) return
+    const [device] = res
     if (!device) return
 
     back(device.deviceId, device.regId2)
