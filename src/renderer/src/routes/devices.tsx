@@ -246,7 +246,7 @@ function RouteComponent() {
   return (
     <div className="flex h-[calc(100vh-45px)] w-full flex-wrap justify-center space-x-1 bg-white p-2 text-black dark:bg-neutral-800 dark:text-white">
       {devices.records.map((device) => (
-        <Device key={device.id} {...device} thisDeviceId={deviceId} />
+        <Device key={device.id + device.deviceName} {...device} thisDeviceId={deviceId} />
       ))}
     </div>
   )
