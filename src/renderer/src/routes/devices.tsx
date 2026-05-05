@@ -40,7 +40,7 @@ function Device({
   deviceName,
 }: DeviceInfo & { thisDeviceId: string | null }) {
   const onLocalNetwork = useOnLocalNetwork(deviceId)
-  const [name, setName] = useState(deviceName)
+  const [internalName, setInternalName] = useState<string | null>(null)
 
   const nameInput = useRef<HTMLInputElement | null>(null)
 
@@ -137,7 +137,8 @@ function Device({
         className="flex items-center space-x-1"
         onSubmit={(e) => {
           e.preventDefault()
-          renameDevice({ deviceId, name })
+          if (!internalName) return
+          renameDevice({ deviceId, name: internalName })
 
           if (nameInput.current) nameInput.current.blur()
         }}
@@ -146,9 +147,9 @@ function Device({
           <input
             ref={nameInput}
             type="text"
-            value={name}
+            value={internalName ?? deviceName}
             onChange={(e) => {
-              setName(e.target.value)
+              setInternalName(e.target.value)
             }}
             className="w-3/4 appearance-none border px-2 py-2 leading-tight shadow focus:outline-none"
           />
@@ -246,7 +247,7 @@ function RouteComponent() {
   return (
     <div className="flex h-[calc(100vh-45px)] w-full flex-wrap justify-center space-x-1 bg-white p-2 text-black dark:bg-neutral-800 dark:text-white">
       {devices.records.map((device) => (
-        <Device key={device.id + device.deviceName} {...device} thisDeviceId={deviceId} />
+        <Device key={device.id} {...device} thisDeviceId={deviceId} />
       ))}
     </div>
   )
