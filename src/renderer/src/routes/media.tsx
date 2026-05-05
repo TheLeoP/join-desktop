@@ -1,10 +1,9 @@
 import { mediaQueryOptions, queryClient, useMedia, useMediaAction } from '@renderer/util'
 import { UseMutateFunction } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { zodValidator } from '@tanstack/zod-adapter'
 import debounce from 'lodash.debounce'
 import { useState, useRef, useEffect } from 'react'
-import { MediaAction } from 'src/preload/types'
+import { MediaAction } from '@preload/types'
 import { z } from 'zod'
 import * as svg from '@renderer/svgs'
 
@@ -24,7 +23,7 @@ export const Route = createFileRoute('/media')({
   loader: async ({ deps: { regId2, deviceId, onLocalNetwork } }) => {
     queryClient.ensureQueryData(mediaQueryOptions(deviceId, regId2, onLocalNetwork))
   },
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: searchSchema,
 })
 
 function Volume({ max, initialValue, type }: { max: number; initialValue: number; type: string }) {

@@ -8,7 +8,7 @@ import type {
   SmsInfo,
   Data,
   Settings,
-} from 'src/preload/types'
+} from '@preload/types'
 import { persistQueryClient } from '@tanstack/react-query-persist-client'
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 

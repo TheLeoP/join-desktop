@@ -22,7 +22,7 @@ import {
 import { useMutation } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
-import type { DeviceInfo, Data } from 'src/preload/types'
+import type { DeviceInfo, Data } from '@preload/types'
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/devices')({

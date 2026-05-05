@@ -2,11 +2,10 @@ import { contactsQueryOptions, queryClient } from '@renderer/util'
 import { queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
-import { zodValidator } from '@tanstack/zod-adapter'
 import { PhotoOrChar } from '@renderer/components'
 import { useEffect, useRef, useState } from 'react'
 import * as svg from '@renderer/svgs'
-import type { SmsInfo } from 'src/preload/types'
+import type { SmsInfo } from '@preload/types'
 import Linkify from 'linkify-react'
 
 const searchSchema = z.object({
@@ -35,7 +34,7 @@ export const Route = createFileRoute('/smsChat')({
     queryClient.ensureQueryData(smsChatOptions(deviceId, regId2, address, onLocalNetwork))
     await queryClient.ensureQueryData(contactsQueryOptions(deviceId, regId2, onLocalNetwork))
   },
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: searchSchema,
 })
 
 function smsChatOptions(

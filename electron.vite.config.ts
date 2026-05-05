@@ -1,13 +1,13 @@
 import { resolve } from 'path'
-import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
+import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
+import { tanstackRouter } from '@tanstack/router-plugin/vite'
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
     build: {
+      externalizeDeps: {},
       rollupOptions: {
         output: {
           format: 'es',
@@ -16,26 +16,24 @@ export default defineConfig({
     },
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
+    build: {
+      externalizeDeps: {},
+    },
   },
   renderer: {
     build: {
       rollupOptions: {
         input: {
-          index: resolve(__dirname, 'src/renderer/index.html'),
-          popup: resolve(__dirname, 'src/renderer/popup.html'),
+          index: resolve(__dirname, './src/renderer/index.html'),
+          popup: resolve(__dirname, './src/renderer/popup.html'),
         },
       },
     },
     resolve: {
       alias: {
-        '@renderer': resolve('src/renderer/src'),
+        '@renderer': resolve('./src/renderer/src'),
       },
     },
-    plugins: [
-      TanStackRouterVite({ target: 'react', autoCodeSplitting: true }),
-      react(),
-      tailwindcss(),
-    ],
+    plugins: [tanstackRouter({ target: 'react', autoCodeSplitting: true }), react(), tailwindcss()],
   },
 })

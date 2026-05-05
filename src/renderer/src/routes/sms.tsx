@@ -6,7 +6,6 @@ import {
   useSms,
 } from '@renderer/util'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { zodValidator } from '@tanstack/zod-adapter'
 import { z } from 'zod'
 
 const searchSchema = z.object({
@@ -26,7 +25,7 @@ export const Route = createFileRoute('/sms')({
     queryClient.ensureQueryData(contactsQueryOptions(deviceId, regId2, onLocalNetwork))
     queryClient.ensureQueryData(smsQueryOptions(deviceId, regId2, onLocalNetwork))
   },
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: searchSchema,
 })
 
 function RouteComponent() {

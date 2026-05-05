@@ -9,7 +9,7 @@ import {
   settingsContext,
   shortcutsContext,
 } from './util'
-import type { Settings, SmsInfo, DeviceInfo, Data, MediaInfo } from 'src/preload/types'
+import type { Settings, SmsInfo, DeviceInfo, Data, MediaInfo } from '@preload/types'
 import { toast } from 'sonner'
 
 export function JoinProvider({ children }: { children: ReactNode }) {

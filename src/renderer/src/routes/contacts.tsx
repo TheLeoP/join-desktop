@@ -2,7 +2,6 @@ import { contactsQueryOptions, queryClient, useContacts } from '@renderer/util'
 import * as svg from '@renderer/svgs'
 import { createFileRoute } from '@tanstack/react-router'
 import { PhotoOrChar } from '@renderer/components'
-import { zodValidator } from '@tanstack/zod-adapter'
 import { z } from 'zod'
 
 const searchSchema = z.object({
@@ -21,7 +20,7 @@ export const Route = createFileRoute('/contacts')({
   loader: async ({ deps: { regId2, deviceId, onLocalNetwork } }) => {
     queryClient.ensureQueryData(contactsQueryOptions(deviceId, regId2, onLocalNetwork))
   },
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: searchSchema,
 })
 
 function RouteComponent() {

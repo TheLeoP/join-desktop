@@ -6,9 +6,8 @@ import { atom, useAtom, useSetAtom } from 'jotai'
 import { useEffect, useState, useRef, CSSProperties, useLayoutEffect } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useDebounce } from 'use-debounce'
-import { zodValidator } from '@tanstack/zod-adapter'
 import { z } from 'zod'
-import type { FolderInfo } from 'src/preload/types'
+import type { FolderInfo } from '@preload/types'
 import { toast } from 'sonner'
 
 const searchSchema = z.object({
@@ -27,7 +26,7 @@ export const Route = createFileRoute('/files')({
   loader: async ({ deps: { regId2, deviceId, onLocalNetwork } }) => {
     queryClient.ensureQueryData(remotePathQueryOptions(deviceId, regId2, '/', onLocalNetwork))
   },
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: searchSchema,
 })
 
 function remotePathQueryOptions(

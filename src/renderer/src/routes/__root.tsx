@@ -11,18 +11,17 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-import { zodValidator } from '@tanstack/zod-adapter'
 import { useEffect } from 'react'
 import { z } from 'zod'
 
 const searchSchema = z.object({
-  deviceId: z.string().optional(),
+    deviceId: z.string().optional(),
 })
 
 export const Route = createRootRoute({
   component: Root,
   errorComponent: ErrorComponent,
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: searchSchema,
 })
 
 function CurrentDevice() {

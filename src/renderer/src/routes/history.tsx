@@ -1,6 +1,5 @@
 import { historyOptions, queryClient, useHistory } from '@renderer/util'
 import { createFileRoute } from '@tanstack/react-router'
-import { zodValidator } from '@tanstack/zod-adapter'
 import { useRef, useEffect } from 'react'
 import { z } from 'zod'
 
@@ -14,7 +13,7 @@ export const Route = createFileRoute('/history')({
   loader: async ({ deps: { deviceId } }) => {
     queryClient.ensureQueryData(historyOptions(deviceId))
   },
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: searchSchema,
 })
 
 function RouteComponent() {
