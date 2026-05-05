@@ -41,9 +41,6 @@ function Device({
 }: DeviceInfo & { thisDeviceId: string | null }) {
   const onLocalNetwork = useOnLocalNetwork(deviceId)
   const [name, setName] = useState(deviceName)
-  useEffect(() => {
-    setName(deviceName)
-  }, [deviceName])
 
   const nameInput = useRef<HTMLInputElement | null>(null)
 
