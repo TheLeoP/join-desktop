@@ -17,7 +17,6 @@ import type {
   SmsResponse,
   Settings,
   DeviceInfo,
-  NotificationMediaInfo,
 } from '../preload/types'
 import {
   createPopup,

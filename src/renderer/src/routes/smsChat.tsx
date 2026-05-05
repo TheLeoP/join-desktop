@@ -149,7 +149,7 @@ function RouteComponent() {
               <div className="max-w-5/7">
                 <div
                   data-received={message.received ? true : undefined}
-                  className="rounded-md bg-orange-100 p-2 text-xl break-words whitespace-pre-line data-received:bg-orange-200"
+                  className="rounded-md bg-orange-100 p-2 text-xl wrap-break-word whitespace-pre-line data-received:bg-orange-200"
                 >
                   <Linkify
                     options={{

@@ -1,9 +1,6 @@
 import { mediaQueryOptions, queryClient, useMedia, useMediaAction } from '@renderer/util'
-import { UseMutateFunction } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import debounce from 'lodash.debounce'
-import { useState, useRef, useEffect } from 'react'
-import { MediaAction } from '@preload/types'
+import { useState } from 'react'
 import { z } from 'zod'
 import * as svg from '@renderer/svgs'
 
@@ -27,7 +24,6 @@ export const Route = createFileRoute('/media')({
 })
 
 function Volume({ max, volume, type }: { max: number; volume: number; type: string }) {
-  // TODO: check that the same is done everywhere, including the place you modified last commit (updating device name)
   const [internalVolume, setInternalVolume] = useState<number | null>(null)
   const { regId2, deviceId, onLocalNetwork } = Route.useSearch()
   const { mutate: mediaAction } = useMediaAction(deviceId, regId2, onLocalNetwork)
