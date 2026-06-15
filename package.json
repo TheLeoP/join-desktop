@@ -37,7 +37,7 @@
     "@tanstack/react-query-persist-client": "^5.100.9",
     "@tanstack/react-router": "^1.169.1",
     "@tanstack/react-virtual": "^3.13.24",
-    "@theleop/push-receiver": "^4.5.0",
+    "@theleop/push-receiver": "4.6",
     "@types/auto-launch": "^5.0.5",
     "auto-launch": "^5.0.6",
     "class-variance-authority": "^0.7.1",
